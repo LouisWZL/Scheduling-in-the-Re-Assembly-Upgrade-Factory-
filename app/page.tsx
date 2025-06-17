@@ -8,7 +8,7 @@ export default function Home() {
     <div className="flex h-screen flex-col [--header-height:calc(theme(spacing.14))]">
       <SidebarProvider className="flex h-full flex-col">
         <SiteHeader />
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden [&_[data-slot=sidebar]]:h-full">
           <SidebarLeft />
           <SidebarInset className="overflow-auto">
             <div className="flex flex-1 flex-col gap-4 p-4">
