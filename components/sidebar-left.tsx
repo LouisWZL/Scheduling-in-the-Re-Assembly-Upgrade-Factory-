@@ -9,6 +9,10 @@ import {
   ChevronRight,
 } from "lucide-react"
 import {
+  IconCircleCheckFilled,
+  IconLoader,
+} from "@tabler/icons-react"
+import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
@@ -75,17 +79,17 @@ function PaginatedTable({
                       {item.header}
                     </span>
                   </TableCell>
-                  <TableCell className="py-2 px-3 text-right">
-                    <Badge 
-                      variant={item.status === "Done" ? "default" : "secondary"}
-                      className={
-                        item.status === "Done" 
-                          ? "bg-green-100 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400" 
-                          : "bg-amber-100 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400"
-                      }
-                    >
-                      {item.status === "Done" ? "Erledigt" : "In Arbeit"}
-                    </Badge>
+                  <TableCell className="py-2 px-3">
+                    <div className="flex justify-end">
+                      <Badge variant="outline" className="text-muted-foreground px-1.5 inline-flex items-center gap-1">
+                        {item.status === "Done" ? (
+                          <IconCircleCheckFilled className="h-3.5 w-3.5 fill-green-500 dark:fill-green-400" />
+                        ) : (
+                          <IconLoader className="h-3.5 w-3.5" />
+                        )}
+                        <span className="text-xs">{item.status}</span>
+                      </Badge>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
