@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Plus } from "lucide-react"
+import { Plus, TrendingUp, BarChart3, Activity } from "lucide-react"
 
 import { Calendars } from "@/components/calendars"
 import { DatePicker } from "@/components/date-picker"
@@ -14,6 +14,9 @@ import {
   SidebarMenuItem,
   SidebarRail,
   SidebarSeparator,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
 } from "@/components/ui/sidebar"
 import { ChartBarHorizontal } from "./chart-bar-horizontal"
 import { ChartAreaStacked } from "./chart-area-stacked"
@@ -52,14 +55,39 @@ export function SidebarRight({
       style={{ "--sidebar-width": "20rem" } as React.CSSProperties}
       {...props}
     >
-      {/* <SidebarHeader className="border-sidebar-border h-16 border-b">
-        <NavUser user={data.user} />
-      </SidebarHeader> */}
-      <SidebarContent>
-        <SidebarSeparator className="mx-0" />
-        <ChartPieDonutText></ChartPieDonutText>
-        <ChartBarHorizontal></ChartBarHorizontal>
-        <ChartAreaStacked></ChartAreaStacked>
+      <SidebarHeader className="border-b px-4 py-3">
+        <h2 className="text-sm font-semibold">KPIs</h2>
+      </SidebarHeader>
+      <SidebarContent className="gap-2 py-2">
+        <SidebarGroup className="px-3 py-2">
+          <SidebarGroupLabel className="flex items-center gap-2 text-xs font-medium text-muted-foreground px-2 mb-2">
+            <TrendingUp className="h-4 w-4" />
+            <span>Visitor Distribution</span>
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <ChartPieDonutText />
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup className="px-3 py-2">
+          <SidebarGroupLabel className="flex items-center gap-2 text-xs font-medium text-muted-foreground px-2 mb-2">
+            <BarChart3 className="h-4 w-4" />
+            <span>Monthly Performance</span>
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <ChartBarHorizontal />
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup className="px-3 py-2">
+          <SidebarGroupLabel className="flex items-center gap-2 text-xs font-medium text-muted-foreground px-2 mb-2">
+            <Activity className="h-4 w-4" />
+            <span>Trend Analysis</span>
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <ChartAreaStacked />
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
       {/* <SidebarFooter>
         <SidebarMenu>
