@@ -7,6 +7,7 @@ import {
   CalendarCheck,
   ChevronLeft,
   ChevronRight,
+  ArrowDown,
 } from "lucide-react"
 import {
   IconCircleCheckFilled,
@@ -158,17 +159,31 @@ export function SidebarLeft({
       <SidebarHeader className="border-b px-4 py-3">
         <h2 className="text-sm font-semibold">Auftragsübersicht</h2>
       </SidebarHeader>
-      <SidebarContent className="gap-2 py-2">
+      <SidebarContent className="gap-0 py-2">
         <PaginatedTable
           title="Erstkontakt"
           icon={<Phone className="h-4 w-4" />}
           data={erstkontaktData}
         />
+        
+        <div className="flex justify-center py-2">
+          <div className="flex flex-col items-center">
+            <ArrowDown className="h-5 w-5 text-muted-foreground animate-pulse" />
+          </div>
+        </div>
+        
         <PaginatedTable
           title="Grobterminierung"
           icon={<Calendar className="h-4 w-4" />}
           data={grobterminierungData}
         />
+        
+        <div className="flex justify-center py-2">
+          <div className="flex flex-col items-center">
+            <ArrowDown className="h-5 w-5 text-muted-foreground animate-pulse" />
+          </div>
+        </div>
+        
         <PaginatedTable
           title="Feinterminierung"
           icon={<CalendarCheck className="h-4 w-4" />}
