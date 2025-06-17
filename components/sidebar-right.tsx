@@ -15,6 +15,7 @@ import {
   SidebarRail,
   SidebarSeparator,
 } from "@/components/ui/sidebar"
+import { ChartBarHorizontal } from "./chart-bar-horizontal"
 
 // This is sample data.
 const data = {
@@ -46,6 +47,7 @@ export function SidebarRight({
     <Sidebar
       collapsible="none"
       className="sticky top-0 hidden h-svh border-l lg:flex"
+      style={{ "--sidebar-width": "20rem" } as React.CSSProperties}
       {...props}
     >
       <SidebarHeader className="border-sidebar-border h-16 border-b">
@@ -55,6 +57,7 @@ export function SidebarRight({
         <DatePicker />
         <SidebarSeparator className="mx-0" />
         <Calendars calendars={data.calendars} />
+        <ChartBarHorizontal></ChartBarHorizontal>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
