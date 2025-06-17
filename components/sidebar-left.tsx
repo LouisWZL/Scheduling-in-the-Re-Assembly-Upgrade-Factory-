@@ -25,6 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import data from "@/app/data.json"
 
 interface TableData {
@@ -52,64 +53,67 @@ function PaginatedTable({
   )
 
   return (
-    <SidebarGroup>
-      <SidebarGroupLabel className="flex items-center gap-2">
+    <SidebarGroup className="px-3 py-2">
+      <SidebarGroupLabel className="flex items-center gap-2 text-xs font-medium text-muted-foreground px-2 mb-2">
         {icon}
-        {title}
+        <span>{title}</span>
       </SidebarGroupLabel>
       <SidebarGroupContent>
-        <div className="rounded-md border overflow-hidden">
+        <div className="rounded-lg border bg-card overflow-hidden">
           <Table className="table-fixed">
             <TableHeader>
-              <TableRow>
-                <TableHead className="w-[65%]">Aufgabe</TableHead>
-                <TableHead className="w-[35%] text-right">Status</TableHead>
+              <TableRow className="hover:bg-transparent border-b">
+                <TableHead className="w-[65%] h-9 text-xs font-medium text-muted-foreground">Aufgabe</TableHead>
+                <TableHead className="w-[35%] h-9 text-right text-xs font-medium text-muted-foreground">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedData.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium max-w-[180px] truncate" title={item.header}>
-                    {item.header}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                        item.status === "Done"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-yellow-100 text-yellow-700"
-                      }`}
-                    >
-                      {item.status}
+                <TableRow key={item.id} className="border-b last:border-0 hover:bg-muted/50">
+                  <TableCell className="py-2 px-3" title={item.header}>
+                    <span className="text-sm truncate block max-w-[180px]">
+                      {item.header}
                     </span>
+                  </TableCell>
+                  <TableCell className="py-2 px-3 text-right">
+                    <Badge 
+                      variant={item.status === "Done" ? "default" : "secondary"}
+                      className={
+                        item.status === "Done" 
+                          ? "bg-green-100 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400" 
+                          : "bg-amber-100 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400"
+                      }
+                    >
+                      {item.status === "Done" ? "Erledigt" : "In Arbeit"}
+                    </Badge>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
-        <div className="flex items-center justify-between px-2 py-2">
+        <div className="flex items-center justify-between px-2 pt-2">
           <span className="text-xs text-muted-foreground">
             Seite {currentPage} von {totalPages}
           </span>
           <div className="flex gap-1">
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
-              className="h-7 w-7"
+              className="h-7 w-7 hover:bg-muted"
               onClick={() => setCurrentPage(currentPage - 1)}
               disabled={currentPage === 1}
             >
-              <ChevronLeft className="h-3 w-3" />
+              <ChevronLeft className="h-3.5 w-3.5" />
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
-              className="h-7 w-7"
+              className="h-7 w-7 hover:bg-muted"
               onClick={() => setCurrentPage(currentPage + 1)}
               disabled={currentPage === totalPages}
             >
-              <ChevronRight className="h-3 w-3" />
+              <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
@@ -147,10 +151,10 @@ export function SidebarLeft({
       style={{ "--sidebar-width": "20rem" } as React.CSSProperties}
       {...props}
     >
-      <SidebarHeader>
-        <h2 className="text-lg font-semibold px-2">Auftragsübersicht</h2>
+      <SidebarHeader className="border-b px-4 py-3">
+        <h2 className="text-sm font-semibold">Auftragsübersicht</h2>
       </SidebarHeader>
-      <SidebarContent className="gap-0">
+      <SidebarContent className="gap-2 py-2">
         <PaginatedTable
           title="Erstkontakt"
           icon={<Phone className="h-4 w-4" />}
