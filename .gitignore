@@ -42,5 +42,6 @@ next-env.d.ts
 
 # AI
 CLAUDE.md
+/dashboard with header example
 
 /lib/generated/prisma
