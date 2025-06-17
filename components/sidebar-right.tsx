@@ -16,6 +16,8 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { ChartBarHorizontal } from "./chart-bar-horizontal"
+import { ChartAreaStacked } from "./chart-area-stacked"
+import { ChartPieDonutText } from "./chart-pie-donut-text"
 
 // This is sample data.
 const data = {
@@ -50,16 +52,16 @@ export function SidebarRight({
       style={{ "--sidebar-width": "20rem" } as React.CSSProperties}
       {...props}
     >
-      <SidebarHeader className="border-sidebar-border h-16 border-b">
+      {/* <SidebarHeader className="border-sidebar-border h-16 border-b">
         <NavUser user={data.user} />
-      </SidebarHeader>
+      </SidebarHeader> */}
       <SidebarContent>
-        <DatePicker />
         <SidebarSeparator className="mx-0" />
-        <Calendars calendars={data.calendars} />
+        <ChartPieDonutText></ChartPieDonutText>
         <ChartBarHorizontal></ChartBarHorizontal>
+        <ChartAreaStacked></ChartAreaStacked>
       </SidebarContent>
-      <SidebarFooter>
+      {/* <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton>
@@ -68,7 +70,7 @@ export function SidebarRight({
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-      </SidebarFooter>
+      </SidebarFooter> */}
     </Sidebar>
   )
 }
