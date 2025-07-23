@@ -27,11 +27,6 @@ enum AuftragsPhase {
   ABGESCHLOSSEN
 }
 
-// Enum für Baugruppen-Herkunft
-enum Beschaffungsart {
-  EXTERN
-  INTERN
-}
 
 // Enum für Upgrade-Typen
 enum UpgradeTyp {
@@ -56,71 +51,24 @@ enum ZustandsTyp {
   DEFEKT
 }
 
-// Enum für Beschaffungsstatus
-enum BeschaffungsStatus {
-  GEPLANT
-  BESTELLT
-  GELIEFERT
-  EINGELAGERT
+enum Baugruppenart {
+  basic
+  premium
+  basicAndPremium
 }
+
 
 // Reassembly Factory
 model ReassemblyFactory {
   id                    String              @id @default(cuid())
   name                  String
   kapazität             Int                 // Begrenzt wie viele Produkte gleichzeitig in der Halle sein können
-  lagerbestaende        Lagerbestand[]      // Lagerbestände der Baugruppen
-  beschaffungen         Beschaffung[]       // Geplante und laufende Beschaffungen
   auftraege             Auftrag[]
-  stationen             Station[]           // Montagestationen
-  produktvorlagen       Produkt[]           // Produkte der Reassembly Factory
+  produkte              Produkt[]           // Produkte der Reassembly Factory
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
 }
 
-// Lagerbestand: Welche Baugruppe sind in welcher Menge verfügbar
-  // 1. Beziehungen:
-  //   - Verknüpft eine Baugruppe mit einer ReassemblyFactory
-  //   - Speichert die verfügbare menge dieser Baugruppe in der Factory
-  // 2. Unique Constraint:
-  //   - @@unique([baugruppeId, factoryId]) stellt sicher, dass jede Baugruppe pro Factory nur einen
-  // Lagerbestand-Eintrag hat
-  // 3. Funktionsweise:
-  //   - Jede ReassemblyFactory hat mehrere Lagerbestände (lagerbestaende)
-  //   - Jeder Lagerbestand bezieht sich auf genau eine Baugruppe
-  //   - Die Menge gibt an, wie viele Einheiten dieser Baugruppe aktuell verfügbar sind
-model Lagerbestand {
-  id                   String               @id @default(cuid())
-  baugruppenTyp        BaugruppenTyp        @relation(fields: [baugruppenTypId], references: [id])
-  baugruppenTypId      String
-  factory              ReassemblyFactory    @relation(fields: [factoryId], references: [id])
-  factoryId            String
-  instanzen            BaugruppenInstanz[]  // Die tatsächlichen Baugruppen in diesem Lagerbestand
-  remontageOperationen RemontageOperation[]
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
-
-  @@unique([baugruppenTypId, factoryId])
-}
-
-// Beschaffung: Geplante und laufende Beschaffungen von Baugruppen
-model Beschaffung {
-  id                  String              @id @default(cuid())
-  factory             ReassemblyFactory   @relation(fields: [factoryId], references: [id])
-  factoryId           String
-  baugruppenTyp       BaugruppenTyp       @relation(fields: [baugruppenTypId], references: [id])
-  baugruppenTypId     String
-  menge               Int
-  status              BeschaffungsStatus  @default(GEPLANT) // Status der Beschaffung
-  bestelldatum        DateTime?
-  lieferterminGeplant DateTime
-  lieferterminIst     DateTime?
-  lieferant           String?             // Name des externen Lieferanten oder "Interne Produktion"
-  bestellnummer       String?
-  bemerkung           String?
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-}
 
 // Kunde
 model Kunde {
@@ -130,7 +78,6 @@ model Kunde {
   email     String?    @unique
   telefon   String?
   adresse   String?
-  produkte  Produkt[]
   auftraege Auftrag[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
@@ -141,18 +88,13 @@ model Auftrag {
   id                    String               @id @default(cuid())
   kunde                 Kunde                @relation(fields: [kundeId], references: [id])
   kundeId               String
-  produkt               Produkt              @relation(fields: [produktId], references: [id])
-  produktId             String
+  produktvariante       Produktvariante      @relation(fields: [produktvarianteId], references: [id])
+  produktvarianteId     String
   phase                 AuftragsPhase        @default(ERSTKONTAKT)
   upgradeTyp            UpgradeTyp           // Wenn die Produktvariante Pflichtupgrades besitzt dann PFLICHT, sonst KOMBINIERT
   factory               ReassemblyFactory    @relation(fields: [factoryId], references: [id])
   factoryId             String
   liefertermine         Liefertermin[]
-  wunschUpgrades        WunschUpgrade[]
-  pflichtUpgrades       PflichtUpgrade[]
-  terminierungen        Terminierung[]
-  inspektionsergebnis   Inspektion?
-  remontageOperationen  RemontageOperation[]
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
 }
@@ -175,157 +117,48 @@ model Produkt {
   id              String              @id @default(cuid())
   bezeichnung     String              // z.B. "Volkswagen Polo"
   seriennummer    String              @unique
-  kunde           Kunde?              @relation(fields: [kundeId], references: [id])
-  kundeId         String?
   factory         ReassemblyFactory?  @relation(fields: [factoryId], references: [id])
   factoryId       String?
   zustand         ZustandsTyp?        // Wird über die Baugruppen bestimmt
-  varianten       ProduktVariante[]
-  auftraege       Auftrag[]
-  baugruppen      BaugruppenInstanz[] // Die tatsächlichen Baugruppen in diesem Produkt
+  varianten       Produktvariante[]
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 }
 
 // Produktvariante zb "Polo GTI 2017"
-model ProduktVariante {
+model Produktvariante {
   id              String            @id @default(cuid())
   produkt         Produkt           @relation(fields: [produktId], references: [id])
   produktId       String
   bezeichnung     String            // z.B. "Polo GTI 2017"
   links           Json              // JointJS Verbindungen zwischen Baugruppen
-  baugruppenTypen BaugruppenTyp[]   // Welche Baugruppen-Typen gehören zu dieser Variante
+  baugruppen      Baugruppe[]       // Welche Baugruppen gehören zu dieser Variante
+  auftraege       Auftrag[]         // Alle Aufträge für diese Produktvariante
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 }
 
 
-// BaugruppenTyp: Definition einer Baugruppe (z.B. "Motor V6", "Getriebe Automatik")
-model BaugruppenTyp {
+// Baugruppe: Definition einer Baugruppe (z.B. "Motor V6", "Getriebe Automatik")
+model Baugruppe {
   id                   String               @id @default(cuid())
   bezeichnung          String
   artikelnummer        String               @unique
-  beschaffungsart      Beschaffungsart
-  beschaffungszeit     Int                  // in Tagen. Wie lange dauert es, diese Baugruppe zu beschaffen?
-  durschlaufzeit       Int?                 // in Minuten. Wie lange dauert es, diese Baugruppe zu remontieren?
+  baugruppenart        Baugruppenart
+  durchlaufzeit        Int?                 // in Minuten. Wie lange dauert es, diese Baugruppe zu remontieren?
   volumen              Float?               // in m³
-  instanzen            BaugruppenInstanz[]  // Alle physischen Instanzen dieses Typs
-  lagerbestaende       Lagerbestand[]
-  beschaffungen        Beschaffung[]
-  varianten            ProduktVariante[]  
-  wunschUpgrades       WunschUpgrade[]
-  pflichtUpgrades      PflichtUpgrade[]
+  varianten            Produktvariante[]  
+  prozesse             Prozess[]            // Prozesse die dieser Baugruppe zugeordnet sind
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
 }
 
-// BaugruppenInstanz: Eine konkrete, physische Baugruppe mit eindeutiger Seriennummer
-model BaugruppenInstanz {
+
+// Prozess: Operationen wie montieren, einölen, schleifen etc.
+model Prozess {
   id                   String               @id @default(cuid())
-  seriennummer         String               @unique
-  typ                  BaugruppenTyp        @relation(fields: [typId], references: [id])
-  typId                String
-  zustand              ZustandsTyp          // Individueller Zustand dieser Instanz
-  // Wo befindet sich diese Instanz?
-  produkt              Produkt?             @relation(fields: [produktId], references: [id])
-  produktId            String?
-  lagerbestand         Lagerbestand?        @relation(fields: [lagerbestandId], references: [id])
-  lagerbestandId       String?
-  // Für Remontage-Tracking
-  alsNeueBaugruppe     RemontageOperation[] @relation("NeueBaugruppen")
-  alsAlteBaugruppe     RemontageOperation[] @relation("AlteBaugruppen")
+  name                 String               // z.B. "Montieren", "Einölen", "Schleifen"
+  baugruppen           Baugruppe[]          // Baugruppen denen dieser Prozess zugeordnet ist
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
-}
-
-// Wunsch-Upgrades
-model WunschUpgrade {
-  id              String        @id @default(cuid())
-  auftrag         Auftrag       @relation(fields: [auftragId], references: [id])
-  auftragId       String
-  baugruppenTyp   BaugruppenTyp @relation(fields: [baugruppenTypId], references: [id])
-  baugruppenTypId String
-  beschreibung    String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-}
-
-// Pflicht-Upgrades
-model PflichtUpgrade {
-  id              String        @id @default(cuid())
-  auftrag         Auftrag       @relation(fields: [auftragId], references: [id])
-  auftragId       String
-  baugruppenTyp   BaugruppenTyp @relation(fields: [baugruppenTypId], references: [id])
-  baugruppenTypId String
-  grund           String        // z.B. "Gesetzesänderung", "Sicherheitsupdate"
-  beschreibung    String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-}
-
-
-// Station (für Reassembly-Operationen)
-model Station {
-  id                String              @id @default(cuid())
-  name              String              // z.B. "Karrosserie", "Motor"
-  factory           ReassemblyFactory   @relation(fields: [factoryId], references: [id])
-  factoryId         String
-  kapazitaet        Int                 // Anzahl gleichzeitiger Operationen
-  terminierungen    Terminierung[]
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-}
-
-// Terminierung (Reassembly-Operationen)
-model Terminierung {
-  id               String   @id @default(cuid())
-  auftrag          Auftrag  @relation(fields: [auftragId], references: [id])
-  auftragId        String
-  station          Station  @relation(fields: [stationId], references: [id])
-  stationId        String
-  startzeit        DateTime
-  endzeit          DateTime
-  dauerMinuten     Int
-  istGebuendelt    Boolean  @default(false)
-  buendelungsgruppe String?  // ID für gebündelte Operationen
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-}
-
-// Inspektion
-model Inspektion {
-  id                   String   @id @default(cuid())
-  auftrag              Auftrag  @relation(fields: [auftragId], references: [id])
-  auftragId            String   @unique
-  durchgefuehrtAm      DateTime @default(now())
-  zusaetzlicheDefekte  String?  // JSON oder Text mit gefundenen Defekten
-  geschaetzterMehraufwand Int?  // in Minuten
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-}
-
-// RemontageOperation: Dokumentiert welche Baugruppen während der Remontage verbaut/ersetzt/entfernt werden
-model RemontageOperation {
-  id                      String             @id @default(cuid())
-  auftrag                 Auftrag            @relation(fields: [auftragId], references: [id])
-  auftragId               String
-  
-  // Welche Baugruppen-Instanz wird verbaut
-  neueBaugruppenInstanz   BaugruppenInstanz  @relation("NeueBaugruppen", fields: [neueBaugruppenInstanzId], references: [id])
-  neueBaugruppenInstanzId String
-  
-  // Welche Baugruppen-Instanz wird entfernt/ersetzt (optional)
-  alteBaugruppenInstanz   BaugruppenInstanz? @relation("AlteBaugruppen", fields: [alteBaugruppenInstanzId], references: [id])
-  alteBaugruppenInstanzId String?
-  
-  // Aus welchem Lagerbestand kommt die neue Baugruppe
-  lagerbestand            Lagerbestand       @relation(fields: [lagerbestandId], references: [id])
-  lagerbestandId          String
-  
-  operation               String             // "ERSETZT", "HINZUGEFUEGT", "ENTFERNT"
-  position                String?            // Wo im Produkt wurde die Operation durchgeführt
-  bemerkung               String?            // Zusätzliche Notizen zur Operation
-  
-  createdAt               DateTime           @default(now())
-  updatedAt               DateTime           @updatedAt
 }
