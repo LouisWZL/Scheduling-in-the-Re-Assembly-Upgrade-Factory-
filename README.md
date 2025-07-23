@@ -50,6 +50,10 @@ Dieses Projekt verwendet [`next/font`](https://nextjs.org/docs/app/building-your
 
 Dieses Projekt nutzt [shadcn/ui](https://ui.shadcn.com/) für UI-Komponenten. shadcn/ui ist eine Sammlung von wiederverwendbaren Komponenten, die mit Radix UI und Tailwind CSS erstellt wurden.
 
+Videoanleitung:
+
+https://www.youtube.com/watch?v=ABbww4CFQSo&t=642s
+
 #### Installation von shadcn/ui Komponenten
 
 Um neue Komponenten zu installieren, verwende den folgenden Befehl:
@@ -92,6 +96,10 @@ Für das Backend verwenden wir [Prisma](https://www.prisma.io/) als ORM (Object-
 - Type-safe Datenbankzugriff
 - Automatische Migrationen
 - Intuitive Datenmodellierung
+
+Videoanleitung:
+
+https://www.youtube.com/watch?v=QXxy8Uv1LnQ&t=934s
 
 #### Prisma Befehle
 
