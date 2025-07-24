@@ -29,21 +29,26 @@ interface Variante {
   zustand: string | null
 }
 
-export function ConfiguratorSidebarLeft() {
+interface ConfiguratorSidebarLeftProps {
+  factoryId: string
+}
+
+export function ConfiguratorSidebarLeft({ factoryId }: ConfiguratorSidebarLeftProps) {
   const [produkte, setProdukte] = useState<Produkt[]>([])
   const [selectedVariante, setSelectedVariante] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchProdukte()
-  }, [])
+  }, [factoryId])
 
   const fetchProdukte = async () => {
     try {
       const response = await fetch('/api/factories')
-      const data = await response.json()
-      if (data.length > 0) {
-        setProdukte(data[0].produkte)
+      const factories = await response.json()
+      const factory = factories.find((f: any) => f.id === factoryId)
+      if (factory) {
+        setProdukte(factory.produkte)
       }
       setLoading(false)
     } catch (error) {

@@ -75,6 +75,16 @@ export function FactorySelector() {
     fetchFactories()
   }, [])
 
+  // Synchronize selected factory with URL on configurator page
+  useEffect(() => {
+    if (isConfigurator && pathname.includes('/factory-configurator/')) {
+      const urlFactoryId = pathname.split('/').pop()
+      if (urlFactoryId && urlFactoryId !== selectedFactory) {
+        setSelectedFactory(urlFactoryId)
+      }
+    }
+  }, [pathname, isConfigurator])
+
   useEffect(() => {
     if (selectedFactory) {
       const factory = factories.find(f => f.id === selectedFactory)
@@ -82,20 +92,33 @@ export function FactorySelector() {
     }
   }, [selectedFactory, factories])
 
-  // Update URL when factory changes in configurator
-  useEffect(() => {
-    if (isConfigurator && selectedFactory && pathname !== `/factory-configurator/${selectedFactory}`) {
-      router.push(`/factory-configurator/${selectedFactory}`)
+  // Update URL when factory changes in configurator (only from select dropdown)
+  const handleFactoryChange = (value: string) => {
+    setSelectedFactory(value)
+    if (isConfigurator) {
+      router.replace(`/factory-configurator/${value}`)
     }
-  }, [selectedFactory, isConfigurator, pathname, router])
+  }
 
   const fetchFactories = async () => {
     try {
       const response = await fetch('/api/factories')
       const data = await response.json()
       setFactories(data)
-      if (data.length > 0) {
-        setSelectedFactory(data[0].id)
+      
+      // Only set default factory if no factory is selected
+      if (data.length > 0 && !selectedFactory) {
+        // If we're on configurator page, get factory from URL
+        if (isConfigurator && pathname.includes('/factory-configurator/')) {
+          const urlFactoryId = pathname.split('/').pop()
+          if (urlFactoryId) {
+            setSelectedFactory(urlFactoryId)
+          } else {
+            setSelectedFactory(data[0].id)
+          }
+        } else {
+          setSelectedFactory(data[0].id)
+        }
       }
       setLoading(false)
     } catch (error) {
@@ -110,7 +133,7 @@ export function FactorySelector() {
 
   return (
     <div className="flex items-center gap-2">
-      <Select value={selectedFactory} onValueChange={setSelectedFactory}>
+      <Select value={selectedFactory} onValueChange={handleFactoryChange}>
         <SelectTrigger className="w-[200px]">
           <SelectValue placeholder="Wähle eine Factory" />
         </SelectTrigger>

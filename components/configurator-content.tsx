@@ -34,7 +34,11 @@ interface Prozess {
   name: string
 }
 
-export function ConfiguratorContent() {
+interface ConfiguratorContentProps {
+  factoryId: string
+}
+
+export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
   const [selectedVariante, setSelectedVariante] = useState<Variante | null>(null)
   const [allBaugruppen, setAllBaugruppen] = useState<Baugruppe[]>([])
   const [allProzesse, setAllProzesse] = useState<Prozess[]>([])
@@ -48,9 +52,9 @@ export function ConfiguratorContent() {
       try {
         const response = await fetch('/api/factories')
         const factories = await response.json()
+        const factory = factories.find((f: any) => f.id === factoryId)
         
-        if (factories.length > 0) {
-          const factory = factories[0]
+        if (factory) {
           
           // Finde die ausgewählte Variante
           for (const produkt of factory.produkte) {
@@ -91,7 +95,7 @@ export function ConfiguratorContent() {
     return () => {
       window.removeEventListener('varianteSelected', handleVarianteSelection as unknown as EventListener)
     }
-  }, [])
+  }, [factoryId])
 
   if (!selectedVariante) {
     return (
