@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { SearchForm } from '@/components/search-form'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Separator } from '@/components/ui/separator'
@@ -78,8 +77,6 @@ export function SiteHeader() {
               </div>
             </div>
           )}
-          
-          <SearchForm className="w-64" />
         </div>
       </div>
     </header>
