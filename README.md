@@ -28,7 +28,7 @@ Key questions addressed include:
 ### Erste Schritte
 Dies ist ein [Next.js](https://nextjs.org) Projekt, das mit [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app) erstellt wurde.
 
-Starte zuerst den Entwicklungsserver:
+Starte zuerst den Entwicklungsserver (führt automatisch auch die Datenbank-Initialisierung aus):
 
 ```bash
 npm run dev
@@ -112,7 +112,21 @@ npx prisma studio
 
 # Prisma Client generieren
 npx prisma generate
+
+# Datenbank mit Seed-Daten befüllen
+npm run db:seed
 ```
+
+#### Seed-Daten (seed.ts)
+
+Das Projekt enthält ein Seed-Skript (`prisma/seed.ts`), das automatisch Beispieldaten in die Datenbank einfügt:
+
+- **Reassembly Factory**: Stuttgart Porsche Reassembly Center
+- **Produkt**: Porsche 911 mit zwei Varianten (Basic und Premium)
+- **Baugruppen**: 9 verschiedene Baugruppen (Chassis, Karosserie, Fahrwerk, etc.)
+- **Prozesse**: 5 Montageprozesse (Demontage, Reinigung, Oberflächenbehandlung, etc.)
+
+Das Seed-Skript wird automatisch beim Start des Entwicklungsservers ausgeführt (`npm run dev`).
 
 ### Icons und Assets
 

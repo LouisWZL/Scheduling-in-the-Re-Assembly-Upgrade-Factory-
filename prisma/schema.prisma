@@ -3,7 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../lib/generated/prisma"
+  // output   = "../lib/generated/prisma"
 }
 
 datasource db {
@@ -119,7 +119,6 @@ model Produkt {
   seriennummer    String              @unique
   factory         ReassemblyFactory?  @relation(fields: [factoryId], references: [id])
   factoryId       String?
-  zustand         ZustandsTyp?        // Wird über die Baugruppen bestimmt
   varianten       Produktvariante[]
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
@@ -133,6 +132,7 @@ model Produktvariante {
   bezeichnung     String            // z.B. "Polo GTI 2017"
   links           Json              // JointJS Verbindungen zwischen Baugruppen
   baugruppen      Baugruppe[]       // Welche Baugruppen gehören zu dieser Variante
+  zustand         ZustandsTyp?        // Wird über die Baugruppen bestimmt
   auftraege       Auftrag[]         // Alle Aufträge für diese Produktvariante
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
