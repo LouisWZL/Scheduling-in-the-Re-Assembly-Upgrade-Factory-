@@ -69,7 +69,7 @@ export function FactorySelector() {
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const pathname = usePathname()
-  const isConfigurator = pathname === '/factory-configurator'
+  const isConfigurator = pathname.startsWith('/factory-configurator/')
 
   useEffect(() => {
     fetchFactories()
@@ -81,6 +81,13 @@ export function FactorySelector() {
       setCurrentFactory(factory || null)
     }
   }, [selectedFactory, factories])
+
+  // Update URL when factory changes in configurator
+  useEffect(() => {
+    if (isConfigurator && selectedFactory && pathname !== `/factory-configurator/${selectedFactory}`) {
+      router.push(`/factory-configurator/${selectedFactory}`)
+    }
+  }, [selectedFactory, isConfigurator, pathname, router])
 
   const fetchFactories = async () => {
     try {
@@ -122,7 +129,7 @@ export function FactorySelector() {
           if (isConfigurator) {
             router.push('/')
           } else {
-            router.push('/factory-configurator')
+            router.push(`/factory-configurator/${selectedFactory}`)
           }
         }}
         disabled={!currentFactory}
