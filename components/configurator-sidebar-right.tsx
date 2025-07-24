@@ -8,9 +8,14 @@ import {
 
 export function ConfiguratorSidebarRight() {
   return (
-    <Sidebar side="right" collapsible="icon">
-      <SidebarHeader>
-        <h2 className="px-2 text-lg font-semibold">Details</h2>
+    <Sidebar 
+      side="right" 
+      collapsible="none"
+      className="sticky top-0 hidden h-svh border-l lg:flex"
+      style={{ "--sidebar-width": "20rem" } as React.CSSProperties}
+    >
+      <SidebarHeader className="border-b px-4 py-3">
+        <h2 className="text-sm font-semibold">Details</h2>
       </SidebarHeader>
       <SidebarContent>
         <div className="p-4 text-sm text-muted-foreground">

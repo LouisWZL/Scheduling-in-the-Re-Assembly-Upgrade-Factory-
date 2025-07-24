@@ -59,9 +59,13 @@ export function ConfiguratorSidebarLeft() {
   }
 
   return (
-    <Sidebar side="left" collapsible="icon">
-      <SidebarHeader>
-        <h2 className="px-2 text-lg font-semibold">Produkte & Varianten</h2>
+    <Sidebar 
+      side="left" 
+      collapsible="icon"
+      className="sticky top-0 h-svh border-r"
+    >
+      <SidebarHeader className="border-b px-4 py-3">
+        <h2 className="text-sm font-semibold">Produkte & Varianten</h2>
       </SidebarHeader>
       <SidebarContent>
         <ScrollArea className="h-full">
