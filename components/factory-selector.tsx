@@ -38,10 +38,14 @@ interface Baugruppe {
   id: string
   bezeichnung: string
   artikelnummer: string
-  baugruppenart: string
-  durchlaufzeit: number | null
+  variantenTyp: string
+  prozesszeit: number | null
   volumen: number | null
   prozesse: Prozess[]
+  baugruppentyp?: {
+    id: string
+    bezeichnung: string
+  }
 }
 
 interface Prozess {
@@ -104,6 +108,15 @@ export function FactorySelector() {
     try {
       const response = await fetch('/api/factories')
       const data = await response.json()
+      
+      // Check if data is an array
+      if (!Array.isArray(data)) {
+        console.error('Invalid response format:', data)
+        setFactories([])
+        setLoading(false)
+        return
+      }
+      
       setFactories(data)
       
       // Only set default factory if no factory is selected
@@ -123,6 +136,7 @@ export function FactorySelector() {
       setLoading(false)
     } catch (error) {
       console.error('Error fetching factories:', error)
+      setFactories([])
       setLoading(false)
     }
   }

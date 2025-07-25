@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 
-const prisma = new PrismaClient()
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
+
+const prisma = globalForPrisma.prisma ?? new PrismaClient()
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 export async function GET() {
   try {
@@ -9,11 +15,13 @@ export async function GET() {
       include: {
         produkte: {
           include: {
+            baugruppentypen: true,
             varianten: {
               include: {
                 baugruppen: {
                   include: {
-                    prozesse: true
+                    prozesse: true,
+                    baugruppentyp: true
                   }
                 }
               }
@@ -31,7 +39,15 @@ export async function GET() {
 
     return NextResponse.json(factories)
   } catch (error) {
-    console.error('Error fetching factories:', error)
+    console.error('Detailed error fetching factories:', error)
+    // Return more detailed error in development
+    if (process.env.NODE_ENV === 'development') {
+      return NextResponse.json({ 
+        error: 'Failed to fetch factories',
+        details: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      }, { status: 500 })
+    }
     return NextResponse.json({ error: 'Failed to fetch factories' }, { status: 500 })
   }
 }

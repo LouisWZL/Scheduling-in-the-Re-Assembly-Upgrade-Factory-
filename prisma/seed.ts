@@ -2,6 +2,19 @@ import { Prisma, PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 // ==========================================
+// GEMEINSAME BAUGRUPPENTYPEN
+// ==========================================
+const baugruppentypen: Prisma.BaugruppentypCreateInput[] = [
+  { bezeichnung: "Chassis", beschreibung: "Fahrzeugrahmen und Bodengruppe" },
+  { bezeichnung: "Karosserie", beschreibung: "Außenhülle und Struktur des Fahrzeugs" },
+  { bezeichnung: "Fahrwerk", beschreibung: "Räder, Achsen, Federung und Lenkung" },
+  { bezeichnung: "Antrieb", beschreibung: "Motor, Getriebe und Kraftübertragung" },
+  { bezeichnung: "Interieur", beschreibung: "Innenausstattung und Sitze" },
+  { bezeichnung: "Elektronik", beschreibung: "Elektronische Systeme und Steuergeräte" }
+]
+
+
+// ==========================================
 // STUTTGART PORSCHE REASSEMBLY CENTER
 // ==========================================
 
@@ -20,70 +33,96 @@ const porscheProzesse: Prisma.ProzessCreateInput[] = [
   { name: "Qualitätskontrolle" }
 ]
 
-// Porsche Baugruppen
-const porscheBaugruppen: Prisma.BaugruppeCreateInput[] = [
+// Porsche Baugruppen (mit Baugruppentyp-Zuordnung)
+interface BaugruppeWithType {
+  bezeichnung: string
+  artikelnummer: string
+  variantenTyp: 'basic' | 'premium' | 'basicAndPremium'
+  prozesszeit?: number | null
+  volumen?: number | null
+  baugruppentyp: string
+}
+
+const porscheBaugruppen: BaugruppeWithType[] = [
   {
-    bezeichnung: "Chassis-BP",
+    bezeichnung: "Chassis",
     artikelnummer: "CHS-BP-001",
-    baugruppenart: "basicAndPremium",
-    durchlaufzeit: 180,
+    variantenTyp: "basicAndPremium",
+    prozesszeit: 180,
     volumen: 2.5,
+    baugruppentyp: "Chassis"
   },
   {
-    bezeichnung: "Karosserie-B1",
+    bezeichnung: "Karosserie",
     artikelnummer: "KAR-B1-001",
-    baugruppenart: "basic",
-    durchlaufzeit: 120,
+    variantenTyp: "basic",
+    prozesszeit: 120,
     volumen: 3.0,
+    baugruppentyp: "Karosserie"
   },
   {
-    bezeichnung: "Karosserie-B2",
+    bezeichnung: "Karosserie",
     artikelnummer: "KAR-B2-001",
-    baugruppenart: "basic",
-    durchlaufzeit: 90,
+    variantenTyp: "basic",
+    prozesszeit: 90,
     volumen: 2.0,
+    baugruppentyp: "Karosserie"
   },
   {
-    bezeichnung: "Karosserie-P1",
+    bezeichnung: "Karosserie",
     artikelnummer: "KAR-P1-001",
-    baugruppenart: "premium",
-    durchlaufzeit: 150,
+    variantenTyp: "premium",
+    prozesszeit: 150,
     volumen: 3.5,
+    baugruppentyp: "Karosserie"
   },
   {
-    bezeichnung: "Karosserie-P2",
+    bezeichnung: "Karosserie",
     artikelnummer: "KAR-P2-001",
-    baugruppenart: "premium",
-    durchlaufzeit: 100,
+    variantenTyp: "premium",
+    prozesszeit: 100,
     volumen: 2.5,
+    baugruppentyp: "Karosserie"
   },
   {
-    bezeichnung: "Fahrwerk-BP",
+    bezeichnung: "Fahrwerk",
     artikelnummer: "FAH-BP-001",
-    baugruppenart: "basicAndPremium",
-    durchlaufzeit: 240,
+    variantenTyp: "basicAndPremium",
+    prozesszeit: 240,
     volumen: 1.8,
+    baugruppentyp: "Fahrwerk"
   },
   {
-    bezeichnung: "Antrieb-BP",
+    bezeichnung: "Antrieb",
     artikelnummer: "ANT-BP-001",
-    baugruppenart: "basicAndPremium",
-    durchlaufzeit: 360,
+    variantenTyp: "basicAndPremium",
+    prozesszeit: 360,
     volumen: 1.5,
+    baugruppentyp: "Antrieb"
   },
   {
-    bezeichnung: "Interior-B0",
+    bezeichnung: "Interieur",
     artikelnummer: "INT-B0-001",
-    baugruppenart: "basic",
-    durchlaufzeit: 180,
+    variantenTyp: "basic",
+    prozesszeit: 180,
     volumen: 2.0,
+    baugruppentyp: "Interieur"
   },
   {
-    bezeichnung: "Interior-P1",
+    bezeichnung: "Interieur",
     artikelnummer: "INT-P1-001",
-    baugruppenart: "premium",
-    durchlaufzeit: 300,
+    variantenTyp: "premium",
+    prozesszeit: 300,
     volumen: 2.2,
+    baugruppentyp: "Interieur"
+  },
+  {
+    bezeichnung: "Elektronik",
+    artikelnummer: "ELE-BP-001",
+    variantenTyp: "basicAndPremium",
+    prozesszeit: 120,
+    volumen: 0.5,
+    baugruppentyp: "Elektronik"
   }
 ]
 
@@ -113,69 +152,86 @@ const audiProzesse: Prisma.ProzessCreateInput[] = [
 ]
 
 // Audi Baugruppen
-const audiBaugruppen: Prisma.BaugruppeCreateInput[] = [
+const audiBaugruppen: BaugruppeWithType[] = [
   {
-    bezeichnung: "Plattform-BP",
+    bezeichnung: "Chassis",
     artikelnummer: "PLT-BP-002",
-    baugruppenart: "basicAndPremium",
-    durchlaufzeit: 200,
+    variantenTyp: "basicAndPremium",
+    prozesszeit: 200,
     volumen: 2.8,
+    baugruppentyp: "Chassis"
   },
   {
-    bezeichnung: "Struktur-B1",
+    bezeichnung: "Karosserie",
     artikelnummer: "STR-B1-002",
-    baugruppenart: "basic",
-    durchlaufzeit: 110,
+    variantenTyp: "basic",
+    prozesszeit: 110,
     volumen: 2.8,
+    baugruppentyp: "Karosserie"
   },
   {
-    bezeichnung: "Struktur-B2",
+    bezeichnung: "Karosserie",
     artikelnummer: "STR-B2-002",
-    baugruppenart: "basic",
-    durchlaufzeit: 95,
+    variantenTyp: "basic",
+    prozesszeit: 95,
     volumen: 2.2,
+    baugruppentyp: "Karosserie"
   },
   {
-    bezeichnung: "Struktur-P1",
+    bezeichnung: "Karosserie",
     artikelnummer: "STR-P1-002",
-    baugruppenart: "premium",
-    durchlaufzeit: 160,
+    variantenTyp: "premium",
+    prozesszeit: 160,
     volumen: 3.2,
+    baugruppentyp: "Karosserie"
   },
   {
-    bezeichnung: "Struktur-P2",
+    bezeichnung: "Karosserie",
     artikelnummer: "STR-P2-002",
-    baugruppenart: "premium",
-    durchlaufzeit: 110,
+    variantenTyp: "premium",
+    prozesszeit: 110,
     volumen: 2.6,
+    baugruppentyp: "Karosserie"
   },
   {
-    bezeichnung: "Fahrgestell-BP",
+    bezeichnung: "Fahrwerk",
     artikelnummer: "FGS-BP-002",
-    baugruppenart: "basicAndPremium",
-    durchlaufzeit: 220,
+    variantenTyp: "basicAndPremium",
+    prozesszeit: 220,
     volumen: 1.9,
+    baugruppentyp: "Fahrwerk"
   },
   {
-    bezeichnung: "Motor-BP",
+    bezeichnung: "Antrieb",
     artikelnummer: "MOT-BP-002",
-    baugruppenart: "basicAndPremium",
-    durchlaufzeit: 380,
+    variantenTyp: "basicAndPremium",
+    prozesszeit: 380,
     volumen: 1.6,
+    baugruppentyp: "Antrieb"
   },
   {
-    bezeichnung: "Innenraum-B0",
+    bezeichnung: "Interieur",
     artikelnummer: "INR-B0-002",
-    baugruppenart: "basic",
-    durchlaufzeit: 170,
+    variantenTyp: "basic",
+    prozesszeit: 170,
     volumen: 2.1,
+    baugruppentyp: "Interieur"
   },
   {
-    bezeichnung: "Innenraum-P1",
+    bezeichnung: "Interieur",
     artikelnummer: "INR-P1-002",
-    baugruppenart: "premium",
-    durchlaufzeit: 320,
+    variantenTyp: "premium",
+    prozesszeit: 320,
     volumen: 2.3,
+    baugruppentyp: "Interieur"
+  },
+  {
+    bezeichnung: "Elektronik",
+    artikelnummer: "ELE-BP-002",
+    variantenTyp: "basicAndPremium",
+    prozesszeit: 130,
+    volumen: 0.5,
+    baugruppentyp: "Elektronik"
   }
 ]
 
@@ -201,6 +257,14 @@ async function main() {
   await prisma.produkt.deleteMany()
   await prisma.kunde.deleteMany()
   await prisma.reassemblyFactory.deleteMany()
+  await prisma.baugruppentyp.deleteMany()
+
+  // ==========================================
+  // ERSTELLE BAUGRUPPENTYPEN
+  // ==========================================
+  const createdBaugruppentypen = await Promise.all(
+    baugruppentypen.map(typ => prisma.baugruppentyp.create({ data: typ }))
+  )
 
   // ==========================================
   // ERSTELLE PORSCHE FACTORY
@@ -215,26 +279,37 @@ async function main() {
     porscheProzesse.map(prozess => prisma.prozess.create({ data: prozess }))
   )
 
-  // Erstelle Porsche Baugruppen mit Prozess-Verknüpfungen
+  // Erstelle Porsche Baugruppen mit Prozess-Verknüpfungen und Baugruppentyp
   const createdPorscheBaugruppen = await Promise.all(
-    porscheBaugruppen.map(baugruppe => 
-      prisma.baugruppe.create({
+    porscheBaugruppen.map(async (baugruppe) => {
+      const { baugruppentyp, ...baugruppeData } = baugruppe
+      const baugruppenTypObject = createdBaugruppentypen.find(t => t.bezeichnung === baugruppentyp)
+      
+      return prisma.baugruppe.create({
         data: {
-          ...baugruppe,
+          ...baugruppeData,
+          baugruppentyp: baugruppenTypObject ? {
+            connect: { id: baugruppenTypObject.id }
+          } : undefined,
           prozesse: {
             connect: createdPorscheProzesse.map(p => ({ id: p.id }))
           }
         }
       })
-    )
+    })
   )
 
-  // Erstelle Porsche Produkt
+  // Erstelle Porsche Produkt mit Baugruppentypen
   const createdPorscheProdukt = await prisma.produkt.create({
     data: {
       ...porscheProdukt,
       factory: {
         connect: { id: createdPorscheFactory.id }
+      },
+      baugruppentypen: {
+        connect: createdBaugruppentypen
+          .filter(typ => ["Chassis", "Karosserie", "Fahrwerk", "Interieur", "Antrieb", "Elektronik"].includes(typ.bezeichnung))
+          .map(typ => ({ id: typ.id }))
       }
     }
   })
@@ -243,10 +318,11 @@ async function main() {
   const porscheVarianteBasic = await prisma.produktvariante.create({
     data: {
       bezeichnung: "911 Carrera Basic",
+      typ: "basic",
       produkt: { connect: { id: createdPorscheProdukt.id } },
       baugruppen: {
         connect: createdPorscheBaugruppen
-          .filter(bg => bg.baugruppenart === "basic" || bg.baugruppenart === "basicAndPremium")
+          .filter(bg => bg.variantenTyp === "basic" || bg.variantenTyp === "basicAndPremium")
           .map(bg => ({ id: bg.id }))
       },
       links: {},
@@ -257,10 +333,11 @@ async function main() {
   const porscheVariantePremium = await prisma.produktvariante.create({
     data: {
       bezeichnung: "911 Turbo S Premium",
+      typ: "premium",
       produkt: { connect: { id: createdPorscheProdukt.id } },
       baugruppen: {
         connect: createdPorscheBaugruppen
-          .filter(bg => bg.baugruppenart === "premium" || bg.baugruppenart === "basicAndPremium")
+          .filter(bg => bg.variantenTyp === "premium" || bg.variantenTyp === "basicAndPremium")
           .map(bg => ({ id: bg.id }))
       },
       links: {},
@@ -281,21 +358,27 @@ async function main() {
     audiProzesse.map(prozess => prisma.prozess.create({ data: prozess }))
   )
 
-  // Erstelle Audi Baugruppen mit Prozess-Verknüpfungen
+  // Erstelle Audi Baugruppen mit Prozess-Verknüpfungen und Baugruppentyp
   const createdAudiBaugruppen = await Promise.all(
-    audiBaugruppen.map(baugruppe => 
-      prisma.baugruppe.create({
+    audiBaugruppen.map(async (baugruppe) => {
+      const { baugruppentyp, ...baugruppeData } = baugruppe
+      const baugruppenTypObject = createdBaugruppentypen.find(t => t.bezeichnung === baugruppentyp)
+      
+      return prisma.baugruppe.create({
         data: {
-          ...baugruppe,
+          ...baugruppeData,
+          baugruppentyp: baugruppenTypObject ? {
+            connect: { id: baugruppenTypObject.id }
+          } : undefined,
           prozesse: {
             connect: createdAudiProzesse.map(p => ({ id: p.id }))
           }
         }
       })
-    )
+    })
   )
 
-  // Erstelle Audi Produkte
+  // Erstelle Audi Produkte mit Baugruppentypen
   const createdAudiProdukte = await Promise.all(
     audiProdukte.map(produkt =>
       prisma.produkt.create({
@@ -303,6 +386,11 @@ async function main() {
           ...produkt,
           factory: {
             connect: { id: createdAudiFactory.id }
+          },
+          baugruppentypen: {
+            connect: createdBaugruppentypen
+              .filter(typ => ["Chassis", "Karosserie", "Fahrwerk", "Interieur", "Antrieb", "Elektronik"].includes(typ.bezeichnung))
+              .map(typ => ({ id: typ.id }))
           }
         }
       })
@@ -313,10 +401,11 @@ async function main() {
   const audiA8Variante = await prisma.produktvariante.create({
     data: {
       bezeichnung: "A8 L quattro",
+      typ: "premium",
       produkt: { connect: { id: createdAudiProdukte[0].id } },
       baugruppen: {
         connect: createdAudiBaugruppen
-          .filter(bg => bg.baugruppenart === "premium" || bg.baugruppenart === "basicAndPremium")
+          .filter(bg => bg.variantenTyp === "premium" || bg.variantenTyp === "basicAndPremium")
           .map(bg => ({ id: bg.id }))
       },
       links: {},
@@ -328,10 +417,11 @@ async function main() {
   const audiRS6Variante = await prisma.produktvariante.create({
     data: {
       bezeichnung: "RS6 Avant Performance",
+      typ: "premium",
       produkt: { connect: { id: createdAudiProdukte[1].id } },
       baugruppen: {
         connect: createdAudiBaugruppen
-          .filter(bg => bg.baugruppenart === "premium" || bg.baugruppenart === "basicAndPremium")
+          .filter(bg => bg.variantenTyp === "premium" || bg.variantenTyp === "basicAndPremium")
           .map(bg => ({ id: bg.id }))
       },
       links: {},
@@ -340,6 +430,9 @@ async function main() {
   })
 
   console.log("✅ Seed-Daten erfolgreich erstellt!")
+  console.log("\n🔧 Baugruppentypen:")
+  console.log(`  - Erstellt: ${createdBaugruppentypen.map(t => t.bezeichnung).join(", ")}`)
+  
   console.log("\n🏭 Stuttgart Porsche Reassembly Center:")
   console.log(`  - Produkt: ${createdPorscheProdukt.bezeichnung}`)
   console.log(`  - Baugruppen: ${createdPorscheBaugruppen.length}`)
