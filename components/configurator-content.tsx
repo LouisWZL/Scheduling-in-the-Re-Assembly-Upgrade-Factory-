@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Plus, Edit, Trash2, Package, Car, Wrench, Cpu, Cog } from 'lucide-react'
 import { BaugruppenManagement } from '@/components/baugruppen-management'
+import { FactoryEinstellungen } from '@/components/factory-einstellungen'
 import { useView } from '@/contexts/view-context'
 
 interface Variante {
@@ -220,22 +221,9 @@ export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
     return <BaugruppenManagement />
   }
 
-  // Kapazität View
-  if (currentView === 'kapazitaet') {
-    return (
-      <div className="flex flex-col h-full p-6">
-        <div className="flex-1 flex items-center justify-center">
-          <Card className="w-full max-w-2xl">
-            <CardContent className="p-8 text-center">
-              <h3 className="text-lg font-semibold mb-2">Kapazitätsansicht</h3>
-              <p className="text-muted-foreground">
-                Diese Ansicht wird später implementiert und zeigt die Kapazitätsauslastung der Factory an.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    )
+  // Einstellungen View
+  if (currentView === 'einstellungen') {
+    return <FactoryEinstellungen factoryId={factoryId} />
   }
 
   // Produkt View

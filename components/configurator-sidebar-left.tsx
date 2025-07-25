@@ -72,6 +72,19 @@ export function ConfiguratorSidebarLeft({ factoryId }: ConfiguratorSidebarLeftPr
     }
   }, [produkte])
 
+  useEffect(() => {
+    // Listen for factory updates
+    const handleFactoryUpdate = () => {
+      fetchProdukte()
+    }
+
+    window.addEventListener('factoryUpdated', handleFactoryUpdate)
+    
+    return () => {
+      window.removeEventListener('factoryUpdated', handleFactoryUpdate)
+    }
+  }, [factoryId])
+
   const fetchProdukte = async () => {
     try {
       const response = await fetch('/api/factories')
@@ -158,16 +171,16 @@ export function ConfiguratorSidebarLeft({ factoryId }: ConfiguratorSidebarLeftPr
                   </SidebarMenuButton>
                 </SidebarMenuItem>
 
-                {/* Kapazität Menüpunkt */}
+                {/* Einstellungen Menüpunkt */}
                 <SidebarMenuItem>
                   <SidebarMenuButton 
                     onClick={() => {
-                      window.dispatchEvent(new CustomEvent('viewChanged', { detail: 'kapazitaet' }))
+                      window.dispatchEvent(new CustomEvent('viewChanged', { detail: 'einstellungen' }))
                     }}
                     className="font-semibold"
                   >
                     <BarChart3 className="mr-2 h-4 w-4" />
-                    <span>Kapazität</span>
+                    <span>Einstellungen</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
 

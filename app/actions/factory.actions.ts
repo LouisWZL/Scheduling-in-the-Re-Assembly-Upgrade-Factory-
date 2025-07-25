@@ -1,0 +1,133 @@
+"use server"
+
+import { prisma } from '@/lib/prisma'
+import { revalidatePath } from 'next/cache'
+import { Prisma } from '@prisma/client'
+
+export async function updateFactoryName(id: string, name: string) {
+  try {
+    const factory = await prisma.reassemblyFactory.update({
+      where: { id },
+      data: { name }
+    })
+    
+    revalidatePath('/factory-configurator')
+    revalidatePath(`/factory-configurator/${id}`)
+    revalidatePath('/api/factories')
+    
+    return {
+      success: true,
+      data: factory,
+      message: 'Factory-Name erfolgreich aktualisiert'
+    }
+  } catch (error) {
+    console.error('Error updating factory name:', error)
+    
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2025') {
+        return {
+          success: false,
+          error: 'Factory nicht gefunden'
+        }
+      }
+    }
+    
+    return {
+      success: false,
+      error: 'Fehler beim Aktualisieren des Factory-Namens'
+    }
+  }
+}
+
+export async function updateFactoryCapacity(id: string, kapazität: number) {
+  try {
+    // Validate capacity
+    if (kapazität < 1) {
+      return {
+        success: false,
+        error: 'Die Kapazität muss mindestens 1 betragen'
+      }
+    }
+    
+    const factory = await prisma.reassemblyFactory.update({
+      where: { id },
+      data: { kapazität }
+    })
+    
+    revalidatePath('/factory-configurator')
+    revalidatePath(`/factory-configurator/${id}`)
+    revalidatePath('/api/factories')
+    
+    return {
+      success: true,
+      data: factory,
+      message: 'Factory-Kapazität erfolgreich aktualisiert'
+    }
+  } catch (error) {
+    console.error('Error updating factory capacity:', error)
+    
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2025') {
+        return {
+          success: false,
+          error: 'Factory nicht gefunden'
+        }
+      }
+    }
+    
+    return {
+      success: false,
+      error: 'Fehler beim Aktualisieren der Factory-Kapazität'
+    }
+  }
+}
+
+export async function getFactory(id: string) {
+  try {
+    const factory = await prisma.reassemblyFactory.findUnique({
+      where: { id },
+      include: {
+        produkte: {
+          include: {
+            baugruppentypen: true,
+            varianten: {
+              include: {
+                baugruppen: {
+                  include: {
+                    prozesse: true,
+                    baugruppentyp: true
+                  }
+                }
+              }
+            }
+          }
+        },
+        auftraege: {
+          include: {
+            kunde: true,
+            produktvariante: true
+          }
+        }
+      }
+    })
+    
+    if (!factory) {
+      return {
+        success: false,
+        error: 'Factory nicht gefunden'
+      }
+    }
+    
+    return {
+      success: true,
+      data: factory
+    }
+  } catch (error) {
+    console.error('Error fetching factory:', error)
+    
+    return {
+      success: false,
+      error: 'Fehler beim Abrufen der Factory'
+    }
+  }
+}
