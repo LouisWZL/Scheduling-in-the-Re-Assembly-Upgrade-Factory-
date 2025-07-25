@@ -15,6 +15,7 @@ import {
   SidebarMenuSubButton,
 } from '@/components/ui/sidebar'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Badge } from '@/components/ui/badge'
 
 interface Produkt {
   id: string
@@ -54,14 +55,22 @@ const baugruppentypenIcons: Record<string, React.ComponentType<any>> = {
 export function ConfiguratorSidebarLeft({ factoryId }: ConfiguratorSidebarLeftProps) {
   const [produkte, setProdukte] = useState<Produkt[]>([])
   const [selectedVariante, setSelectedVariante] = useState<string | null>(null)
+  const [selectedProdukt, setSelectedProdukt] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [factoryName, setFactoryName] = useState<string>('')
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['produkte']))
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetchProdukte()
   }, [factoryId])
+
+  useEffect(() => {
+    // Expand all products by default
+    if (produkte.length > 0) {
+      setExpandedProducts(new Set(produkte.map(p => p.id)))
+    }
+  }, [produkte])
 
   const fetchProdukte = async () => {
     try {
@@ -179,37 +188,54 @@ export function ConfiguratorSidebarLeft({ factoryId }: ConfiguratorSidebarLeftPr
                     <SidebarMenuSub>
                       {produkte.map((produkt) => (
                         <SidebarMenuSubItem key={produkt.id}>
-                          <SidebarMenuSubButton
-                            onClick={() => {
-                              toggleProduct(produkt.id)
-                              window.dispatchEvent(new CustomEvent('produktSelected', { detail: produkt.id }))
-                            }}
-                            className="font-medium"
-                          >
-                            <ChevronRight 
-                              className={`mr-2 h-4 w-4 transition-transform ${
-                                expandedProducts.has(produkt.id) ? 'rotate-90' : ''
-                              }`}
-                            />
-                            <span>{produkt.bezeichnung}</span>
-                          </SidebarMenuSubButton>
+                          <div className="relative">
+                            <SidebarMenuSubButton
+                              onClick={() => {
+                                setSelectedProdukt(produkt.id)
+                                setSelectedVariante(null)
+                                window.dispatchEvent(new CustomEvent('produktSelected', { detail: produkt.id }))
+                              }}
+                              isActive={selectedProdukt === produkt.id && !selectedVariante}
+                              className="font-medium pr-8"
+                            >
+                              <Package className="mr-2 h-4 w-4 text-muted-foreground" />
+                              <span>{produkt.bezeichnung}</span>
+                            </SidebarMenuSubButton>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                toggleProduct(produkt.id)
+                              }}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-muted rounded-sm"
+                            >
+                              <ChevronRight 
+                                className={`h-3 w-3 transition-transform text-muted-foreground ${
+                                  expandedProducts.has(produkt.id) ? 'rotate-90' : ''
+                                }`}
+                              />
+                            </button>
+                          </div>
                           {expandedProducts.has(produkt.id) && (
-                            <SidebarMenuSub>
+                            <div className="ml-6 border-l pl-2">
                               {produkt.varianten.map((variante) => (
-                                <SidebarMenuSubItem key={variante.id}>
-                                  <SidebarMenuSubButton
-                                    onClick={() => handleVarianteClick(variante.id)}
-                                    isActive={selectedVariante === variante.id}
-                                    className="cursor-pointer pl-8"
-                                  >
-                                    <span className="text-sm">{variante.bezeichnung}</span>
-                                    <span className="ml-2 text-xs text-muted-foreground">
-                                      ({variante.typ})
-                                    </span>
-                                  </SidebarMenuSubButton>
-                                </SidebarMenuSubItem>
+                                <SidebarMenuSubButton
+                                  key={variante.id}
+                                  onClick={() => {
+                                    handleVarianteClick(variante.id)
+                                    setSelectedProdukt(null)
+                                  }}
+                                  isActive={selectedVariante === variante.id}
+                                  className="cursor-pointer py-1.5 text-sm"
+                                >
+                                  <div className="flex items-center justify-between w-full">
+                                    <span className="text-muted-foreground">{variante.bezeichnung}</span>
+                                    <Badge variant="outline" className="text-xs ml-2">
+                                      {variante.typ}
+                                    </Badge>
+                                  </div>
+                                </SidebarMenuSubButton>
                               ))}
-                            </SidebarMenuSub>
+                            </div>
                           )}
                         </SidebarMenuSubItem>
                       ))}
