@@ -13,6 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Plus, Edit, Trash2, Package, Car, Wrench, Cpu, Cog } from 'lucide-react'
+import { BaugruppenManagement } from '@/components/baugruppen-management'
+import { useView } from '@/contexts/view-context'
 
 interface Variante {
   id: string
@@ -76,8 +78,8 @@ export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
   const [allBaugruppentypen, setAllBaugruppentypen] = useState<Baugruppentyp[]>([])
   const [allProzesse, setAllProzesse] = useState<Prozess[]>([])
   const [loading, setLoading] = useState(false)
-  const [currentView, setCurrentView] = useState<'variante' | 'baugruppen' | 'kapazitaet' | 'produkt'>('variante')
   const [factoryData, setFactoryData] = useState<any>(null)
+  const { currentView, setCurrentView } = useView()
 
   const fetchFactoryData = async () => {
     try {
@@ -215,102 +217,7 @@ export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
 
   // Baugruppen View
   if (currentView === 'baugruppen') {
-    return (
-      <div className="flex flex-col h-full p-6 gap-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold">Baugruppen Management</h2>
-          <div className="flex gap-2">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Baugruppentyp erstellen
-            </Button>
-            <Button variant="outline">
-              <Plus className="mr-2 h-4 w-4" />
-              Baugruppe erstellen
-            </Button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-6 flex-1">
-          {/* Baugruppentypen */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Baugruppentypen</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Bezeichnung</TableHead>
-                    <TableHead>Beschreibung</TableHead>
-                    <TableHead className="w-[100px]">Aktionen</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {allBaugruppentypen.map((typ) => (
-                    <TableRow key={typ.id}>
-                      <TableCell className="font-medium">{typ.bezeichnung}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {typ.beschreibung || '-'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          {/* Baugruppen */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Alle Baugruppen</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-auto max-h-[600px]">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Bezeichnung</TableHead>
-                      <TableHead>Typ</TableHead>
-                      <TableHead>Art</TableHead>
-                      <TableHead>Art-Nr.</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {allBaugruppen.map((baugruppe) => (
-                      <TableRow key={baugruppe.id}>
-                        <TableCell className="font-medium">{baugruppe.bezeichnung}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">
-                            {baugruppe.baugruppentyp?.bezeichnung || '-'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">
-                            {baugruppe.variantenTyp}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm">{baugruppe.artikelnummer}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    )
+    return <BaugruppenManagement />
   }
 
   // Kapazität View
