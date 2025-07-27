@@ -80,7 +80,8 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
         padding: 100,
         allowNewOrigin: 'any',
         useModelGeometry: true
-      }
+      },
+      scrollWheel: false // Disable scroll wheel zoom
     })
     paperScrollerRef.current = paperScroller
 
@@ -91,17 +92,22 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
     // Center the paper
     paperScroller.center()
 
-    // Enable panning
+    // Enable panning only on blank area (grabbing the paper)
     paper.on('blank:pointerdown', (evt: any) => {
       paperScroller.startPanning(evt)
     })
 
-    // Add zoom controls
-    paper.on('blank:mousewheel', (evt: any, x: number, y: number, delta: number) => {
+    // Disable mousewheel zoom
+    paper.on('blank:mousewheel', (evt: any) => {
       evt.preventDefault()
-      const scale = paper.scale()
-      paper.scale(scale.sx + (delta * 0.01), scale.sy + (delta * 0.01), x, y)
+      evt.stopPropagation()
     })
+    
+    // Also disable mousewheel on the paperScroller element
+    paperScroller.el.addEventListener('wheel', (evt: WheelEvent) => {
+      evt.preventDefault()
+      evt.stopPropagation()
+    }, { passive: false })
 
     // Add initial text to show the grid is working
     const welcomeText = new joint.shapes.standard.Rectangle({
