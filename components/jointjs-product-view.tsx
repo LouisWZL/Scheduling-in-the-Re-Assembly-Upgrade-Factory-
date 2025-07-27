@@ -16,6 +16,7 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
   const paperInstanceRef = useRef<joint.dia.Paper | null>(null)
   const paperScrollerRef = useRef<joint.ui.PaperScroller | null>(null)
   const currentHaloRef = useRef<joint.ui.Halo | null>(null)
+  const selectionRef = useRef<joint.ui.Selection | null>(null)
 
   useEffect(() => {
     if (!paperRef.current) return
@@ -93,10 +94,7 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
     // Center the paper
     paperScroller.center()
 
-    // Enable panning only on blank area (grabbing the paper)
-    paper.on('blank:pointerdown', (evt: any) => {
-      paperScroller.startPanning(evt)
-    })
+    // Remove the old panning setup as it's now handled in the selection logic above
 
     // Disable mousewheel zoom
     paper.on('blank:mousewheel', (evt: any) => {
@@ -111,6 +109,91 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
     }, { passive: false })
 
     // Don't add any initial shapes - let the user drag from stencil
+
+    // Set up Selection for multi-select with CTRL/CMD
+    const selection = new joint.ui.Selection({ 
+      paper: paper,
+      useModelGeometry: true
+    })
+    selectionRef.current = selection
+    
+    // Remove unwanted selection tools - keep only remove and unlink
+    selection.removeHandle('rotate')
+    selection.removeHandle('resize')
+
+    // Start selection box on blank area (when not panning)
+    let isPanning = false
+    
+    paper.on('blank:pointerdown', (evt: any) => {
+      // Check if CTRL/CMD is pressed for selection box
+      if (evt.ctrlKey || evt.metaKey) {
+        selection.startSelecting(evt)
+      } else {
+        // Otherwise start panning
+        isPanning = true
+        paperScroller.startPanning(evt)
+      }
+    })
+
+    paper.on('blank:pointerup', () => {
+      isPanning = false
+    })
+
+    // Handle CTRL/CMD click on elements for multi-select
+    paper.on('element:pointerup', (elementView: joint.dia.ElementView, evt: any) => {
+      if (evt.ctrlKey || evt.metaKey) {
+        // Hide halo when multi-selecting
+        if (currentHaloRef.current) {
+          currentHaloRef.current.remove()
+          currentHaloRef.current = null
+        }
+        
+        // Add/remove from selection using get() instead of contains()
+        if (selection.collection.get(elementView.model)) {
+          selection.collection.remove(elementView.model)
+        } else {
+          selection.collection.add(elementView.model)
+        }
+        
+        // If only one element remains selected, show halo for it
+        if (selection.collection.length === 1) {
+          const selectedElement = selection.collection.first()
+          const view = paper.findViewByModel(selectedElement)
+          if (view) {
+            createHalo(view)
+          }
+        }
+      } else if (!isPanning) {
+        // Single click without CTRL/CMD - clear selection and show halo
+        selection.collection.reset()
+        selection.collection.add(elementView.model)
+        createHalo(elementView)
+      }
+    })
+
+    // Remove from selection when clicking the selection box with CTRL/CMD
+    selection.on('selection-box:pointerdown', (elementView: joint.dia.ElementView, evt: any) => {
+      if (evt.ctrlKey || evt.metaKey) {
+        selection.collection.remove(elementView.model)
+        
+        // If only one element remains, show halo for it
+        if (selection.collection.length === 1) {
+          const selectedElement = selection.collection.first()
+          const view = paper.findViewByModel(selectedElement)
+          if (view) {
+            createHalo(view)
+          }
+        }
+      }
+    })
+    
+    // Hide halo when selection changes to multiple elements
+    selection.on('reset add remove', () => {
+      if (selection.collection.length > 1 && currentHaloRef.current) {
+        currentHaloRef.current.remove()
+        currentHaloRef.current = null
+      }
+    })
 
     // Set up Halo for element interaction
     const createHalo = (cellView: joint.dia.CellView) => {
@@ -138,16 +221,16 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
       currentHaloRef.current = halo
     }
 
-    // Show halo on element click
-    paper.on('element:pointerup', (elementView: joint.dia.ElementView) => {
-      createHalo(elementView)
-    })
-
-    // Hide halo when clicking on blank area
-    paper.on('blank:pointerdown', () => {
-      if (currentHaloRef.current) {
-        currentHaloRef.current.remove()
-        currentHaloRef.current = null
+    // Hide halo and clear selection when clicking on blank area without CTRL/CMD
+    paper.on('blank:pointerdown', (evt: any) => {
+      if (!evt.ctrlKey && !evt.metaKey) {
+        // Hide halo
+        if (currentHaloRef.current) {
+          currentHaloRef.current.remove()
+          currentHaloRef.current = null
+        }
+        // Clear selection
+        selection.collection.reset()
       }
     })
 
@@ -160,6 +243,12 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
       if (currentHaloRef.current) {
         currentHaloRef.current.remove()
         currentHaloRef.current = null
+      }
+      
+      // Remove selection if exists
+      if (selectionRef.current) {
+        selectionRef.current.remove()
+        selectionRef.current = null
       }
       
       if (paperScrollerRef.current) {
