@@ -121,3 +121,10 @@
     @apply bg-background text-foreground;
   }
 }
+
+
+
+
+.joint-stencil {
+  background: transparent !important;
+}

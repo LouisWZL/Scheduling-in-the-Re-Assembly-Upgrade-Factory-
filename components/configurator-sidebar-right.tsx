@@ -84,7 +84,6 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
       paper: mainPaper,
       width: 280,
       height: '100%',
-      label: 'Komponenten',
       layout: {
         columns: 2,
         columnWidth: 120,
@@ -166,7 +165,9 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
     })
 
     // Render and append stencil
-    stencilRef.current.appendChild(stencil.render().el)
+    if (stencilRef.current) {
+      stencilRef.current.appendChild(stencil.render().el)
+    }
     
     // Load shapes into stencil
     stencil.load(shapes)
@@ -182,11 +183,85 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
         const stencilGraph = stencil.getGraph()
         const stencilElements = stencilGraph.getElements()
         
+        let elementToRemove: joint.dia.Element | null = null
         stencilElements.forEach((el) => {
           if (el.get('baugruppentyp')?.id === baugruppentyp.id) {
-            el.remove()
+            elementToRemove = el
           }
         })
+        
+        if (elementToRemove) {
+          elementToRemove.remove()
+          
+          // Force re-render by removing and re-adding the stencil
+          const remainingElements = stencilGraph.getElements()
+          stencilGraph.clear()
+          stencil.load(remainingElements)
+        }
+      }
+    })
+    
+    // Create a function to recreate shape for a baugruppentyp
+    const createShapeForBaugruppentyp = (typ: Baugruppentyp, index: number) => {
+      const colors = [
+        { fill: '#6366f1', stroke: '#4f46e5' }, // Indigo
+        { fill: '#10b981', stroke: '#059669' }, // Emerald
+        { fill: '#f59e0b', stroke: '#d97706' }, // Amber
+        { fill: '#ef4444', stroke: '#dc2626' }, // Red
+        { fill: '#8b5cf6', stroke: '#7c3aed' }, // Violet
+        { fill: '#14b8a6', stroke: '#0d9488' }, // Teal
+      ]
+      
+      const colorIndex = index % colors.length
+      const color = colors[colorIndex]
+      
+      const shape = new joint.shapes.standard.Rectangle({
+        size: { width: 120, height: 80 },
+        attrs: {
+          body: {
+            fill: color.fill,
+            stroke: color.stroke,
+            strokeWidth: 2,
+            rx: 8,
+            ry: 8
+          },
+          label: {
+            text: typ.bezeichnung,
+            fill: 'white',
+            fontSize: 14,
+            fontWeight: '600',
+            textWrap: {
+              width: 110,
+              height: 70,
+              ellipsis: true
+            }
+          }
+        }
+      })
+      
+      // Store baugruppentyp data on the shape for later use
+      shape.set('baugruppentyp', typ)
+      
+      return shape
+    }
+    
+    // Listen for element removal from main paper to add back to stencil
+    mainPaper.on('remove', (cell: joint.dia.Cell) => {
+      if (cell.isElement()) {
+        const baugruppentyp = cell.get('baugruppentyp')
+        if (baugruppentyp) {
+          // Find the index of this baugruppentyp in the original array
+          const index = baugruppentypen.findIndex(typ => typ.id === baugruppentyp.id)
+          if (index !== -1) {
+            // Create a new shape and add it back to the stencil
+            const newShape = createShapeForBaugruppentyp(baugruppentyp, index)
+            
+            // Get current elements and add the new one
+            const currentElements = stencil.getGraph().getElements()
+            stencil.getGraph().clear()
+            stencil.load([...currentElements, newShape])
+          }
+        }
       }
     })
 
@@ -231,10 +306,14 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
       className="sticky top-0 hidden h-svh border-l lg:flex"
       style={{ "--sidebar-width": "20rem" } as React.CSSProperties}
     >
-      <SidebarContent className="p-0">
+      <SidebarHeader className="border-b px-4 py-3">
+        <h2 className="text-sm font-semibold">Baugruppentypen</h2>
+      </SidebarHeader>
+      <SidebarContent className="p-0 relative">
         <div 
           ref={stencilRef} 
-          className="h-full w-full"
+          className="h-full w-full relative"
+          style={{ position: 'relative' }}
         />
       </SidebarContent>
     </Sidebar>
