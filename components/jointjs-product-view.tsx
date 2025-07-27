@@ -15,6 +15,7 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
   const graphRef = useRef<joint.dia.Graph | null>(null)
   const paperInstanceRef = useRef<joint.dia.Paper | null>(null)
   const paperScrollerRef = useRef<joint.ui.PaperScroller | null>(null)
+  const currentHaloRef = useRef<joint.ui.Halo | null>(null)
 
   useEffect(() => {
     if (!paperRef.current) return
@@ -111,10 +112,55 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
 
     // Don't add any initial shapes - let the user drag from stencil
 
+    // Set up Halo for element interaction
+    const createHalo = (cellView: joint.dia.CellView) => {
+      // Remove existing halo if any
+      if (currentHaloRef.current) {
+        currentHaloRef.current.remove()
+        currentHaloRef.current = null
+      }
+
+      // Create new halo
+      const halo = new joint.ui.Halo({ 
+        cellView: cellView,
+        boxContent: false,  // This hides the information box
+        theme: 'modern'
+      })
+      
+      // Remove unwanted tools - keep only remove and unlink
+      halo.removeHandle('rotate')
+      halo.removeHandle('clone')
+      halo.removeHandle('fork')
+      halo.removeHandle('link')
+      halo.removeHandle('resize')
+      
+      halo.render()
+      currentHaloRef.current = halo
+    }
+
+    // Show halo on element click
+    paper.on('element:pointerup', (elementView: joint.dia.ElementView) => {
+      createHalo(elementView)
+    })
+
+    // Hide halo when clicking on blank area
+    paper.on('blank:pointerdown', () => {
+      if (currentHaloRef.current) {
+        currentHaloRef.current.remove()
+        currentHaloRef.current = null
+      }
+    })
+
     // Cleanup
     return () => {
       // Remove global reference
       ;(window as any).mainJointPaper = null
+      
+      // Remove halo if exists
+      if (currentHaloRef.current) {
+        currentHaloRef.current.remove()
+        currentHaloRef.current = null
+      }
       
       if (paperScrollerRef.current) {
         paperScrollerRef.current.remove()
