@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Plus, Edit, Trash2, Package, Car, Wrench, Cpu, Cog } from 'lucide-react'
 import { BaugruppenManagement } from '@/components/baugruppen-management'
 import { FactoryEinstellungen } from '@/components/factory-einstellungen'
+import { JointJSProductView } from '@/components/jointjs-product-view'
 import { useView } from '@/contexts/view-context'
 
 interface Variante {
@@ -229,128 +230,11 @@ export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
   // Produkt View
   if (currentView === 'produkt' && selectedProdukt) {
     return (
-      <div className="flex flex-col h-full p-6 gap-6">
-        {/* Oberer Bereich - 60vh */}
-        <div className="flex-[6] min-h-0">
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle>{selectedProdukt.bezeichnung}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <span className="font-semibold">Seriennummer:</span> {selectedProdukt.seriennummer}
-                </div>
-                <div>
-                  <span className="font-semibold">Anzahl Baugruppentypen:</span> {selectedProdukt.baugruppentypen.length}
-                </div>
-                <div>
-                  <span className="font-semibold">Anzahl Varianten:</span> {selectedProdukt.varianten.length}
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-2">Zugeordnete Baugruppentypen:</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedProdukt.baugruppentypen.map((typ) => {
-                      const Icon = baugruppentypenIcons[typ.bezeichnung] || Package
-                      return (
-                        <Badge key={typ.id} variant="outline" className="flex items-center gap-1">
-                          <Icon className="h-3 w-3" />
-                          {typ.bezeichnung}
-                        </Badge>
-                      )
-                    })}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Unterer Bereich - 40vh */}
-        <div className="flex-[4] min-h-0 grid grid-cols-2 gap-6">
-          {/* Baugruppentypen des Produkts */}
-          <Card className="overflow-hidden">
-            <CardHeader className="py-4">
-              <CardTitle className="text-base">Baugruppentypen dieses Produkts</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-auto h-[calc(100%-4rem)]">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Bezeichnung</TableHead>
-                      <TableHead>Beschreibung</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {selectedProdukt.baugruppentypen.map((typ) => (
-                      <TableRow key={typ.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            {(() => {
-                              const Icon = baugruppentypenIcons[typ.bezeichnung] || Package
-                              return <Icon className="h-4 w-4 text-muted-foreground" />
-                            })()}
-                            {typ.bezeichnung}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {typ.beschreibung || '-'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Alle Baugruppentypen der Factory */}
-          <Card className="overflow-hidden">
-            <CardHeader className="py-4">
-              <CardTitle className="text-base">Alle Baugruppentypen der Factory</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-auto h-[calc(100%-4rem)]">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Bezeichnung</TableHead>
-                      <TableHead>Beschreibung</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {allBaugruppentypen.map((typ) => {
-                      const isAssigned = selectedProdukt.baugruppentypen.some(pt => pt.id === typ.id)
-                      return (
-                        <TableRow key={typ.id}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                              {(() => {
-                                const Icon = baugruppentypenIcons[typ.bezeichnung] || Package
-                                return <Icon className="h-4 w-4 text-muted-foreground" />
-                              })()}
-                              {typ.bezeichnung}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {typ.beschreibung || '-'}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={isAssigned ? "default" : "secondary"}>
-                              {isAssigned ? 'Zugeordnet' : 'Verfügbar'}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="h-full w-full">
+        <JointJSProductView 
+          produktId={selectedProdukt.id} 
+          produktName={selectedProdukt.bezeichnung}
+        />
       </div>
     )
   }

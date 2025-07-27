@@ -45,3 +45,7 @@ CLAUDE.md
 /dashboard with header example
 
 /lib/generated/prisma
+/eurogardGitlabFrontend
+/apps
+.mcp.json
+.puppeteerrc.json
