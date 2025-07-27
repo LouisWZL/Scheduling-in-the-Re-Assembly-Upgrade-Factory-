@@ -67,8 +67,9 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
     })
     paperInstanceRef.current = paper
 
-    // Make paper globally available for the stencil
+    // Make paper and graph globally available for the stencil
     ;(window as any).mainJointPaper = paper
+    ;(window as any).mainJointGraph = graph
 
     // Create PaperScroller for better navigation
     const paperScroller = new joint.ui.PaperScroller({
@@ -235,8 +236,9 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
 
     // Cleanup
     return () => {
-      // Remove global reference
+      // Remove global references
       ;(window as any).mainJointPaper = null
+      ;(window as any).mainJointGraph = null
       
       // Remove halo if exists
       if (currentHaloRef.current) {

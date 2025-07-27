@@ -24,6 +24,8 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
   const stencilRef = useRef<HTMLDivElement>(null)
   const stencilInstanceRef = useRef<joint.ui.Stencil | null>(null)
   const [baugruppentypen, setBaugruppentypen] = useState<Baugruppentyp[]>([])
+  const allBaugruppentypenRef = useRef<Baugruppentyp[]>([])
+  const usedBaugruppentypenRef = useRef<Set<string>>(new Set())
 
   // Fetch Baugruppentypen when factory changes
   useEffect(() => {
@@ -48,7 +50,9 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
             })
           })
           
-          setBaugruppentypen(Array.from(baugruppentypMap.values()))
+          const uniqueBaugruppentypen = Array.from(baugruppentypMap.values())
+          setBaugruppentypen(uniqueBaugruppentypen)
+          allBaugruppentypenRef.current = uniqueBaugruppentypen
         }
       } catch (error) {
         console.error('Error fetching factory data:', error)
@@ -70,10 +74,11 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
       return
     }
 
-    // Wait for main paper to be available
+    // Wait for main paper and graph to be available
     const initializeStencil = () => {
       const mainPaper = (window as any).mainJointPaper
-      if (!mainPaper) {
+      const mainGraph = (window as any).mainJointGraph
+      if (!mainPaper || !mainGraph) {
         // Retry after a short delay
         setTimeout(initializeStencil, 100)
         return
@@ -119,90 +124,9 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
 
     stencilInstanceRef.current = stencil
 
-    // Create shapes for each Baugruppentyp
-    const shapes: joint.shapes.standard.Rectangle[] = []
-    const colors = [
-      { fill: '#6366f1', stroke: '#4f46e5' }, // Indigo
-      { fill: '#10b981', stroke: '#059669' }, // Emerald
-      { fill: '#f59e0b', stroke: '#d97706' }, // Amber
-      { fill: '#ef4444', stroke: '#dc2626' }, // Red
-      { fill: '#8b5cf6', stroke: '#7c3aed' }, // Violet
-      { fill: '#14b8a6', stroke: '#0d9488' }, // Teal
-    ]
-
-    baugruppentypen.forEach((typ, index) => {
-      const colorIndex = index % colors.length
-      const color = colors[colorIndex]
-      
-      const shape = new joint.shapes.standard.Rectangle({
-        size: { width: 120, height: 80 },
-        attrs: {
-          body: {
-            fill: color.fill,
-            stroke: color.stroke,
-            strokeWidth: 2,
-            rx: 8,
-            ry: 8
-          },
-          label: {
-            text: typ.bezeichnung,
-            fill: 'white',
-            fontSize: 14,
-            fontWeight: '600',
-            textWrap: {
-              width: 110,
-              height: 70,
-              ellipsis: true
-            }
-          }
-        }
-      })
-      
-      // Store baugruppentyp data on the shape for later use
-      shape.set('baugruppentyp', typ)
-      
-      shapes.push(shape)
-    })
-
-    // Render and append stencil
-    if (stencilRef.current) {
-      stencilRef.current.appendChild(stencil.render().el)
-    }
-    
-    // Load shapes into stencil
-    stencil.load(shapes)
-
-    // Listen for successful drops to remove shapes from stencil
-    stencil.on('element:drop', (elementView: joint.dia.ElementView) => {
-      // Get the original element from the stencil
-      const droppedElement = elementView.model
-      const baugruppentyp = droppedElement.get('baugruppentyp')
-      
-      if (baugruppentyp) {
-        // Find and remove the original shape from the stencil
-        const stencilGraph = stencil.getGraph()
-        const stencilElements = stencilGraph.getElements()
-        
-        let elementToRemove: joint.dia.Element | null = null
-        stencilElements.forEach((el) => {
-          if (el.get('baugruppentyp')?.id === baugruppentyp.id) {
-            elementToRemove = el
-          }
-        })
-        
-        if (elementToRemove) {
-          elementToRemove.remove()
-          
-          // Force re-render by removing and re-adding the stencil
-          const remainingElements = stencilGraph.getElements()
-          stencilGraph.clear()
-          stencil.load(remainingElements)
-        }
-      }
-    })
-    
-    // Create a function to recreate shape for a baugruppentyp
-    const createShapeForBaugruppentyp = (typ: Baugruppentyp, index: number) => {
+    // Function to create shapes for Baugruppentypen
+    const createShapesForStencil = () => {
+      const shapes: joint.shapes.standard.Rectangle[] = []
       const colors = [
         { fill: '#6366f1', stroke: '#4f46e5' }, // Indigo
         { fill: '#10b981', stroke: '#059669' }, // Emerald
@@ -211,56 +135,86 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
         { fill: '#8b5cf6', stroke: '#7c3aed' }, // Violet
         { fill: '#14b8a6', stroke: '#0d9488' }, // Teal
       ]
-      
-      const colorIndex = index % colors.length
-      const color = colors[colorIndex]
-      
-      const shape = new joint.shapes.standard.Rectangle({
-        size: { width: 120, height: 80 },
-        attrs: {
-          body: {
-            fill: color.fill,
-            stroke: color.stroke,
-            strokeWidth: 2,
-            rx: 8,
-            ry: 8
-          },
-          label: {
-            text: typ.bezeichnung,
-            fill: 'white',
-            fontSize: 14,
-            fontWeight: '600',
-            textWrap: {
-              width: 110,
-              height: 70,
-              ellipsis: true
+
+      allBaugruppentypenRef.current.forEach((typ, index) => {
+        // Only create shape if it's not currently used
+        if (!usedBaugruppentypenRef.current.has(typ.id)) {
+          const colorIndex = index % colors.length
+          const color = colors[colorIndex]
+          
+          const shape = new joint.shapes.standard.Rectangle({
+            size: { width: 120, height: 80 },
+            attrs: {
+              body: {
+                fill: color.fill,
+                stroke: color.stroke,
+                strokeWidth: 2,
+                rx: 8,
+                ry: 8
+              },
+              label: {
+                text: typ.bezeichnung,
+                fill: 'white',
+                fontSize: 14,
+                fontWeight: '600',
+                textWrap: {
+                  width: 110,
+                  height: 70,
+                  ellipsis: true
+                }
+              }
             }
-          }
+          })
+          
+          // Store baugruppentyp data on the shape for later use
+          shape.set('baugruppentyp', typ)
+          shape.set('originalIndex', index)
+          
+          shapes.push(shape)
         }
       })
       
-      // Store baugruppentyp data on the shape for later use
-      shape.set('baugruppentyp', typ)
-      
-      return shape
+      return shapes
+    }
+
+    // Render and append stencil
+    if (stencilRef.current) {
+      stencilRef.current.appendChild(stencil.render().el)
     }
     
-    // Listen for element removal from main paper to add back to stencil
-    mainPaper.on('remove', (cell: joint.dia.Cell) => {
+    // Load initial shapes into stencil
+    const initialShapes = createShapesForStencil()
+    stencil.load(initialShapes)
+
+    // Listen for successful drops to remove shapes from stencil
+    stencil.on('element:drop', (elementView: joint.dia.ElementView) => {
+      // Get the original element from the stencil
+      const droppedElement = elementView.model
+      const baugruppentyp = droppedElement.get('baugruppentyp')
+      
+      if (baugruppentyp) {
+        // Mark this Baugruppentyp as used
+        usedBaugruppentypenRef.current.add(baugruppentyp.id)
+        
+        // Reload stencil with only unused Baugruppentypen
+        stencil.getGraph().clear()
+        const newShapes = createShapesForStencil()
+        stencil.load(newShapes)
+      }
+    })
+    
+    // Listen for element removal from main graph to add back to stencil
+    mainGraph.on('remove', (cell: joint.dia.Cell) => {
       if (cell.isElement()) {
         const baugruppentyp = cell.get('baugruppentyp')
         if (baugruppentyp) {
-          // Find the index of this baugruppentyp in the original array
-          const index = baugruppentypen.findIndex(typ => typ.id === baugruppentyp.id)
-          if (index !== -1) {
-            // Create a new shape and add it back to the stencil
-            const newShape = createShapeForBaugruppentyp(baugruppentyp, index)
-            
-            // Get current elements and add the new one
-            const currentElements = stencil.getGraph().getElements()
-            stencil.getGraph().clear()
-            stencil.load([...currentElements, newShape])
-          }
+          // Remove this Baugruppentyp from used set
+          usedBaugruppentypenRef.current.delete(baugruppentyp.id)
+          
+          // Reload stencil with updated shapes
+          stencil.getGraph().clear()
+          const newShapes = createShapesForStencil()
+          stencil.load(newShapes)
         }
       }
     })
