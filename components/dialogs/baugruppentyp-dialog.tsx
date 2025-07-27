@@ -22,13 +22,15 @@ interface BaugruppentypDialogProps {
     bezeichnung: string
     beschreibung?: string | null
   }
+  factoryId: string
   onSuccess?: () => void
 }
 
 export function BaugruppentypDialog({ 
   open, 
   onOpenChange, 
-  baugruppentyp, 
+  baugruppentyp,
+  factoryId,
   onSuccess 
 }: BaugruppentypDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
@@ -52,7 +54,8 @@ export function BaugruppentypDialog({
       } else {
         result = await createBaugruppentyp({
           bezeichnung: formData.bezeichnung,
-          beschreibung: formData.beschreibung || null
+          beschreibung: formData.beschreibung || null,
+          factoryId: factoryId
         })
       }
 

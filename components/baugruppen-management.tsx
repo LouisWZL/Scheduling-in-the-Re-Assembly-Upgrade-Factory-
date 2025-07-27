@@ -26,7 +26,11 @@ import {
   deleteBaugruppe 
 } from '@/app/actions/baugruppe.actions'
 
-export function BaugruppenManagement() {
+interface BaugruppenManagementProps {
+  factoryId: string
+}
+
+export function BaugruppenManagement({ factoryId }: BaugruppenManagementProps) {
   const [baugruppentypen, setBaugruppentypen] = useState<any[]>([])
   const [baugruppen, setBaugruppen] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -49,8 +53,8 @@ export function BaugruppenManagement() {
     setLoading(true)
     try {
       const [typenResult, baugruppenResult] = await Promise.all([
-        getBaugruppentypen(),
-        getBaugruppen()
+        getBaugruppentypen(factoryId),
+        getBaugruppen(factoryId)
       ])
 
       if (typenResult.success && typenResult.data) {
@@ -153,6 +157,7 @@ export function BaugruppenManagement() {
           if (!open) setEditingBaugruppentyp(null)
         }}
         baugruppentyp={editingBaugruppentyp}
+        factoryId={factoryId}
         onSuccess={handleFormSuccess}
       />
 
@@ -163,6 +168,7 @@ export function BaugruppenManagement() {
           if (!open) setEditingBaugruppe(null)
         }}
         baugruppe={editingBaugruppe}
+        factoryId={factoryId}
         onSuccess={handleFormSuccess}
       />
 

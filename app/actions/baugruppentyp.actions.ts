@@ -4,10 +4,20 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { Prisma } from '@prisma/client'
 
-export async function createBaugruppentyp(data: Prisma.BaugruppentypCreateInput) {
+export async function createBaugruppentyp(data: {
+  bezeichnung: string
+  beschreibung?: string | null
+  factoryId: string
+}) {
   try {
     const baugruppentyp = await prisma.baugruppentyp.create({
-      data
+      data: {
+        bezeichnung: data.bezeichnung,
+        beschreibung: data.beschreibung,
+        factory: {
+          connect: { id: data.factoryId }
+        }
+      }
     })
     
     revalidatePath('/factory-configurator')
@@ -36,11 +46,17 @@ export async function createBaugruppentyp(data: Prisma.BaugruppentypCreateInput)
   }
 }
 
-export async function updateBaugruppentyp(id: string, data: Prisma.BaugruppentypUpdateInput) {
+export async function updateBaugruppentyp(id: string, data: {
+  bezeichnung?: string
+  beschreibung?: string | null
+}) {
   try {
     const baugruppentyp = await prisma.baugruppentyp.update({
       where: { id },
-      data
+      data: {
+        bezeichnung: data.bezeichnung,
+        beschreibung: data.beschreibung
+      }
     })
     
     revalidatePath('/factory-configurator')
@@ -134,12 +150,14 @@ export async function deleteBaugruppentyp(id: string) {
   }
 }
 
-export async function getBaugruppentypen() {
+export async function getBaugruppentypen(factoryId?: string) {
   try {
     const baugruppentypen = await prisma.baugruppentyp.findMany({
+      where: factoryId ? { factoryId } : undefined,
       include: {
         baugruppen: true,
-        produkte: true
+        produkte: true,
+        factory: true
       },
       orderBy: {
         bezeichnung: 'asc'

@@ -9,6 +9,7 @@ export async function createBaugruppe(data: {
   artikelnummer: string
   variantenTyp: 'basic' | 'premium' | 'basicAndPremium'
   baugruppentypId: string
+  factoryId: string
   prozesszeit?: number | null
   volumen?: number | null
 }) {
@@ -20,12 +21,16 @@ export async function createBaugruppe(data: {
         variantenTyp: data.variantenTyp,
         prozesszeit: data.prozesszeit,
         volumen: data.volumen,
+        factory: {
+          connect: { id: data.factoryId }
+        },
         baugruppentyp: {
           connect: { id: data.baugruppentypId }
         }
       },
       include: {
-        baugruppentyp: true
+        baugruppentyp: true,
+        factory: true
       }
     })
     
@@ -198,13 +203,15 @@ export async function deleteBaugruppe(id: string) {
   }
 }
 
-export async function getBaugruppen() {
+export async function getBaugruppen(factoryId?: string) {
   try {
     const baugruppen = await prisma.baugruppe.findMany({
+      where: factoryId ? { factoryId } : undefined,
       include: {
         baugruppentyp: true,
         varianten: true,
-        prozesse: true
+        prozesse: true,
+        factory: true
       },
       orderBy: {
         bezeichnung: 'asc'

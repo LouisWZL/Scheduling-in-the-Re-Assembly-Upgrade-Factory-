@@ -219,7 +219,7 @@ export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
 
   // Baugruppen View
   if (currentView === 'baugruppen') {
-    return <BaugruppenManagement />
+    return <BaugruppenManagement factoryId={factoryId} />
   }
 
   // Einstellungen View

@@ -31,31 +31,18 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
   useEffect(() => {
     const fetchBaugruppentypen = async () => {
       try {
-        const response = await fetch('/api/factories')
-        const data = await response.json()
+        // Import the server action
+        const { getBaugruppentypen } = await import('@/app/actions/baugruppentyp.actions')
         
-        if (!Array.isArray(data)) {
-          console.error('Invalid response format:', data)
-          return
-        }
+        // Get all Baugruppentypen for this factory
+        const result = await getBaugruppentypen(factoryId)
         
-        const factory = data.find((f: any) => f.id === factoryId)
-        
-        if (factory) {
-          const baugruppentypMap = new Map<string, Baugruppentyp>()
-          
-          factory.produkte.forEach((produkt: any) => {
-            produkt.baugruppentypen.forEach((typ: Baugruppentyp) => {
-              baugruppentypMap.set(typ.id, typ)
-            })
-          })
-          
-          const uniqueBaugruppentypen = Array.from(baugruppentypMap.values())
-          setBaugruppentypen(uniqueBaugruppentypen)
-          allBaugruppentypenRef.current = uniqueBaugruppentypen
+        if (result.success && result.data) {
+          setBaugruppentypen(result.data)
+          allBaugruppentypenRef.current = result.data
         }
       } catch (error) {
-        console.error('Error fetching factory data:', error)
+        console.error('Error fetching Baugruppentypen:', error)
       }
     }
 

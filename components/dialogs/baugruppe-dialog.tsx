@@ -28,13 +28,15 @@ interface BaugruppeDialogProps {
     prozesszeit: number | null
     volumen: number | null
   }
+  factoryId: string
   onSuccess?: () => void
 }
 
 export function BaugruppeDialog({ 
   open, 
   onOpenChange, 
-  baugruppe, 
+  baugruppe,
+  factoryId,
   onSuccess 
 }: BaugruppeDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
@@ -67,7 +69,7 @@ export function BaugruppeDialog({
   }, [baugruppe])
 
   const loadBaugruppentypen = async () => {
-    const result = await getBaugruppentypen()
+    const result = await getBaugruppentypen(factoryId)
     if (result.success && result.data) {
       setBaugruppentypen(result.data)
     }
@@ -92,7 +94,7 @@ export function BaugruppeDialog({
       if (baugruppe) {
         result = await updateBaugruppe(baugruppe.id, data)
       } else {
-        result = await createBaugruppe(data)
+        result = await createBaugruppe({ ...data, factoryId })
       }
 
       if (result.success) {

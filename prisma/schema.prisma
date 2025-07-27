@@ -61,12 +61,16 @@ enum VariantenTyp {
 // Baugruppentyp (Assembly Type)
 model Baugruppentyp {
   id              String              @id @default(cuid())
-  bezeichnung     String              @unique // z.B. "Karosserie", "Fahrwerk", "Interieur", "Elektronik"
+  bezeichnung     String              // z.B. "Karosserie", "Fahrwerk", "Interieur", "Elektronik"
   beschreibung    String?
+  factory         ReassemblyFactory   @relation(fields: [factoryId], references: [id])
+  factoryId       String
   produkte        Produkt[]           // Produkte die diesen Baugruppentyp haben
   baugruppen      Baugruppe[]         // Baugruppen dieses Typs
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
+  
+  @@unique([bezeichnung, factoryId])
 }
 
 // Reassembly Factory
@@ -76,6 +80,8 @@ model ReassemblyFactory {
   kapazität             Int                 // Begrenzt wie viele Produkte gleichzeitig in der Halle sein können
   auftraege             Auftrag[]
   produkte              Produkt[]           // Produkte der Reassembly Factory
+  baugruppentypen       Baugruppentyp[]     // Baugruppentypen der Factory
+  baugruppen            Baugruppe[]         // Baugruppen der Factory
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
 }
@@ -158,6 +164,8 @@ model Baugruppe {
   bezeichnung          String
   artikelnummer        String               @unique
   variantenTyp         VariantenTyp         // Für welche Varianten diese Baugruppe verfügbar ist
+  factory              ReassemblyFactory    @relation(fields: [factoryId], references: [id])
+  factoryId            String
   baugruppentyp        Baugruppentyp?       @relation(fields: [baugruppentypId], references: [id])
   baugruppentypId      String?
   prozesszeit          Int?                 // in Minuten. Wie lange dauert es, diese Baugruppe zu remontieren?
