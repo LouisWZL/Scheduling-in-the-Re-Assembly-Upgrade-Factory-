@@ -207,7 +207,6 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
       const halo = new joint.ui.Halo({ 
         cellView: cellView,
         boxContent: false,  // This hides the information box
-        theme: 'modern'
       })
       
       // Remove unwanted tools - keep only remove and unlink
