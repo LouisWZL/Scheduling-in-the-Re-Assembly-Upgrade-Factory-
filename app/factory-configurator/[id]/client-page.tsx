@@ -20,7 +20,7 @@ function ConfiguratorLayout({ factoryId }: { factoryId: string }) {
           <SidebarInset className="overflow-auto">
             <ConfiguratorContent factoryId={factoryId} />
           </SidebarInset>
-          {showRightSidebar && <ConfiguratorSidebarRight />}
+          {showRightSidebar && <ConfiguratorSidebarRight factoryId={factoryId} />}
         </div>
       </SidebarProvider>
     </div>

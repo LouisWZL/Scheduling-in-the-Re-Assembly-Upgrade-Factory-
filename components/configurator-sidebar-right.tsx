@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Sidebar,
   SidebarContent,
@@ -9,15 +9,61 @@ import {
 import { useView } from '@/contexts/view-context'
 import * as joint from '@joint/plus'
 
-export function ConfiguratorSidebarRight() {
+interface Baugruppentyp {
+  id: string
+  bezeichnung: string
+  beschreibung?: string | null
+}
+
+interface ConfiguratorSidebarRightProps {
+  factoryId: string
+}
+
+export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRightProps) {
   const { currentView } = useView()
   const stencilRef = useRef<HTMLDivElement>(null)
   const graphRef = useRef<joint.dia.Graph | null>(null)
   const paperRef = useRef<joint.dia.Paper | null>(null)
+  const [baugruppentypen, setBaugruppentypen] = useState<Baugruppentyp[]>([])
+
+  // Fetch Baugruppentypen when factory changes
+  useEffect(() => {
+    const fetchBaugruppentypen = async () => {
+      try {
+        const response = await fetch('/api/factories')
+        const data = await response.json()
+        
+        if (!Array.isArray(data)) {
+          console.error('Invalid response format:', data)
+          return
+        }
+        
+        const factory = data.find((f: any) => f.id === factoryId)
+        
+        if (factory) {
+          const baugruppentypMap = new Map<string, Baugruppentyp>()
+          
+          factory.produkte.forEach((produkt: any) => {
+            produkt.baugruppentypen.forEach((typ: Baugruppentyp) => {
+              baugruppentypMap.set(typ.id, typ)
+            })
+          })
+          
+          setBaugruppentypen(Array.from(baugruppentypMap.values()))
+        }
+      } catch (error) {
+        console.error('Error fetching factory data:', error)
+      }
+    }
+
+    if (factoryId) {
+      fetchBaugruppentypen()
+    }
+  }, [factoryId])
 
   useEffect(() => {
-    if (currentView !== 'produkt' || !stencilRef.current) {
-      // Clean up if not in produkt view
+    if (currentView !== 'produkt' || !stencilRef.current || baugruppentypen.length === 0) {
+      // Clean up if not in produkt view or no baugruppentypen
       if (paperRef.current) {
         paperRef.current.remove()
         paperRef.current = null
@@ -53,132 +99,59 @@ export function ConfiguratorSidebarRight() {
     })
     paperRef.current = paper
 
-    // Create 5 different shapes
+    // Create shapes for each Baugruppentyp
     const shapes = []
+    const colors = [
+      { fill: '#6366f1', stroke: '#4f46e5' }, // Indigo
+      { fill: '#10b981', stroke: '#059669' }, // Emerald
+      { fill: '#f59e0b', stroke: '#d97706' }, // Amber
+      { fill: '#ef4444', stroke: '#dc2626' }, // Red
+      { fill: '#8b5cf6', stroke: '#7c3aed' }, // Violet
+      { fill: '#14b8a6', stroke: '#0d9488' }, // Teal
+    ]
 
-    // 1. Rectangle - Baugruppe
-    const rect = new joint.shapes.standard.Rectangle({
-      position: { x: 20, y: 20 },
-      size: { width: 120, height: 80 },
-      attrs: {
-        body: {
-          fill: '#6366f1',
-          stroke: '#4f46e5',
-          strokeWidth: 2,
-          rx: 8,
-          ry: 8,
-          cursor: 'move'
-        },
-        label: {
-          text: 'Baugruppe',
-          fill: 'white',
-          fontSize: 14,
-          fontWeight: '600',
-          cursor: 'move'
+    baugruppentypen.forEach((typ, index) => {
+      const colorIndex = index % colors.length
+      const color = colors[colorIndex]
+      
+      // Calculate position in a 2-column layout
+      const col = index % 2
+      const row = Math.floor(index / 2)
+      const x = 20 + (col * 140)
+      const y = 20 + (row * 100)
+      
+      const shape = new joint.shapes.standard.Rectangle({
+        position: { x, y },
+        size: { width: 120, height: 80 },
+        attrs: {
+          body: {
+            fill: color.fill,
+            stroke: color.stroke,
+            strokeWidth: 2,
+            rx: 8,
+            ry: 8,
+            cursor: 'move'
+          },
+          label: {
+            text: typ.bezeichnung,
+            fill: 'white',
+            fontSize: 14,
+            fontWeight: '600',
+            cursor: 'move',
+            textWrap: {
+              width: 110,
+              height: 70,
+              ellipsis: true
+            }
+          }
         }
-      }
+      })
+      
+      // Store baugruppentyp data on the shape for later use
+      shape.set('baugruppentyp', typ)
+      
+      shapes.push(shape)
     })
-    shapes.push(rect)
-
-    // 2. Circle - Prozess
-    const circle = new joint.shapes.standard.Ellipse({
-      position: { x: 160, y: 20 },
-      size: { width: 80, height: 80 },
-      attrs: {
-        body: {
-          fill: '#10b981',
-          stroke: '#059669',
-          strokeWidth: 2,
-          cursor: 'move'
-        },
-        label: {
-          text: 'Prozess',
-          fill: 'white',
-          fontSize: 14,
-          fontWeight: '600',
-          cursor: 'move'
-        }
-      }
-    })
-    shapes.push(circle)
-
-    // 3. Diamond - Entscheidung
-    const diamond = new joint.shapes.standard.Path({
-      position: { x: 20, y: 120 },
-      size: { width: 100, height: 100 },
-      attrs: {
-        body: {
-          fill: '#f59e0b',
-          stroke: '#d97706',
-          strokeWidth: 2,
-          d: 'M 50 0 L 100 50 L 50 100 L 0 50 Z',
-          cursor: 'move'
-        },
-        label: {
-          text: 'Entscheidung',
-          fill: 'white',
-          fontSize: 13,
-          fontWeight: '600',
-          textAnchor: 'middle',
-          textVerticalAnchor: 'middle',
-          x: '50%',
-          y: '50%',
-          cursor: 'move'
-        }
-      }
-    })
-    shapes.push(diamond)
-
-    // 4. Hexagon - Station
-    const hexagon = new joint.shapes.standard.Path({
-      position: { x: 140, y: 120 },
-      size: { width: 100, height: 86 },
-      attrs: {
-        body: {
-          fill: '#ef4444',
-          stroke: '#dc2626',
-          strokeWidth: 2,
-          d: 'M 25 0 L 75 0 L 100 43 L 75 86 L 25 86 L 0 43 Z',
-          cursor: 'move'
-        },
-        label: {
-          text: 'Station',
-          fill: 'white',
-          fontSize: 14,
-          fontWeight: '600',
-          textAnchor: 'middle',
-          textVerticalAnchor: 'middle',
-          x: '50%',
-          y: '50%',
-          cursor: 'move'
-        }
-      }
-    })
-    shapes.push(hexagon)
-
-    // 5. Rounded Rectangle - Lager
-    const roundedRect = new joint.shapes.standard.Rectangle({
-      position: { x: 20, y: 240 },
-      size: { width: 120, height: 60 },
-      attrs: {
-        body: {
-          fill: '#8b5cf6',
-          stroke: '#7c3aed',
-          strokeWidth: 2,
-          rx: 20,
-          ry: 20,
-          cursor: 'move'
-        },
-        label: {
-          text: 'Lager',
-          fill: 'white',
-          fontSize: 14,
-          fontWeight: '600',
-          cursor: 'move'
-        }
-      }
-    })
-    shapes.push(roundedRect)
 
     // Add shapes to the graph
     graph.addCells(shapes)
@@ -191,6 +164,11 @@ export function ConfiguratorSidebarRight() {
       const cell = cellView.model
       const clone = cell.clone()
 
+      // Copy the baugruppentyp data to the clone
+      if (cell.get('baugruppentyp')) {
+        clone.set('baugruppentyp', cell.get('baugruppentyp'))
+      }
+      
       // Add clone to main paper at mouse position
       const localPoint = mainPaper.clientToLocalPoint({ x: evt.clientX, y: evt.clientY })
       clone.position(localPoint.x - 50, localPoint.y - 40)
@@ -224,7 +202,7 @@ export function ConfiguratorSidebarRight() {
         graphRef.current = null
       }
     }
-  }, [currentView])
+  }, [currentView, baugruppentypen])
 
   if (currentView !== 'produkt') {
     return (

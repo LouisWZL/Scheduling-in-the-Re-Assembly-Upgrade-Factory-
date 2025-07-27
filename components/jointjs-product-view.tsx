@@ -109,28 +109,7 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
       evt.stopPropagation()
     }, { passive: false })
 
-    // Add initial text to show the grid is working
-    const welcomeText = new joint.shapes.standard.Rectangle({
-      position: { x: 100, y: 100 },
-      size: { width: 300, height: 100 },
-      attrs: {
-        body: {
-          fill: '#ffffff',
-          stroke: '#6366f1',
-          strokeWidth: 2,
-          rx: 10,
-          ry: 10
-        },
-        label: {
-          text: `${produktName}\nJointJS Paper mit Grid`,
-          fill: '#1e293b',
-          fontSize: 16,
-          fontFamily: 'Inter, system-ui, sans-serif',
-          fontWeight: '500'
-        }
-      }
-    })
-    graph.addCell(welcomeText)
+    // Don't add any initial shapes - let the user drag from stencil
 
     // Cleanup
     return () => {
