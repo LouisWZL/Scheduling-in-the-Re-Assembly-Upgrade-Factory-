@@ -22,8 +22,7 @@ interface ConfiguratorSidebarRightProps {
 export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRightProps) {
   const { currentView } = useView()
   const stencilRef = useRef<HTMLDivElement>(null)
-  const graphRef = useRef<joint.dia.Graph | null>(null)
-  const paperRef = useRef<joint.dia.Paper | null>(null)
+  const stencilInstanceRef = useRef<joint.ui.Stencil | null>(null)
   const [baugruppentypen, setBaugruppentypen] = useState<Baugruppentyp[]>([])
 
   // Fetch Baugruppentypen when factory changes
@@ -64,43 +63,65 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
   useEffect(() => {
     if (currentView !== 'produkt' || !stencilRef.current || baugruppentypen.length === 0) {
       // Clean up if not in produkt view or no baugruppentypen
-      if (paperRef.current) {
-        paperRef.current.remove()
-        paperRef.current = null
-      }
-      if (graphRef.current) {
-        graphRef.current.clear()
-        graphRef.current = null
+      if (stencilInstanceRef.current) {
+        stencilInstanceRef.current.remove()
+        stencilInstanceRef.current = null
       }
       return
     }
 
-    // Create a graph for the stencil shapes
-    const graph = new joint.dia.Graph({}, { cellNamespace: joint.shapes })
-    graphRef.current = graph
+    // Wait for main paper to be available
+    const initializeStencil = () => {
+      const mainPaper = (window as any).mainJointPaper
+      if (!mainPaper) {
+        // Retry after a short delay
+        setTimeout(initializeStencil, 100)
+        return
+      }
 
-    // Create a paper for the stencil
-    const paper = new joint.dia.Paper({
-      el: stencilRef.current,
-      model: graph,
+    // Create the Stencil
+    const stencil = new joint.ui.Stencil({
+      paper: mainPaper,
       width: 280,
-      height: 600,
-      cellViewNamespace: joint.shapes,
-      background: {
-        color: '#f9fafb'
+      height: '100%',
+      label: 'Komponenten',
+      layout: {
+        columns: 2,
+        columnWidth: 120,
+        rowHeight: 80,
+        columnGap: 20,
+        rowGap: 20,
+        marginX: 20,
+        marginY: 20,
+        resizeToFit: true
       },
-      interactive: {
-        elementMove: false,
-        linkMove: false,
-        arrowheadMove: false
+      dropAnimation: {
+        duration: 300,
+        easing: 'ease-in-out'
       },
-      preventDefaultBlankAction: false,
-      preventContextMenu: false
+      dragStartClone: (cell: joint.dia.Cell) => {
+        const clone = cell.clone()
+        // Make semi-transparent during drag
+        if (clone.isElement()) {
+          clone.attr('body/opacity', 0.7)
+        }
+        return clone
+      },
+      dragEndClone: (cell: joint.dia.Cell) => {
+        const clone = cell.clone()
+        // Reset opacity
+        if (clone.isElement()) {
+          clone.attr('body/opacity', 1)
+        }
+        return clone
+      },
+      cellCursor: 'grab'
     })
-    paperRef.current = paper
+
+    stencilInstanceRef.current = stencil
 
     // Create shapes for each Baugruppentyp
-    const shapes = []
+    const shapes: joint.shapes.standard.Rectangle[] = []
     const colors = [
       { fill: '#6366f1', stroke: '#4f46e5' }, // Indigo
       { fill: '#10b981', stroke: '#059669' }, // Emerald
@@ -114,14 +135,7 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
       const colorIndex = index % colors.length
       const color = colors[colorIndex]
       
-      // Calculate position in a 2-column layout
-      const col = index % 2
-      const row = Math.floor(index / 2)
-      const x = 20 + (col * 140)
-      const y = 20 + (row * 100)
-      
       const shape = new joint.shapes.standard.Rectangle({
-        position: { x, y },
         size: { width: 120, height: 80 },
         attrs: {
           body: {
@@ -129,15 +143,13 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
             stroke: color.stroke,
             strokeWidth: 2,
             rx: 8,
-            ry: 8,
-            cursor: 'move'
+            ry: 8
           },
           label: {
             text: typ.bezeichnung,
             fill: 'white',
             fontSize: 14,
             fontWeight: '600',
-            cursor: 'move',
             textWrap: {
               width: 110,
               height: 70,
@@ -153,53 +165,41 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
       shapes.push(shape)
     })
 
-    // Add shapes to the graph
-    graph.addCells(shapes)
+    // Render and append stencil
+    stencilRef.current.appendChild(stencil.render().el)
+    
+    // Load shapes into stencil
+    stencil.load(shapes)
 
-    // Set up drag functionality
-    paper.on('cell:pointerdown', (cellView: joint.dia.CellView, evt: any, x: number, y: number) => {
-      const mainPaper = (window as any).mainJointPaper
-      if (!mainPaper) return
-
-      const cell = cellView.model
-      const clone = cell.clone()
-
-      // Copy the baugruppentyp data to the clone
-      if (cell.get('baugruppentyp')) {
-        clone.set('baugruppentyp', cell.get('baugruppentyp'))
-      }
+    // Listen for successful drops to remove shapes from stencil
+    stencil.on('element:drop', (elementView: joint.dia.ElementView) => {
+      // Get the original element from the stencil
+      const droppedElement = elementView.model
+      const baugruppentyp = droppedElement.get('baugruppentyp')
       
-      // Add clone to main paper at mouse position
-      const localPoint = mainPaper.clientToLocalPoint({ x: evt.clientX, y: evt.clientY })
-      clone.position(localPoint.x - 50, localPoint.y - 40)
-      mainPaper.model.addCell(clone)
-
-      // Create a pointer move handler
-      const onMouseMove = (moveEvt: MouseEvent) => {
-        const movePoint = mainPaper.clientToLocalPoint({ x: moveEvt.clientX, y: moveEvt.clientY })
-        clone.position(movePoint.x - 50, movePoint.y - 40)
+      if (baugruppentyp) {
+        // Find and remove the original shape from the stencil
+        const stencilGraph = stencil.getGraph()
+        const stencilElements = stencilGraph.getElements()
+        
+        stencilElements.forEach((el) => {
+          if (el.get('baugruppentyp')?.id === baugruppentyp.id) {
+            el.remove()
+          }
+        })
       }
-
-      // Create a pointer up handler
-      const onMouseUp = () => {
-        document.removeEventListener('mousemove', onMouseMove)
-        document.removeEventListener('mouseup', onMouseUp)
-      }
-
-      // Attach event listeners
-      document.addEventListener('mousemove', onMouseMove)
-      document.addEventListener('mouseup', onMouseUp)
     })
+
+    }
+
+    // Start initialization
+    initializeStencil()
 
     // Cleanup
     return () => {
-      if (paperRef.current) {
-        paperRef.current.remove()
-        paperRef.current = null
-      }
-      if (graphRef.current) {
-        graphRef.current.clear()
-        graphRef.current = null
+      if (stencilInstanceRef.current) {
+        stencilInstanceRef.current.remove()
+        stencilInstanceRef.current = null
       }
     }
   }, [currentView, baugruppentypen])
@@ -231,17 +231,10 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
       className="sticky top-0 hidden h-svh border-l lg:flex"
       style={{ "--sidebar-width": "20rem" } as React.CSSProperties}
     >
-      <SidebarHeader className="border-b px-4 py-3">
-        <h2 className="text-sm font-semibold">Komponenten</h2>
-      </SidebarHeader>
       <SidebarContent className="p-0">
-        <div className="p-2 bg-gray-50 text-xs text-muted-foreground">
-          <p className="text-center">Shapes zum Paper ziehen</p>
-        </div>
         <div 
           ref={stencilRef} 
-          className="h-full w-full overflow-auto"
-          style={{ minHeight: '600px' }}
+          className="h-full w-full"
         />
       </SidebarContent>
     </Sidebar>
