@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from 'react'
 import * as joint from '@joint/plus'
+import { Button } from '@/components/ui/button'
+import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react'
 
 interface JointJSProductViewProps {
   produktId: string
@@ -30,19 +32,12 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
       background: {
         color: '#f8f9fa'
       },
-      grid: {
-        size: 20,
-        visible: true,
+      gridSize: 20,
+      drawGrid: {
+        name: 'doubleMesh',
         args: [
-          {
-            color: '#e0e0e0',
-            thickness: 1
-          },
-          {
-            color: '#c0c0c0',
-            thickness: 2,
-            scaleFactor: 5
-          }
+          { color: '#e5e5e5', thickness: 1 }, // minor grid
+          { color: '#d0d0d0', thickness: 1, scaleFactor: 5 } // major grid
         ]
       },
       interactive: true,
@@ -148,11 +143,66 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
     }
   }, [produktId, produktName])
 
+  const handleZoomIn = () => {
+    if (paperScrollerRef.current) {
+      paperScrollerRef.current.zoom(0.2, { max: 3 })
+    }
+  }
+
+  const handleZoomOut = () => {
+    if (paperScrollerRef.current) {
+      paperScrollerRef.current.zoom(-0.2, { min: 0.2 })
+    }
+  }
+
+  const handleZoomToFit = () => {
+    if (paperScrollerRef.current) {
+      paperScrollerRef.current.zoomToFit({
+        minScale: 0.2,
+        maxScale: 2,
+        padding: 20
+      })
+    }
+  }
+
   return (
-    <div 
-      ref={paperRef} 
-      className="w-full h-full relative overflow-hidden bg-gray-50"
-      style={{ minHeight: '600px' }}
-    />
+    <div className="w-full h-full relative overflow-hidden">
+      {/* Zoom Controls */}
+      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+        <Button
+          size="icon"
+          variant="outline"
+          onClick={handleZoomIn}
+          className="bg-white shadow-sm hover:bg-gray-50"
+          title="Zoom In"
+        >
+          <ZoomIn className="h-4 w-4" />
+        </Button>
+        <Button
+          size="icon"
+          variant="outline"
+          onClick={handleZoomOut}
+          className="bg-white shadow-sm hover:bg-gray-50"
+          title="Zoom Out"
+        >
+          <ZoomOut className="h-4 w-4" />
+        </Button>
+        <Button
+          size="icon"
+          variant="outline"
+          onClick={handleZoomToFit}
+          className="bg-white shadow-sm hover:bg-gray-50"
+          title="Zoom to Fit"
+        >
+          <Maximize2 className="h-4 w-4" />
+        </Button>
+      </div>
+      
+      {/* Paper Container */}
+      <div 
+        ref={paperRef} 
+        className="w-full h-full"
+      />
+    </div>
   )
 }
