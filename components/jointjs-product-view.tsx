@@ -25,7 +25,7 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
     const graph = new joint.dia.Graph({}, { cellNamespace: joint.shapes })
     graphRef.current = graph
 
-    // Create Paper with grid
+    // Create Paper with grid and connection validation
     const paper = new joint.dia.Paper({
       width: 2000,
       height: 2000,
@@ -62,7 +62,31 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
               'stroke-width': 2
             }
           }
+        },
+        magnetAvailability: {
+          name: 'addClass',
+          options: {
+            className: 'available-magnet'
+          }
+        },
+        elementAvailability: {
+          name: 'addClass',
+          options: {
+            className: 'available-element'
+          }
         }
+      },
+      validateConnection: function(cellViewS, magnetS, cellViewT, magnetT, end, linkView) {
+        // Prevent linking from input ports
+        if (magnetS && magnetS.getAttribute('port-group') === 'in') return false
+        // Prevent linking from output ports to input ports within one element
+        if (cellViewS === cellViewT) return false
+        // Prevent linking to output ports
+        return magnetT && magnetT.getAttribute('port-group') === 'in'
+      },
+      validateMagnet: function(cellView, magnet) {
+        // Disable linking interaction for magnets marked as passive
+        return magnet.getAttribute('magnet') !== 'passive'
       }
     })
     paperInstanceRef.current = paper
@@ -110,6 +134,73 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
     }, { passive: false })
 
     // Don't add any initial shapes - let the user drag from stencil
+    
+    // Add ports to elements when they are added to the graph
+    graph.on('add', (cell: joint.dia.Cell) => {
+      if (cell.isElement()) {
+        // Define port configuration
+        const portsIn = {
+          position: {
+            name: 'top',
+            args: {}
+          },
+          attrs: {
+            portBody: {
+              magnet: 'passive', // Make input ports passive (cannot start connections)
+              r: 8,
+              fill: '#ffffff',
+              stroke: '#000000',
+              strokeWidth: 2
+            }
+          },
+          markup: [{
+            tagName: 'circle',
+            selector: 'portBody'
+          }]
+        }
+
+        const portsOut = {
+          position: {
+            name: 'bottom',
+            args: {}
+          },
+          attrs: {
+            portBody: {
+              magnet: true,
+              r: 8,
+              fill: '#ffffff',
+              stroke: '#000000',
+              strokeWidth: 2
+            }
+          },
+          markup: [{
+            tagName: 'circle',
+            selector: 'portBody'
+          }]
+        }
+
+        // Only add ports if the element doesn't already have them
+        const existingPorts = (cell as joint.dia.Element).getPorts()
+        if (existingPorts.length === 0) {
+          (cell as joint.dia.Element).addPorts([
+            {
+              id: 'in',
+              group: 'in'
+            },
+            {
+              id: 'out', 
+              group: 'out'
+            }
+          ])
+          
+          // Set port groups
+          ;(cell as joint.dia.Element).prop('ports/groups', {
+            'in': portsIn,
+            'out': portsOut
+          })
+        }
+      }
+    })
 
     // Set up Selection for multi-select with CTRL/CMD
     const selection = new joint.ui.Selection({ 

@@ -128,3 +128,13 @@
 .joint-stencil {
   background: transparent !important;
 }
+
+/* Port highlighting styles - input ports turn green when connection is possible */
+.available-magnet {
+  fill: #10b981 !important;
+}
+
+/* Available element styles - make element border dashed */
+.available-element rect {
+  stroke-dasharray: 5, 2 !important;
+}
