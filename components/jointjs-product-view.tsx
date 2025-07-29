@@ -87,6 +87,9 @@ export function JointJSProductView({
     commandManager.on('stack', () => {
       if (onCanUndoChange) onCanUndoChange(commandManager.hasUndo())
       if (onCanRedoChange) onCanRedoChange(commandManager.hasRedo())
+      
+      // Dispatch event to update stencil after undo/redo
+      window.dispatchEvent(new CustomEvent('graph-changed'))
     })
     
     // Listen to graph changes for manual save tracking
@@ -516,6 +519,7 @@ export function JointJSProductView({
       window.jointJSUndo = () => {
         if (commandManagerRef.current?.hasUndo()) {
           commandManagerRef.current.undo()
+          // Stencil update is now handled by commandManager 'stack' event
         }
       }
     }
@@ -524,6 +528,7 @@ export function JointJSProductView({
       window.jointJSRedo = () => {
         if (commandManagerRef.current?.hasRedo()) {
           commandManagerRef.current.redo()
+          // Stencil update is now handled by commandManager 'stack' event
         }
       }
     }

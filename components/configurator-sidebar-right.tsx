@@ -211,9 +211,18 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
       }, 200)
     }
     
+    // Handle graph changed event (for undo/redo)
+    const handleGraphChanged = () => {
+      // Recreate stencil to reflect current graph state
+      setTimeout(() => {
+        createStencil()
+      }, 50)
+    }
+    
     // Listen for events
     window.addEventListener('jointjs-paper-ready', handlePaperReady)
     window.addEventListener('graph-loaded', handleGraphLoaded)
+    window.addEventListener('graph-changed', handleGraphChanged)
     
     // Try with a delay to ensure paper is ready
     const timeoutId = setTimeout(handlePaperReady, 100)
@@ -223,6 +232,7 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
       clearTimeout(timeoutId)
       window.removeEventListener('jointjs-paper-ready', handlePaperReady)
       window.removeEventListener('graph-loaded', handleGraphLoaded)
+      window.removeEventListener('graph-changed', handleGraphChanged)
       if (stencilInstanceRef.current) {
         stencilInstanceRef.current.remove()
         stencilInstanceRef.current = null
