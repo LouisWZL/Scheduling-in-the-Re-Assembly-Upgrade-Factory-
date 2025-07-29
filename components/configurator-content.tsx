@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Table,
   TableBody,
@@ -16,7 +16,11 @@ import { Plus, Edit, Trash2, Package, Car, Wrench, Cpu, Cog } from 'lucide-react
 import { BaugruppenManagement } from '@/components/baugruppen-management'
 import { FactoryEinstellungen } from '@/components/factory-einstellungen'
 import { JointJSProductView } from '@/components/jointjs-product-view'
+import { SidebarInsetHeader } from '@/components/sidebar-inset-header'
+import { SidebarInset } from '@/components/ui/sidebar'
 import { useView } from '@/contexts/view-context'
+import { toast } from 'sonner'
+import { updateProduktGraph } from '@/app/actions/produkt.actions'
 
 interface Variante {
   id: string
@@ -82,6 +86,53 @@ export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
   const [loading, setLoading] = useState(false)
   const [factoryData, setFactoryData] = useState<any>(null)
   const { currentView, setCurrentView } = useView()
+  
+  // States for JointJS controls
+  const [canUndo, setCanUndo] = useState(false)
+  const [canRedo, setCanRedo] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  
+  // Control handlers for JointJS (define before any early returns)
+  const handleZoomIn = useCallback(() => {
+    if (window.jointJSZoomIn) window.jointJSZoomIn()
+  }, [])
+  
+  const handleZoomOut = useCallback(() => {
+    if (window.jointJSZoomOut) window.jointJSZoomOut()
+  }, [])
+  
+  const handleZoomToFit = useCallback(() => {
+    if (window.jointJSZoomToFit) window.jointJSZoomToFit()
+  }, [])
+  
+  const handleUndo = useCallback(() => {
+    if (window.jointJSUndo) window.jointJSUndo()
+  }, [])
+  
+  const handleRedo = useCallback(() => {
+    if (window.jointJSRedo) window.jointJSRedo()
+  }, [])
+  
+  const handleSave = useCallback(async () => {
+    if (!selectedProdukt || !window.mainJointGraph) return
+    
+    try {
+      setIsSaving(true)
+      const graphData = window.mainJointGraph.toJSON()
+      const result = await updateProduktGraph(selectedProdukt.id, graphData)
+      
+      if (result.success) {
+        toast.success('Graph erfolgreich gespeichert')
+      } else {
+        toast.error(result.error || 'Fehler beim Speichern des Graphen')
+      }
+    } catch (error) {
+      console.error('Error saving graph:', error)
+      toast.error('Fehler beim Speichern des Graphen')
+    } finally {
+      setIsSaving(false)
+    }
+  }, [selectedProdukt])
 
   const fetchFactoryData = async () => {
     try {
@@ -230,12 +281,35 @@ export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
   // Produkt View
   if (currentView === 'produkt' && selectedProdukt) {
     return (
-      <div className="h-full w-full">
-        <JointJSProductView 
-          produktId={selectedProdukt.id} 
+      <SidebarInset className="flex flex-col h-full">
+        <SidebarInsetHeader
           produktName={selectedProdukt.bezeichnung}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onZoomToFit={handleZoomToFit}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onSave={handleSave}
+          isSaving={isSaving}
         />
-      </div>
+        <div className="flex-1 overflow-hidden">
+          <JointJSProductView 
+            produktId={selectedProdukt.id} 
+            produktName={selectedProdukt.bezeichnung}
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            onZoomToFit={handleZoomToFit}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            onCanUndoChange={setCanUndo}
+            onCanRedoChange={setCanRedo}
+            onSave={handleSave}
+            onSavingChange={setIsSaving}
+          />
+        </div>
+      </SidebarInset>
     )
   }
 

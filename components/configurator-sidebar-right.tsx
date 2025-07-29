@@ -61,58 +61,38 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
       return
     }
 
-    // Wait for main paper and graph to be available
-    const initializeStencil = () => {
+    // Store all Baugruppentypen in ref
+    allBaugruppentypenRef.current = baugruppentypen
+
+    // Function to create and setup stencil completely
+    const createStencil = () => {
       const mainPaper = (window as any).mainJointPaper
       const mainGraph = (window as any).mainJointGraph
       if (!mainPaper || !mainGraph) {
-        // Retry after a short delay
-        setTimeout(initializeStencil, 100)
         return
       }
 
-    // Create the Stencil
-    const stencil = new joint.ui.Stencil({
-      paper: mainPaper,
-      width: 280,
-      height: '100%',
-      layout: {
-        columns: 2,
-        columnWidth: 120,
-        rowHeight: 80,
-        columnGap: 20,
-        rowGap: 20,
-        marginX: 20,
-        marginY: 20,
-        resizeToFit: true
-      },
-      dropAnimation: {
-        duration: 300,
-        easing: 'ease-in-out'
-      },
-      dragStartClone: (cell: joint.dia.Cell) => {
-        const clone = cell.clone()
-        // Make semi-transparent during drag
-        if (clone.isElement()) {
-          clone.attr('body/opacity', 0.7)
-        }
-        return clone
-      },
-      dragEndClone: (cell: joint.dia.Cell) => {
-        const clone = cell.clone()
-        // Reset opacity
-        if (clone.isElement()) {
-          clone.attr('body/opacity', 1)
-        }
-        return clone
-      },
-      cellCursor: 'grab'
-    })
+      // Remove existing stencil if any
+      if (stencilInstanceRef.current) {
+        stencilInstanceRef.current.remove()
+        stencilInstanceRef.current = null
+      }
 
-    stencilInstanceRef.current = stencil
+      // Clear the container
+      if (stencilRef.current) {
+        stencilRef.current.innerHTML = ''
+      }
 
-    // Function to create shapes for Baugruppentypen
-    const createShapesForStencil = () => {
+      // Get used Baugruppentyp IDs from the main graph
+      const usedIds = new Set<string>()
+      mainGraph.getElements().forEach((element: joint.dia.Element) => {
+        const baugruppentyp = element.get('baugruppentyp')
+        if (baugruppentyp && baugruppentyp.id) {
+          usedIds.add(baugruppentyp.id)
+        }
+      })
+
+      // Create shapes for available Baugruppentypen
       const shapes: joint.shapes.standard.Rectangle[] = []
       const colors = [
         { fill: '#6366f1', stroke: '#4f46e5' }, // Indigo
@@ -124,8 +104,8 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
       ]
 
       allBaugruppentypenRef.current.forEach((typ, index) => {
-        // Only create shape if it's not currently used
-        if (!usedBaugruppentypenRef.current.has(typ.id)) {
+        // Only create shape if it's not currently used in the paper
+        if (!usedIds.has(typ.id)) {
           const colorIndex = index % colors.length
           const color = colors[colorIndex]
           
@@ -153,66 +133,86 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
             }
           })
           
-          // Store baugruppentyp data on the shape for later use
+          // Store baugruppentyp data on the shape
           shape.set('baugruppentyp', typ)
-          shape.set('originalIndex', index)
-          
           shapes.push(shape)
         }
       })
-      
-      return shapes
-    }
 
-    // Render and append stencil
-    if (stencilRef.current) {
-      stencilRef.current.appendChild(stencil.render().el)
-    }
-    
-    // Load initial shapes into stencil
-    const initialShapes = createShapesForStencil()
-    stencil.load(initialShapes)
-
-    // Listen for successful drops to remove shapes from stencil
-    stencil.on('element:drop', (elementView: joint.dia.ElementView) => {
-      // Get the original element from the stencil
-      const droppedElement = elementView.model
-      const baugruppentyp = droppedElement.get('baugruppentyp')
-      
-      if (baugruppentyp) {
-        // Mark this Baugruppentyp as used
-        usedBaugruppentypenRef.current.add(baugruppentyp.id)
-        
-        // Reload stencil with only unused Baugruppentypen
-        stencil.getGraph().clear()
-        const newShapes = createShapesForStencil()
-        stencil.load(newShapes)
+      // Only create stencil if there are shapes to show
+      if (shapes.length === 0) {
+        return
       }
-    })
-    
-    // Listen for element removal from main graph to add back to stencil
-    mainGraph.on('remove', (cell: joint.dia.Cell) => {
-      if (cell.isElement()) {
-        const baugruppentyp = cell.get('baugruppentyp')
-        if (baugruppentyp) {
-          // Remove this Baugruppentyp from used set
-          usedBaugruppentypenRef.current.delete(baugruppentyp.id)
-          
-          // Reload stencil with updated shapes
-          stencil.getGraph().clear()
-          const newShapes = createShapesForStencil()
-          stencil.load(newShapes)
+
+      // Create new Stencil without groups for simpler layout
+      const stencil = new joint.ui.Stencil({
+        paper: mainPaper,
+        width: 280,
+        height: 600,
+        layout: {
+          columns: 2,
+          columnWidth: 120,
+          rowHeight: 80,
+          columnGap: 20,
+          rowGap: 20,
+          marginX: 20,
+          marginY: 20,
+          resizeToFit: false
+        },
+        dropAnimation: {
+          duration: 300,
+          easing: 'ease-in-out'
         }
-      }
-    })
+      })
 
+      stencilInstanceRef.current = stencil
+
+      // Render and append stencil
+      stencil.render()
+      if (stencilRef.current) {
+        stencilRef.current.appendChild(stencil.el)
+      }
+
+      // Load shapes directly without groups
+      stencil.load(shapes)
+
+      // Listen for successful drops
+      stencil.on('element:drop', () => {
+        // Recreate stencil after a short delay
+        setTimeout(() => {
+          createStencil()
+        }, 100)
+      })
     }
 
-    // Start initialization
-    initializeStencil()
+    // Wait for paper ready event
+    const handlePaperReady = () => {
+      createStencil()
+
+      // Listen for element removal from main graph
+      const mainGraph = (window as any).mainJointGraph
+      if (mainGraph) {
+        mainGraph.on('remove', (cell: joint.dia.Cell) => {
+          if (cell.isElement() && cell.get('baugruppentyp')) {
+            // Recreate stencil after a short delay
+            setTimeout(() => {
+              createStencil()
+            }, 100)
+          }
+        })
+      }
+    }
+    
+    // Listen for paper ready event
+    window.addEventListener('jointjs-paper-ready', handlePaperReady)
+    
+    // Try with a delay to ensure paper is ready
+    const timeoutId = setTimeout(handlePaperReady, 100)
 
     // Cleanup
     return () => {
+      clearTimeout(timeoutId)
+      window.removeEventListener('jointjs-paper-ready', handlePaperReady)
       if (stencilInstanceRef.current) {
         stencilInstanceRef.current.remove()
         stencilInstanceRef.current = null

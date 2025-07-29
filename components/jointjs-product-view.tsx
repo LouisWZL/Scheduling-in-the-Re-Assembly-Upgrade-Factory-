@@ -1,22 +1,104 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import * as joint from '@joint/plus'
-import { Button } from '@/components/ui/button'
-import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react'
+import { getProdukt, updateProduktGraph } from '@/app/actions/produkt.actions'
+import { useDebounce } from '@/hooks/use-debounce'
+import { toast } from 'sonner'
 
 interface JointJSProductViewProps {
   produktId: string
   produktName: string
+  onZoomIn?: () => void
+  onZoomOut?: () => void
+  onZoomToFit?: () => void
+  onUndo?: () => void
+  onRedo?: () => void
+  onCanUndoChange?: (canUndo: boolean) => void
+  onCanRedoChange?: (canRedo: boolean) => void
+  onSave?: () => void
+  onSavingChange?: (isSaving: boolean) => void
 }
 
-export function JointJSProductView({ produktId, produktName }: JointJSProductViewProps) {
+export function JointJSProductView({ 
+  produktId, 
+  produktName,
+  onZoomIn,
+  onZoomOut,
+  onZoomToFit,
+  onUndo,
+  onRedo,
+  onCanUndoChange,
+  onCanRedoChange,
+  onSave,
+  onSavingChange
+}: JointJSProductViewProps) {
   const paperRef = useRef<HTMLDivElement>(null)
   const graphRef = useRef<joint.dia.Graph | null>(null)
   const paperInstanceRef = useRef<joint.dia.Paper | null>(null)
   const paperScrollerRef = useRef<joint.ui.PaperScroller | null>(null)
   const currentHaloRef = useRef<joint.ui.Halo | null>(null)
   const selectionRef = useRef<joint.ui.Selection | null>(null)
+  const commandManagerRef = useRef<joint.dia.CommandManager | null>(null)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
+  const [graphState, setGraphState] = useState<any>(null)
+  const debouncedGraphState = useDebounce(graphState, 1000)
+
+  // Auto-save when graph changes
+  useEffect(() => {
+    if (!debouncedGraphState || isInitialLoad) return
+    
+    const saveGraph = async () => {
+      if (onSavingChange) onSavingChange(true)
+      
+      try {
+        const result = await updateProduktGraph(produktId, debouncedGraphState)
+        if (result.success) {
+          // Silent save for auto-save
+          console.log('Graph auto-saved')
+        } else {
+          toast.error(result.error || 'Fehler beim automatischen Speichern')
+        }
+      } catch (error) {
+        console.error('Error saving graph:', error)
+        toast.error('Fehler beim automatischen Speichern')
+      } finally {
+        if (onSavingChange) onSavingChange(false)
+      }
+    }
+    
+    saveGraph()
+  }, [debouncedGraphState, produktId, isInitialLoad, onSavingChange])
+
+  // Load initial graph data
+  useEffect(() => {
+    const loadProdukt = async () => {
+      try {
+        const result = await getProdukt(produktId)
+        if (result.success && result.data?.graphData && graphRef.current) {
+          // Clear existing graph first
+          graphRef.current.clear()
+          // Load saved graph
+          graphRef.current.fromJSON(result.data.graphData)
+          console.log('Graph loaded successfully')
+        }
+      } catch (error) {
+        console.error('Error loading product graph:', error)
+      } finally {
+        // Mark initial load as complete after loading (or failing to load) data
+        setIsInitialLoad(false)
+      }
+    }
+    
+    // Delay loading to ensure graph is fully initialized
+    const timeoutId = setTimeout(() => {
+      if (graphRef.current) {
+        loadProdukt()
+      }
+    }, 100)
+    
+    return () => clearTimeout(timeoutId)
+  }, [produktId])
 
   useEffect(() => {
     if (!paperRef.current) return
@@ -24,6 +106,23 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
     // Create Graph
     const graph = new joint.dia.Graph({}, { cellNamespace: joint.shapes })
     graphRef.current = graph
+    
+    // Create CommandManager for undo/redo
+    const commandManager = new joint.dia.CommandManager({ graph })
+    commandManagerRef.current = commandManager
+    
+    // Listen to command manager stack changes
+    commandManager.on('stack', () => {
+      if (onCanUndoChange) onCanUndoChange(commandManager.hasUndo())
+      if (onCanRedoChange) onCanRedoChange(commandManager.hasRedo())
+    })
+    
+    // Listen to graph changes for auto-save
+    graph.on('change add remove', () => {
+      if (!isInitialLoad) {
+        setGraphState(graph.toJSON())
+      }
+    })
 
     // Create Paper with grid and connection validation
     const paper = new joint.dia.Paper({
@@ -94,13 +193,16 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
     // Make paper and graph globally available for the stencil
     ;(window as any).mainJointPaper = paper
     ;(window as any).mainJointGraph = graph
+    
+    // Dispatch custom event to signal paper is ready
+    window.dispatchEvent(new CustomEvent('jointjs-paper-ready'))
 
     // Create PaperScroller for better navigation
     const paperScroller = new joint.ui.PaperScroller({
       paper: paper,
       autoResizePaper: true,
       padding: 100,
-      cursor: 'grab',
+      cursor: 'default',
       baseWidth: paperRef.current.clientWidth,
       baseHeight: paperRef.current.clientHeight,
       contentOptions: {
@@ -221,7 +323,7 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
       if (evt.ctrlKey || evt.metaKey) {
         selection.startSelecting(evt)
       } else {
-        // Otherwise start panning
+        // Start panning on blank area
         isPanning = true
         paperScroller.startPanning(evt)
       }
@@ -255,7 +357,7 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
             createHalo(view)
           }
         }
-      } else if (!isPanning) {
+      } else {
         // Single click without CTRL/CMD - clear selection and show halo
         selection.collection.reset()
         selection.collection.add(elementView.model)
@@ -325,8 +427,27 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
       }
     })
 
+    // Setup keyboard shortcuts
+    const handleKeydown = (evt: KeyboardEvent) => {
+      if ((evt.ctrlKey || evt.metaKey) && evt.key === 'z' && !evt.shiftKey) {
+        evt.preventDefault()
+        if (commandManagerRef.current?.hasUndo()) {
+          commandManagerRef.current.undo()
+        }
+      } else if ((evt.ctrlKey || evt.metaKey) && (evt.key === 'y' || (evt.key === 'z' && evt.shiftKey))) {
+        evt.preventDefault()
+        if (commandManagerRef.current?.hasRedo()) {
+          commandManagerRef.current.redo()
+        }
+      }
+    }
+    
+    document.addEventListener('keydown', handleKeydown)
+
     // Cleanup
     return () => {
+      document.removeEventListener('keydown', handleKeydown)
+      
       // Remove global references
       ;(window as any).mainJointPaper = null
       ;(window as any).mainJointGraph = null
@@ -353,63 +474,65 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
         graphRef.current.clear()
       }
     }
-  }, [produktId, produktName])
+  }, [produktId, produktName, isInitialLoad])
 
-  const handleZoomIn = () => {
-    if (paperScrollerRef.current) {
-      paperScrollerRef.current.zoom(0.2, { max: 3 })
+  // Setup external control handlers
+  useEffect(() => {
+    if (onZoomIn) {
+      window.jointJSZoomIn = () => {
+        if (paperScrollerRef.current) {
+          paperScrollerRef.current.zoom(0.2, { max: 3 })
+        }
+      }
     }
-  }
-
-  const handleZoomOut = () => {
-    if (paperScrollerRef.current) {
-      paperScrollerRef.current.zoom(-0.2, { min: 0.2 })
+    
+    if (onZoomOut) {
+      window.jointJSZoomOut = () => {
+        if (paperScrollerRef.current) {
+          paperScrollerRef.current.zoom(-0.2, { min: 0.2 })
+        }
+      }
     }
-  }
-
-  const handleZoomToFit = () => {
-    if (paperScrollerRef.current) {
-      paperScrollerRef.current.zoomToFit({
-        minScale: 0.2,
-        maxScale: 2,
-        padding: 20
-      })
+    
+    if (onZoomToFit) {
+      window.jointJSZoomToFit = () => {
+        if (paperScrollerRef.current) {
+          paperScrollerRef.current.zoomToFit({
+            minScale: 0.2,
+            maxScale: 2,
+            padding: 20
+          })
+        }
+      }
     }
-  }
+    
+    if (onUndo) {
+      window.jointJSUndo = () => {
+        if (commandManagerRef.current?.hasUndo()) {
+          commandManagerRef.current.undo()
+        }
+      }
+    }
+    
+    if (onRedo) {
+      window.jointJSRedo = () => {
+        if (commandManagerRef.current?.hasRedo()) {
+          commandManagerRef.current.redo()
+        }
+      }
+    }
+    
+    return () => {
+      delete window.jointJSZoomIn
+      delete window.jointJSZoomOut
+      delete window.jointJSZoomToFit
+      delete window.jointJSUndo
+      delete window.jointJSRedo
+    }
+  }, [onZoomIn, onZoomOut, onZoomToFit, onUndo, onRedo])
 
   return (
     <div className="w-full h-full relative overflow-hidden">
-      {/* Zoom Controls */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
-        <Button
-          size="icon"
-          variant="outline"
-          onClick={handleZoomIn}
-          className="bg-white shadow-sm hover:bg-gray-50"
-          title="Zoom In"
-        >
-          <ZoomIn className="h-4 w-4" />
-        </Button>
-        <Button
-          size="icon"
-          variant="outline"
-          onClick={handleZoomOut}
-          className="bg-white shadow-sm hover:bg-gray-50"
-          title="Zoom Out"
-        >
-          <ZoomOut className="h-4 w-4" />
-        </Button>
-        <Button
-          size="icon"
-          variant="outline"
-          onClick={handleZoomToFit}
-          className="bg-white shadow-sm hover:bg-gray-50"
-          title="Zoom to Fit"
-        >
-          <Maximize2 className="h-4 w-4" />
-        </Button>
-      </div>
-      
       {/* Paper Container */}
       <div 
         ref={paperRef} 
@@ -417,4 +540,17 @@ export function JointJSProductView({ produktId, produktName }: JointJSProductVie
       />
     </div>
   )
+}
+
+// Declare global window properties for external control
+declare global {
+  interface Window {
+    jointJSZoomIn?: () => void
+    jointJSZoomOut?: () => void
+    jointJSZoomToFit?: () => void
+    jointJSUndo?: () => void
+    jointJSRedo?: () => void
+    mainJointPaper?: joint.dia.Paper
+    mainJointGraph?: joint.dia.Graph
+  }
 }

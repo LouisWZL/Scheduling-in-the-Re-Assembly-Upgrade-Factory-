@@ -4,13 +4,31 @@ const prisma = new PrismaClient()
 // ==========================================
 // BAUGRUPPENTYPEN DEFINITION (Factory-specific)
 // ==========================================
-const baugruppentypenDefinitions = [
-  { bezeichnung: "Chassis", beschreibung: "Fahrzeugrahmen und Bodengruppe" },
-  { bezeichnung: "Karosserie", beschreibung: "Außenhülle und Struktur des Fahrzeugs" },
-  { bezeichnung: "Fahrwerk", beschreibung: "Räder, Achsen, Federung und Lenkung" },
-  { bezeichnung: "Antrieb", beschreibung: "Motor, Getriebe und Kraftübertragung" },
-  { bezeichnung: "Interieur", beschreibung: "Innenausstattung und Sitze" },
-  { bezeichnung: "Elektronik", beschreibung: "Elektronische Systeme und Steuergeräte" }
+const porscheBaugruppentypenDefinitions = [
+  { bezeichnung: "Porsche-Chassis", beschreibung: "Porsche Fahrzeugrahmen und Bodengruppe" },
+  { bezeichnung: "Porsche-Karosserie", beschreibung: "Porsche Außenhülle und Struktur" },
+  { bezeichnung: "Porsche-Fahrwerk", beschreibung: "Porsche Räder, Achsen, Federung" },
+  { bezeichnung: "Porsche-Antrieb", beschreibung: "Porsche Motor und Getriebe" },
+  { bezeichnung: "Porsche-Interieur", beschreibung: "Porsche Innenausstattung" },
+  { bezeichnung: "Porsche-Elektronik", beschreibung: "Porsche Elektronische Systeme" }
+]
+
+const audiBaugruppentypenDefinitions = [
+  { bezeichnung: "Audi-Chassis", beschreibung: "Audi Fahrzeugrahmen und Bodengruppe" },
+  { bezeichnung: "Audi-Karosserie", beschreibung: "Audi Außenhülle und Struktur" },
+  { bezeichnung: "Audi-Fahrwerk", beschreibung: "Audi Räder, Achsen, Federung" },
+  { bezeichnung: "Audi-Antrieb", beschreibung: "Audi Motor und Getriebe" },
+  { bezeichnung: "Audi-Interieur", beschreibung: "Audi Innenausstattung" },
+  { bezeichnung: "Audi-Elektronik", beschreibung: "Audi Elektronische Systeme" }
+]
+
+const vwBaugruppentypenDefinitions = [
+  { bezeichnung: "VW-Chassis", beschreibung: "VW Fahrzeugrahmen und Bodengruppe" },
+  { bezeichnung: "VW-Karosserie", beschreibung: "VW Außenhülle und Struktur" },
+  { bezeichnung: "VW-Fahrwerk", beschreibung: "VW Räder, Achsen, Federung" },
+  { bezeichnung: "VW-Antrieb", beschreibung: "VW Motor und Getriebe" },
+  { bezeichnung: "VW-Interieur", beschreibung: "VW Innenausstattung" },
+  { bezeichnung: "VW-Elektronik", beschreibung: "VW Elektronische Systeme" }
 ]
 
 // ==========================================
@@ -44,84 +62,84 @@ interface BaugruppeWithType {
 
 const porscheBaugruppen: BaugruppeWithType[] = [
   {
-    bezeichnung: "Chassis",
+    bezeichnung: "Porsche-Chassis",
     artikelnummer: "CHS-BP-001",
     variantenTyp: "basicAndPremium",
     prozesszeit: 180,
     volumen: 2.5,
-    baugruppentyp: "Chassis"
+    baugruppentyp: "Porsche-Chassis"
   },
   {
-    bezeichnung: "Karosserie",
+    bezeichnung: "Porsche-Karosserie",
     artikelnummer: "KAR-B1-001",
     variantenTyp: "basic",
     prozesszeit: 120,
     volumen: 3.0,
-    baugruppentyp: "Karosserie"
+    baugruppentyp: "Porsche-Karosserie"
   },
   {
-    bezeichnung: "Karosserie",
+    bezeichnung: "Porsche-Karosserie",
     artikelnummer: "KAR-B2-001",
     variantenTyp: "basic",
     prozesszeit: 90,
     volumen: 2.0,
-    baugruppentyp: "Karosserie"
+    baugruppentyp: "Porsche-Karosserie"
   },
   {
-    bezeichnung: "Karosserie",
+    bezeichnung: "Porsche-Karosserie",
     artikelnummer: "KAR-P1-001",
     variantenTyp: "premium",
     prozesszeit: 150,
     volumen: 3.5,
-    baugruppentyp: "Karosserie"
+    baugruppentyp: "Porsche-Karosserie"
   },
   {
-    bezeichnung: "Karosserie",
+    bezeichnung: "Porsche-Karosserie",
     artikelnummer: "KAR-P2-001",
     variantenTyp: "premium",
     prozesszeit: 100,
     volumen: 2.5,
-    baugruppentyp: "Karosserie"
+    baugruppentyp: "Porsche-Karosserie"
   },
   {
-    bezeichnung: "Fahrwerk",
+    bezeichnung: "Porsche-Fahrwerk",
     artikelnummer: "FAH-BP-001",
     variantenTyp: "basicAndPremium",
     prozesszeit: 240,
     volumen: 1.8,
-    baugruppentyp: "Fahrwerk"
+    baugruppentyp: "Porsche-Fahrwerk"
   },
   {
-    bezeichnung: "Antrieb",
+    bezeichnung: "Porsche-Antrieb",
     artikelnummer: "ANT-BP-001",
     variantenTyp: "basicAndPremium",
     prozesszeit: 360,
     volumen: 1.5,
-    baugruppentyp: "Antrieb"
+    baugruppentyp: "Porsche-Antrieb"
   },
   {
-    bezeichnung: "Interieur",
+    bezeichnung: "Porsche-Interieur",
     artikelnummer: "INT-B-001",
     variantenTyp: "basic",
     prozesszeit: 150,
     volumen: 2.0,
-    baugruppentyp: "Interieur"
+    baugruppentyp: "Porsche-Interieur"
   },
   {
-    bezeichnung: "Interieur",
+    bezeichnung: "Porsche-Interieur",
     artikelnummer: "INT-P-001",
     variantenTyp: "premium",
     prozesszeit: 180,
     volumen: 2.2,
-    baugruppentyp: "Interieur"
+    baugruppentyp: "Porsche-Interieur"
   },
   {
-    bezeichnung: "Elektronik",
+    bezeichnung: "Porsche-Elektronik",
     artikelnummer: "ELE-BP-001",
     variantenTyp: "basicAndPremium",
     prozesszeit: 120,
     volumen: 0.5,
-    baugruppentyp: "Elektronik"
+    baugruppentyp: "Porsche-Elektronik"
   }
 ]
 
@@ -154,76 +172,76 @@ const audiProzesse: Prisma.ProzessCreateInput[] = [
 // Audi Baugruppen
 const audiBaugruppen: BaugruppeWithType[] = [
   {
-    bezeichnung: "Chassis",
+    bezeichnung: "Audi-Chassis",
     artikelnummer: "AUDI-CHS-001",
     variantenTyp: "basicAndPremium",
     prozesszeit: 160,
     volumen: 2.3,
-    baugruppentyp: "Chassis"
+    baugruppentyp: "Audi-Chassis"
   },
   {
-    bezeichnung: "Karosserie",
+    bezeichnung: "Audi-Karosserie",
     artikelnummer: "AUDI-KAR-B-001",
     variantenTyp: "basic",
     prozesszeit: 110,
     volumen: 2.8,
-    baugruppentyp: "Karosserie"
+    baugruppentyp: "Audi-Karosserie"
   },
   {
-    bezeichnung: "Karosserie",
+    bezeichnung: "Audi-Karosserie",
     artikelnummer: "AUDI-KAR-P-001",
     variantenTyp: "premium",
     prozesszeit: 140,
     volumen: 3.2,
-    baugruppentyp: "Karosserie"
+    baugruppentyp: "Audi-Karosserie"
   },
   {
-    bezeichnung: "Fahrwerk",
+    bezeichnung: "Audi-Fahrwerk",
     artikelnummer: "AUDI-FAH-001",
     variantenTyp: "basicAndPremium",
     prozesszeit: 220,
     volumen: 1.7,
-    baugruppentyp: "Fahrwerk"
+    baugruppentyp: "Audi-Fahrwerk"
   },
   {
-    bezeichnung: "Antrieb",
+    bezeichnung: "Audi-Antrieb",
     artikelnummer: "AUDI-ANT-B-001",
     variantenTyp: "basic",
     prozesszeit: 320,
     volumen: 1.4,
-    baugruppentyp: "Antrieb"
+    baugruppentyp: "Audi-Antrieb"
   },
   {
-    bezeichnung: "Antrieb",
+    bezeichnung: "Audi-Antrieb",
     artikelnummer: "AUDI-ANT-P-001",
     variantenTyp: "premium",
     prozesszeit: 380,
     volumen: 1.6,
-    baugruppentyp: "Antrieb"
+    baugruppentyp: "Audi-Antrieb"
   },
   {
-    bezeichnung: "Interieur",
+    bezeichnung: "Audi-Interieur",
     artikelnummer: "AUDI-INT-001",
     variantenTyp: "basicAndPremium",
     prozesszeit: 160,
     volumen: 2.1,
-    baugruppentyp: "Interieur"
+    baugruppentyp: "Audi-Interieur"
   },
   {
-    bezeichnung: "Elektronik",
+    bezeichnung: "Audi-Elektronik",
     artikelnummer: "AUDI-ELE-B-001",
     variantenTyp: "basic",
     prozesszeit: 100,
     volumen: 0.4,
-    baugruppentyp: "Elektronik"
+    baugruppentyp: "Audi-Elektronik"
   },
   {
-    bezeichnung: "Elektronik",
+    bezeichnung: "Audi-Elektronik",
     artikelnummer: "AUDI-ELE-P-001",
     variantenTyp: "premium",
     prozesszeit: 140,
     volumen: 0.6,
-    baugruppentyp: "Elektronik"
+    baugruppentyp: "Audi-Elektronik"
   }
 ]
 
@@ -263,68 +281,68 @@ const vwProzesse: Prisma.ProzessCreateInput[] = [
 // VW Baugruppen
 const vwBaugruppen: BaugruppeWithType[] = [
   {
-    bezeichnung: "Chassis",
+    bezeichnung: "VW-Chassis",
     artikelnummer: "VW-CHS-001",
     variantenTyp: "basicAndPremium",
     prozesszeit: 140,
     volumen: 2.2,
-    baugruppentyp: "Chassis"
+    baugruppentyp: "VW-Chassis"
   },
   {
-    bezeichnung: "Karosserie",
+    bezeichnung: "VW-Karosserie",
     artikelnummer: "VW-KAR-001",
     variantenTyp: "basicAndPremium",
     prozesszeit: 100,
     volumen: 2.7,
-    baugruppentyp: "Karosserie"
+    baugruppentyp: "VW-Karosserie"
   },
   {
-    bezeichnung: "Fahrwerk",
+    bezeichnung: "VW-Fahrwerk",
     artikelnummer: "VW-FAH-B-001",
     variantenTyp: "basic",
     prozesszeit: 200,
     volumen: 1.6,
-    baugruppentyp: "Fahrwerk"
+    baugruppentyp: "VW-Fahrwerk"
   },
   {
-    bezeichnung: "Fahrwerk",
+    bezeichnung: "VW-Fahrwerk",
     artikelnummer: "VW-FAH-P-001",
     variantenTyp: "premium",
     prozesszeit: 250,
     volumen: 1.8,
-    baugruppentyp: "Fahrwerk"
+    baugruppentyp: "VW-Fahrwerk"
   },
   {
-    bezeichnung: "Antrieb",
+    bezeichnung: "VW-Antrieb",
     artikelnummer: "VW-ANT-001",
     variantenTyp: "basicAndPremium",
     prozesszeit: 300,
     volumen: 1.3,
-    baugruppentyp: "Antrieb"
+    baugruppentyp: "VW-Antrieb"
   },
   {
-    bezeichnung: "Interieur",
+    bezeichnung: "VW-Interieur",
     artikelnummer: "VW-INT-B-001",
     variantenTyp: "basic",
     prozesszeit: 140,
     volumen: 1.9,
-    baugruppentyp: "Interieur"
+    baugruppentyp: "VW-Interieur"
   },
   {
-    bezeichnung: "Interieur",
+    bezeichnung: "VW-Interieur",
     artikelnummer: "VW-INT-P-001",
     variantenTyp: "premium",
     prozesszeit: 170,
     volumen: 2.0,
-    baugruppentyp: "Interieur"
+    baugruppentyp: "VW-Interieur"
   },
   {
-    bezeichnung: "Elektronik",
+    bezeichnung: "VW-Elektronik",
     artikelnummer: "VW-ELE-001",
     variantenTyp: "basicAndPremium",
     prozesszeit: 110,
     volumen: 0.45,
-    baugruppentyp: "Elektronik"
+    baugruppentyp: "VW-Elektronik"
   }
 ]
 
@@ -372,7 +390,7 @@ async function main() {
 
   // Erstelle Porsche Baugruppentypen
   const createdPorscheBaugruppentypen = await Promise.all(
-    baugruppentypenDefinitions.map(typ => 
+    porscheBaugruppentypenDefinitions.map(typ => 
       prisma.baugruppentyp.create({
         data: {
           ...typ,
@@ -462,7 +480,7 @@ async function main() {
 
   // Erstelle Audi Baugruppentypen
   const createdAudiBaugruppentypen = await Promise.all(
-    baugruppentypenDefinitions.map(typ => 
+    audiBaugruppentypenDefinitions.map(typ => 
       prisma.baugruppentyp.create({
         data: {
           ...typ,
@@ -558,7 +576,7 @@ async function main() {
 
   // Erstelle VW Baugruppentypen
   const createdVWBaugruppentypen = await Promise.all(
-    baugruppentypenDefinitions.map(typ => 
+    vwBaugruppentypenDefinitions.map(typ => 
       prisma.baugruppentyp.create({
         data: {
           ...typ,
