@@ -203,8 +203,17 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
       }
     }
     
-    // Listen for paper ready event
+    // Handle graph loaded event (when graph is loaded from backend)
+    const handleGraphLoaded = () => {
+      // Recreate stencil to reflect loaded graph state
+      setTimeout(() => {
+        createStencil()
+      }, 200)
+    }
+    
+    // Listen for events
     window.addEventListener('jointjs-paper-ready', handlePaperReady)
+    window.addEventListener('graph-loaded', handleGraphLoaded)
     
     // Try with a delay to ensure paper is ready
     const timeoutId = setTimeout(handlePaperReady, 100)
@@ -213,6 +222,7 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
     return () => {
       clearTimeout(timeoutId)
       window.removeEventListener('jointjs-paper-ready', handlePaperReady)
+      window.removeEventListener('graph-loaded', handleGraphLoaded)
       if (stencilInstanceRef.current) {
         stencilInstanceRef.current.remove()
         stencilInstanceRef.current = null

@@ -114,25 +114,10 @@ export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
   }, [])
   
   const handleSave = useCallback(async () => {
-    if (!selectedProdukt || !window.mainJointGraph) return
-    
-    try {
-      setIsSaving(true)
-      const graphData = window.mainJointGraph.toJSON()
-      const result = await updateProduktGraph(selectedProdukt.id, graphData)
-      
-      if (result.success) {
-        toast.success('Graph erfolgreich gespeichert')
-      } else {
-        toast.error(result.error || 'Fehler beim Speichern des Graphen')
-      }
-    } catch (error) {
-      console.error('Error saving graph:', error)
-      toast.error('Fehler beim Speichern des Graphen')
-    } finally {
-      setIsSaving(false)
+    if (window.jointJSSave) {
+      window.jointJSSave()
     }
-  }, [selectedProdukt])
+  }, [])
 
   const fetchFactoryData = async () => {
     try {

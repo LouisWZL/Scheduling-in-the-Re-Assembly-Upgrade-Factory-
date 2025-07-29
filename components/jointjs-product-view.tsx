@@ -44,61 +44,33 @@ export function JointJSProductView({
   const [graphState, setGraphState] = useState<any>(null)
   const debouncedGraphState = useDebounce(graphState, 1000)
 
-  // Auto-save when graph changes
-  useEffect(() => {
-    if (!debouncedGraphState || isInitialLoad) return
-    
-    const saveGraph = async () => {
-      if (onSavingChange) onSavingChange(true)
-      
-      try {
-        const result = await updateProduktGraph(produktId, debouncedGraphState)
-        if (result.success) {
-          // Silent save for auto-save
-          console.log('Graph auto-saved')
-        } else {
-          toast.error(result.error || 'Fehler beim automatischen Speichern')
-        }
-      } catch (error) {
-        console.error('Error saving graph:', error)
-        toast.error('Fehler beim automatischen Speichern')
-      } finally {
-        if (onSavingChange) onSavingChange(false)
-      }
-    }
-    
-    saveGraph()
-  }, [debouncedGraphState, produktId, isInitialLoad, onSavingChange])
+  // Auto-save disabled - manual save only
+  // useEffect(() => {
+  //   if (!debouncedGraphState || isInitialLoad) return
+  //   
+  //   const saveGraph = async () => {
+  //     if (onSavingChange) onSavingChange(true)
+  //     
+  //     try {
+  //       const result = await updateProduktGraph(produktId, debouncedGraphState)
+  //       if (result.success) {
+  //         // Silent save for auto-save
+  //         console.log('Graph auto-saved')
+  //       } else {
+  //         toast.error(result.error || 'Fehler beim automatischen Speichern')
+  //       }
+  //     } catch (error) {
+  //       console.error('Error saving graph:', error)
+  //       toast.error('Fehler beim automatischen Speichern')
+  //     } finally {
+  //       if (onSavingChange) onSavingChange(false)
+  //     }
+  //   }
+  //   
+  //   saveGraph()
+  // }, [debouncedGraphState, produktId, isInitialLoad, onSavingChange])
 
-  // Load initial graph data
-  useEffect(() => {
-    const loadProdukt = async () => {
-      try {
-        const result = await getProdukt(produktId)
-        if (result.success && result.data?.graphData && graphRef.current) {
-          // Clear existing graph first
-          graphRef.current.clear()
-          // Load saved graph
-          graphRef.current.fromJSON(result.data.graphData)
-          console.log('Graph loaded successfully')
-        }
-      } catch (error) {
-        console.error('Error loading product graph:', error)
-      } finally {
-        // Mark initial load as complete after loading (or failing to load) data
-        setIsInitialLoad(false)
-      }
-    }
-    
-    // Delay loading to ensure graph is fully initialized
-    const timeoutId = setTimeout(() => {
-      if (graphRef.current) {
-        loadProdukt()
-      }
-    }, 100)
-    
-    return () => clearTimeout(timeoutId)
-  }, [produktId])
+  // This effect is now removed as loading happens in the main effect
 
   useEffect(() => {
     if (!paperRef.current) return
@@ -117,12 +89,12 @@ export function JointJSProductView({
       if (onCanRedoChange) onCanRedoChange(commandManager.hasRedo())
     })
     
-    // Listen to graph changes for auto-save
-    graph.on('change add remove', () => {
-      if (!isInitialLoad) {
-        setGraphState(graph.toJSON())
-      }
-    })
+    // Listen to graph changes for manual save tracking
+    // graph.on('change add remove', () => {
+    //   if (!isInitialLoad) {
+    //     setGraphState(graph.toJSON())
+    //   }
+    // })
 
     // Create Paper with grid and connection validation
     const paper = new joint.dia.Paper({
@@ -146,7 +118,7 @@ export function JointJSProductView({
       snapLinks: { radius: 20 },
       markAvailable: true,
       async: true,
-      frozen: false,
+      frozen: true,
       sorting: joint.dia.Paper.sorting.APPROX,
       defaultConnectionPoint: { name: 'boundary' },
       defaultAnchor: { name: 'center' },
@@ -220,6 +192,40 @@ export function JointJSProductView({
 
     // Center the paper
     paperScroller.center()
+    
+    // Load initial data if available
+    const loadInitialData = async () => {
+      try {
+        const result = await getProdukt(produktId)
+        if (result.success && result.data?.graphData) {
+          const graphData = typeof result.data.graphData === 'string' 
+            ? JSON.parse(result.data.graphData) 
+            : result.data.graphData
+          
+          graph.fromJSON(graphData)
+          console.log('Initial graph data loaded')
+          
+          // Dispatch event to update stencil after graph is loaded
+          window.dispatchEvent(new CustomEvent('graph-loaded'))
+        }
+      } catch (error) {
+        console.error('Error loading initial graph:', error)
+      } finally {
+        // Check if paper still exists before unfreezing
+        try {
+          if (paper) {
+            paper.unfreeze()
+          }
+        } catch (err) {
+          // Paper was already removed, ignore the error
+          console.log('Paper already removed, skipping unfreeze')
+        }
+        setIsInitialLoad(false)
+      }
+    }
+    
+    // Load data and then unfreeze
+    loadInitialData()
 
     // Remove the old panning setup as it's now handled in the selection logic above
 
@@ -474,7 +480,7 @@ export function JointJSProductView({
         graphRef.current.clear()
       }
     }
-  }, [produktId, produktName, isInitialLoad])
+  }, [produktId])
 
   // Setup external control handlers
   useEffect(() => {
@@ -522,14 +528,41 @@ export function JointJSProductView({
       }
     }
     
+    if (onSave) {
+      window.jointJSSave = async () => {
+        if (!graphRef.current) return
+        
+        if (onSavingChange) onSavingChange(true)
+        
+        try {
+          const graphData = graphRef.current.toJSON()
+          const result = await updateProduktGraph(produktId, graphData)
+          if (result.success) {
+            toast.success('Graph erfolgreich gespeichert')
+            if (window.onGraphChanged) {
+              window.onGraphChanged(false)
+            }
+          } else {
+            toast.error(result.error || 'Fehler beim Speichern')
+          }
+        } catch (error) {
+          console.error('Error saving graph:', error)
+          toast.error('Fehler beim Speichern')
+        } finally {
+          if (onSavingChange) onSavingChange(false)
+        }
+      }
+    }
+    
     return () => {
       delete window.jointJSZoomIn
       delete window.jointJSZoomOut
       delete window.jointJSZoomToFit
       delete window.jointJSUndo
       delete window.jointJSRedo
+      delete window.jointJSSave
     }
-  }, [onZoomIn, onZoomOut, onZoomToFit, onUndo, onRedo])
+  }, [onZoomIn, onZoomOut, onZoomToFit, onUndo, onRedo, onSave, produktId, onSavingChange])
 
   return (
     <div className="w-full h-full relative overflow-hidden">
@@ -550,7 +583,9 @@ declare global {
     jointJSZoomToFit?: () => void
     jointJSUndo?: () => void
     jointJSRedo?: () => void
+    jointJSSave?: () => void
     mainJointPaper?: joint.dia.Paper
     mainJointGraph?: joint.dia.Graph
+    onGraphChanged?: (hasChanges: boolean) => void
   }
 }
