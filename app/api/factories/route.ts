@@ -43,3 +43,32 @@ export async function GET() {
     return NextResponse.json({ error: 'Failed to fetch factories' }, { status: 500 })
   }
 }
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json()
+    const { name, kapazität } = body
+
+    if (!name || !kapazität) {
+      return NextResponse.json(
+        { error: 'Name und Kapazität sind erforderlich' },
+        { status: 400 }
+      )
+    }
+
+    const factory = await prisma.reassemblyFactory.create({
+      data: {
+        name,
+        kapazität: Number(kapazität),
+      },
+    })
+
+    return NextResponse.json(factory)
+  } catch (error) {
+    console.error('Error creating factory:', error)
+    return NextResponse.json(
+      { error: 'Fehler beim Erstellen der Fabrik' },
+      { status: 500 }
+    )
+  }
+}

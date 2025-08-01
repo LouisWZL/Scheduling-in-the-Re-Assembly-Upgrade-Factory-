@@ -1,13 +1,11 @@
 "use client"
 
 import { useState } from 'react'
-import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
-import { Separator } from '@/components/ui/separator'
 import { Play, Pause, RotateCcw } from 'lucide-react'
-import { FactorySelector } from '@/components/factory-selector'
+import { FactorySwitcher } from '@/components/factory-switcher'
 
 export function SiteHeader() {
   const [isPlaying, setIsPlaying] = useState(false)
@@ -31,15 +29,7 @@ export function SiteHeader() {
   return (
     <header className="flex sticky top-0 z-50 w-full items-center border-b bg-background">
       <div className="flex h-14 w-full items-center gap-4 px-4">
-        <Image 
-          src="/wzl_logo.svg" 
-          alt="WZL Logo" 
-          width={127} 
-          height={32}
-          className="h-8 w-auto"
-        />
-        <Separator orientation="vertical" className="h-4" />
-        <FactorySelector />
+        <FactorySwitcher />
         <div className="flex-1" />
         
         <div className="flex items-center gap-6">
