@@ -93,20 +93,12 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
 
       // Create shapes for available Baugruppentypen
       const shapes: joint.shapes.standard.Rectangle[] = []
-      const colors = [
-        { fill: '#6366f1', stroke: '#4f46e5' }, // Indigo
-        { fill: '#10b981', stroke: '#059669' }, // Emerald
-        { fill: '#f59e0b', stroke: '#d97706' }, // Amber
-        { fill: '#ef4444', stroke: '#dc2626' }, // Red
-        { fill: '#8b5cf6', stroke: '#7c3aed' }, // Violet
-        { fill: '#14b8a6', stroke: '#0d9488' }, // Teal
-      ]
+      const uniformColor = { fill: '#ffffff', stroke: '#22529a' }
 
       allBaugruppentypenRef.current.forEach((typ, index) => {
         // Only create shape if it's not currently used in the paper
         if (!usedIds.has(typ.id)) {
-          const colorIndex = index % colors.length
-          const color = colors[colorIndex]
+          const color = uniformColor
           
           const shape = new joint.shapes.standard.Rectangle({
             size: { width: 120, height: 80 },
@@ -120,7 +112,7 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
               },
               label: {
                 text: typ.bezeichnung,
-                fill: 'white',
+                fill: '#22529a',
                 fontSize: 14,
                 fontWeight: '600',
                 textWrap: {

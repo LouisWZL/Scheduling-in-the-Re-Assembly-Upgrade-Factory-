@@ -260,7 +260,7 @@ export function JointJSProductView({
               magnet: 'passive', // Make input ports passive (cannot start connections)
               r: 8,
               fill: '#ffffff',
-              stroke: '#000000',
+              stroke: '#22529a',
               strokeWidth: 2
             }
           },
@@ -280,7 +280,7 @@ export function JointJSProductView({
               magnet: true,
               r: 8,
               fill: '#ffffff',
-              stroke: '#000000',
+              stroke: '#22529a',
               strokeWidth: 2
             }
           },
