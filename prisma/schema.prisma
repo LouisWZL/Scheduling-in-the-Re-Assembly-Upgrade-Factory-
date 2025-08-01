@@ -141,6 +141,7 @@ model Produkt {
   id              String              @id @default(cuid())
   bezeichnung     String              // z.B. "Volkswagen Polo"
   seriennummer    String              @unique
+  glbFile         String?             // Pfad zur GLB-Datei für 3D-Modell
   factory         ReassemblyFactory?  @relation(fields: [factoryId], references: [id])
   factoryId       String?
   varianten       Produktvariante[]

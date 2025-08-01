@@ -59,7 +59,7 @@ export function ConfiguratorSidebarLeft({ factoryId }: ConfiguratorSidebarLeftPr
   const [activeView, setActiveView] = useState<string>('einstellungen')
   const [loading, setLoading] = useState(true)
   const [factoryName, setFactoryName] = useState<string>('')
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['produkte']))
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['prozesse']))
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set())
 
   useEffect(() => {
@@ -179,20 +179,20 @@ export function ConfiguratorSidebarLeft({ factoryId }: ConfiguratorSidebarLeftPr
                   </SidebarMenuButton>
                 </SidebarMenuItem>
 
-                {/* Produkte Menüpunkt mit Untermenüs */}
+                {/* Prozesse Menüpunkt mit Untermenüs */}
                 <SidebarMenuItem>
                   <SidebarMenuButton 
-                    onClick={() => toggleSection('produkte')}
+                    onClick={() => toggleSection('prozesse')}
                     className="font-semibold"
                   >
                     <ChevronRight 
                       className={`mr-2 h-4 w-4 transition-transform ${
-                        expandedSections.has('produkte') ? 'rotate-90' : ''
+                        expandedSections.has('prozesse') ? 'rotate-90' : ''
                       }`}
                     />
-                    <span>Produkte</span>
+                    <span>Prozesse</span>
                   </SidebarMenuButton>
-                  {expandedSections.has('produkte') && (
+                  {expandedSections.has('prozesse') && (
                     <SidebarMenuSub>
                       {produkte.map((produkt) => (
                         <SidebarMenuSubItem key={produkt.id}>
@@ -264,15 +264,15 @@ export function ConfiguratorSidebarLeft({ factoryId }: ConfiguratorSidebarLeftPr
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 
-                {/* Prozesse Menüpunkt */}
+                {/* Produkte Menüpunkt */}
                 <SidebarMenuItem>
                   <SidebarMenuButton 
-                    onClick={() => handleViewClick('prozesse')}
-                    isActive={activeView === 'prozesse'}
+                    onClick={() => handleViewClick('produkte')}
+                    isActive={activeView === 'produkte'}
                     className="font-semibold"
                   >
-                    <ClipboardList className="mr-2 h-4 w-4" />
-                    <span>Prozesse</span>
+                    <Package className="mr-2 h-4 w-4" />
+                    <span>Produkte</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </>

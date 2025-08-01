@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Plus, Edit, Trash2, Package, Car, Wrench, Cpu, Cog } from 'lucide-react'
 import { BaugruppenManagement } from '@/components/baugruppen-management'
 import { FactoryEinstellungen } from '@/components/factory-einstellungen'
+import { ProduktManagement } from '@/components/produkt-management'
 import { JointJSProductView } from '@/components/jointjs-product-view'
 import { SidebarInsetHeader } from '@/components/sidebar-inset-header'
 import { SidebarInset } from '@/components/ui/sidebar'
@@ -263,20 +264,9 @@ export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
     return <FactoryEinstellungen factoryId={factoryId} />
   }
 
-  // Prozesse View
-  if (currentView === 'prozesse') {
-    return (
-      <div className="flex flex-col h-full p-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Prozesse</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">Die Prozessverwaltung wird in Kürze verfügbar sein.</p>
-          </CardContent>
-        </Card>
-      </div>
-    )
+  // Produkte View (renamed from Prozesse)
+  if (currentView === 'produkte') {
+    return <ProduktManagement factoryId={factoryId} />
   }
 
   // Produkt View

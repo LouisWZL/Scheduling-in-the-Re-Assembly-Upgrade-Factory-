@@ -63,10 +63,34 @@ export async function updateProduktGraph(produktId: string, graphData: any) {
   }
 }
 
-export async function createProdukt(data: Prisma.ProduktCreateInput) {
+export async function createProdukt(
+  factoryId: string,
+  data: {
+    bezeichnung: string
+    seriennummer: string
+    glbFile?: string | null
+  }
+) {
   try {
+    // Check if seriennummer already exists
+    const existing = await prisma.produkt.findUnique({
+      where: { seriennummer: data.seriennummer }
+    })
+
+    if (existing) {
+      return {
+        success: false,
+        error: 'Ein Produkt mit dieser Seriennummer existiert bereits'
+      }
+    }
+
     const newProdukt = await prisma.produkt.create({
-      data,
+      data: {
+        bezeichnung: data.bezeichnung,
+        seriennummer: data.seriennummer,
+        glbFile: data.glbFile,
+        factoryId
+      },
       include: {
         baugruppentypen: true,
         varianten: true,
@@ -74,11 +98,11 @@ export async function createProdukt(data: Prisma.ProduktCreateInput) {
       }
     })
 
-    if (newProdukt.factoryId) {
-      revalidatePath(`/factory/${newProdukt.factoryId}`)
-    }
+    revalidatePath('/factory-configurator')
+    revalidatePath(`/factory-configurator/${factoryId}`)
+    revalidatePath('/api/factories') // Revalidate factories API for sidebar
 
-    return { success: true, data: newProdukt }
+    return { success: true, data: newProdukt, message: 'Produkt erfolgreich erstellt' }
   } catch (error) {
     console.error('Error creating product:', error)
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -91,11 +115,37 @@ export async function createProdukt(data: Prisma.ProduktCreateInput) {
   }
 }
 
-export async function updateProdukt(produktId: string, data: Prisma.ProduktUpdateInput) {
+export async function updateProdukt(
+  produktId: string,
+  data: {
+    bezeichnung: string
+    seriennummer: string
+    glbFile?: string | null
+  }
+) {
   try {
+    // Check if new seriennummer already exists (excluding current product)
+    const existing = await prisma.produkt.findFirst({
+      where: {
+        seriennummer: data.seriennummer,
+        NOT: { id: produktId }
+      }
+    })
+
+    if (existing) {
+      return {
+        success: false,
+        error: 'Ein anderes Produkt mit dieser Seriennummer existiert bereits'
+      }
+    }
+
     const updatedProdukt = await prisma.produkt.update({
       where: { id: produktId },
-      data,
+      data: {
+        bezeichnung: data.bezeichnung,
+        seriennummer: data.seriennummer,
+        glbFile: data.glbFile
+      },
       include: {
         baugruppentypen: true,
         varianten: true,
@@ -103,11 +153,13 @@ export async function updateProdukt(produktId: string, data: Prisma.ProduktUpdat
       }
     })
 
+    revalidatePath('/factory-configurator')
     if (updatedProdukt.factoryId) {
-      revalidatePath(`/factory/${updatedProdukt.factoryId}`)
+      revalidatePath(`/factory-configurator/${updatedProdukt.factoryId}`)
     }
+    revalidatePath('/api/factories') // Revalidate factories API for sidebar
 
-    return { success: true, data: updatedProdukt }
+    return { success: true, data: updatedProdukt, message: 'Produkt erfolgreich aktualisiert' }
   } catch (error) {
     console.error('Error updating product:', error)
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -125,20 +177,39 @@ export async function updateProdukt(produktId: string, data: Prisma.ProduktUpdat
 
 export async function deleteProdukt(produktId: string) {
   try {
+    // Check if product has variants
     const produkt = await prisma.produkt.findUnique({
       where: { id: produktId },
-      select: { factoryId: true }
+      include: {
+        varianten: true
+      }
     })
+
+    if (!produkt) {
+      return {
+        success: false,
+        error: 'Produkt nicht gefunden'
+      }
+    }
+
+    if (produkt.varianten.length > 0) {
+      return {
+        success: false,
+        error: 'Produkt kann nicht gelöscht werden, da es noch Varianten besitzt'
+      }
+    }
 
     await prisma.produkt.delete({
       where: { id: produktId }
     })
 
-    if (produkt?.factoryId) {
-      revalidatePath(`/factory/${produkt.factoryId}`)
+    revalidatePath('/factory-configurator')
+    if (produkt.factoryId) {
+      revalidatePath(`/factory-configurator/${produkt.factoryId}`)
     }
+    revalidatePath('/api/factories') // Revalidate factories API for sidebar
 
-    return { success: true }
+    return { success: true, message: 'Produkt erfolgreich gelöscht' }
   } catch (error) {
     console.error('Error deleting product:', error)
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -151,5 +222,30 @@ export async function deleteProdukt(produktId: string) {
       return { success: false, error: `Datenbankfehler: ${error.message}` }
     }
     return { success: false, error: 'Fehler beim Löschen des Produkts' }
+  }
+}
+
+export async function getProdukte(factoryId: string) {
+  try {
+    const produkte = await prisma.produkt.findMany({
+      where: { factoryId },
+      include: {
+        varianten: true,
+        baugruppentypen: true
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+
+    return {
+      success: true,
+      data: produkte
+    }
+  } catch (error) {
+    console.error('Error fetching Produkte:', error)
+    
+    return {
+      success: false,
+      error: 'Fehler beim Abrufen der Produkte'
+    }
   }
 }
