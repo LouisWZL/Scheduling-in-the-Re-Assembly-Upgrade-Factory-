@@ -9,7 +9,6 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { createBaugruppentyp, updateBaugruppentyp } from '@/app/actions/baugruppentyp.actions'
@@ -20,7 +19,6 @@ interface BaugruppentypDialogProps {
   baugruppentyp?: {
     id: string
     bezeichnung: string
-    beschreibung?: string | null
   }
   factoryId: string
   onSuccess?: () => void
@@ -35,8 +33,7 @@ export function BaugruppentypDialog({
 }: BaugruppentypDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
-    bezeichnung: baugruppentyp?.bezeichnung || '',
-    beschreibung: baugruppentyp?.beschreibung || ''
+    bezeichnung: baugruppentyp?.bezeichnung || ''
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,13 +45,11 @@ export function BaugruppentypDialog({
       
       if (baugruppentyp) {
         result = await updateBaugruppentyp(baugruppentyp.id, {
-          bezeichnung: formData.bezeichnung,
-          beschreibung: formData.beschreibung || null
+          bezeichnung: formData.bezeichnung
         })
       } else {
         result = await createBaugruppentyp({
           bezeichnung: formData.bezeichnung,
-          beschreibung: formData.beschreibung || null,
           factoryId: factoryId
         })
       }
@@ -64,7 +59,7 @@ export function BaugruppentypDialog({
         onOpenChange(false)
         if (onSuccess) onSuccess()
         // Reset form
-        setFormData({ bezeichnung: '', beschreibung: '' })
+        setFormData({ bezeichnung: '' })
       } else {
         toast.error(result.error)
       }
@@ -92,18 +87,6 @@ export function BaugruppentypDialog({
               onChange={(e) => setFormData({ ...formData, bezeichnung: e.target.value })}
               placeholder="z.B. Karosserie"
               required
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="beschreibung">Beschreibung</Label>
-            <Textarea
-              id="beschreibung"
-              value={formData.beschreibung}
-              onChange={(e) => setFormData({ ...formData, beschreibung: e.target.value })}
-              placeholder="Optionale Beschreibung des Baugruppentyps"
-              rows={3}
               disabled={isLoading}
             />
           </div>

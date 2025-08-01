@@ -10,8 +10,8 @@ export async function createBaugruppe(data: {
   variantenTyp: 'basic' | 'premium' | 'basicAndPremium'
   baugruppentypId: string
   factoryId: string
-  prozesszeit?: number | null
-  volumen?: number | null
+  demontagezeit?: number | null
+  montagezeit?: number | null
 }) {
   try {
     const baugruppe = await prisma.baugruppe.create({
@@ -19,8 +19,8 @@ export async function createBaugruppe(data: {
         bezeichnung: data.bezeichnung,
         artikelnummer: data.artikelnummer,
         variantenTyp: data.variantenTyp,
-        prozesszeit: data.prozesszeit,
-        volumen: data.volumen,
+        demontagezeit: data.demontagezeit,
+        montagezeit: data.montagezeit,
         factory: {
           connect: { id: data.factoryId }
         },
@@ -65,8 +65,8 @@ export async function updateBaugruppe(id: string, data: {
   artikelnummer?: string
   variantenTyp?: 'basic' | 'premium' | 'basicAndPremium'
   baugruppentypId?: string
-  prozesszeit?: number | null
-  volumen?: number | null
+  demontagezeit?: number | null
+  montagezeit?: number | null
 }) {
   try {
     // Check if type is changing and if it would affect existing Produktvarianten
@@ -106,8 +106,8 @@ export async function updateBaugruppe(id: string, data: {
       bezeichnung: data.bezeichnung,
       artikelnummer: data.artikelnummer,
       variantenTyp: data.variantenTyp,
-      prozesszeit: data.prozesszeit,
-      volumen: data.volumen
+      demontagezeit: data.demontagezeit,
+      montagezeit: data.montagezeit
     }
     
     if (data.baugruppentypId) {

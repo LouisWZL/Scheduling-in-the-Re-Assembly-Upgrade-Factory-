@@ -184,7 +184,6 @@ export function BaugruppenManagement({ factoryId }: BaugruppenManagementProps) {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Bezeichnung</TableHead>
-                    <TableHead>Beschreibung</TableHead>
                     <TableHead>Verwendung</TableHead>
                     <TableHead className="w-[100px]">Aktionen</TableHead>
                   </TableRow>
@@ -193,9 +192,6 @@ export function BaugruppenManagement({ factoryId }: BaugruppenManagementProps) {
                   {baugruppentypen.map((typ) => (
                     <TableRow key={typ.id}>
                       <TableCell className="font-medium">{typ.bezeichnung}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {typ.beschreibung || '-'}
-                      </TableCell>
                       <TableCell>
                         <div className="text-sm">
                           <div>{typ.baugruppen?.length || 0} Baugruppen</div>
@@ -244,8 +240,8 @@ export function BaugruppenManagement({ factoryId }: BaugruppenManagementProps) {
                     <TableRow>
                       <TableHead>Bezeichnung</TableHead>
                       <TableHead>Typ</TableHead>
-                      <TableHead>Art</TableHead>
-                      <TableHead>Art-Nr.</TableHead>
+                      <TableHead>Variante</TableHead>
+                      <TableHead>ID</TableHead>
                       <TableHead className="w-[100px]">Aktionen</TableHead>
                     </TableRow>
                   </TableHeader>

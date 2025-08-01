@@ -6,14 +6,12 @@ import { Prisma } from '@prisma/client'
 
 export async function createBaugruppentyp(data: {
   bezeichnung: string
-  beschreibung?: string | null
   factoryId: string
 }) {
   try {
     const baugruppentyp = await prisma.baugruppentyp.create({
       data: {
         bezeichnung: data.bezeichnung,
-        beschreibung: data.beschreibung,
         factory: {
           connect: { id: data.factoryId }
         }
@@ -48,14 +46,12 @@ export async function createBaugruppentyp(data: {
 
 export async function updateBaugruppentyp(id: string, data: {
   bezeichnung?: string
-  beschreibung?: string | null
 }) {
   try {
     const baugruppentyp = await prisma.baugruppentyp.update({
       where: { id },
       data: {
-        bezeichnung: data.bezeichnung,
-        beschreibung: data.beschreibung
+        bezeichnung: data.bezeichnung
       }
     })
     

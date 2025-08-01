@@ -25,8 +25,8 @@ interface BaugruppeDialogProps {
     artikelnummer: string
     variantenTyp: 'basic' | 'premium' | 'basicAndPremium'
     baugruppentypId: string | null
-    prozesszeit: number | null
-    volumen: number | null
+    demontagezeit: number | null
+    montagezeit: number | null
   }
   factoryId: string
   onSuccess?: () => void
@@ -46,8 +46,8 @@ export function BaugruppeDialog({
     artikelnummer: baugruppe?.artikelnummer || '',
     variantenTyp: baugruppe?.variantenTyp || 'basic' as 'basic' | 'premium' | 'basicAndPremium',
     baugruppentypId: baugruppe?.baugruppentypId || '',
-    prozesszeit: baugruppe?.prozesszeit?.toString() || '',
-    volumen: baugruppe?.volumen?.toString() || ''
+    demontagezeit: baugruppe?.demontagezeit?.toString() || '',
+    montagezeit: baugruppe?.montagezeit?.toString() || ''
   })
 
   useEffect(() => {
@@ -63,8 +63,8 @@ export function BaugruppeDialog({
       artikelnummer: baugruppe?.artikelnummer || '',
       variantenTyp: baugruppe?.variantenTyp || 'basic',
       baugruppentypId: baugruppe?.baugruppentypId || '',
-      prozesszeit: baugruppe?.prozesszeit?.toString() || '',
-      volumen: baugruppe?.volumen?.toString() || ''
+      demontagezeit: baugruppe?.demontagezeit?.toString() || '',
+      montagezeit: baugruppe?.montagezeit?.toString() || ''
     })
   }, [baugruppe])
 
@@ -80,13 +80,26 @@ export function BaugruppeDialog({
     setIsLoading(true)
 
     try {
+      // Validate required fields
+      if (!formData.baugruppentypId) {
+        toast.error('Bitte wählen Sie einen Baugruppentyp aus')
+        setIsLoading(false)
+        return
+      }
+
+      if (!formData.demontagezeit || !formData.montagezeit) {
+        toast.error('Bitte geben Sie sowohl Demontagezeit als auch Montagezeit an')
+        setIsLoading(false)
+        return
+      }
+
       const data = {
         bezeichnung: formData.bezeichnung,
         artikelnummer: formData.artikelnummer,
         variantenTyp: formData.variantenTyp,
         baugruppentypId: formData.baugruppentypId,
-        prozesszeit: formData.prozesszeit ? parseInt(formData.prozesszeit) : null,
-        volumen: formData.volumen ? parseFloat(formData.volumen) : null
+        demontagezeit: parseInt(formData.demontagezeit),
+        montagezeit: parseInt(formData.montagezeit)
       }
 
       let result
@@ -107,8 +120,8 @@ export function BaugruppeDialog({
           artikelnummer: '',
           variantenTyp: 'basic',
           baugruppentypId: '',
-          prozesszeit: '',
-          volumen: ''
+          demontagezeit: '',
+          montagezeit: ''
         })
       } else {
         toast.error(result.error)
@@ -130,7 +143,7 @@ export function BaugruppeDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="bezeichnung">Bezeichnung *</Label>
+            <Label htmlFor="bezeichnung">Bezeichnung</Label>
             <Input
               id="bezeichnung"
               value={formData.bezeichnung}
@@ -142,7 +155,7 @@ export function BaugruppeDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="artikelnummer">Artikelnummer *</Label>
+            <Label htmlFor="artikelnummer">ID</Label>
             <Input
               id="artikelnummer"
               value={formData.artikelnummer}
@@ -154,7 +167,7 @@ export function BaugruppeDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="baugruppentypId">Baugruppentyp *</Label>
+            <Label htmlFor="baugruppentypId">Baugruppentyp</Label>
             <Select
               value={formData.baugruppentypId}
               onValueChange={(value) => setFormData({ ...formData, baugruppentypId: value })}
@@ -175,7 +188,7 @@ export function BaugruppeDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Variantentyp *</Label>
+            <Label>Variantentyp</Label>
             <RadioGroup
               value={formData.variantenTyp}
               onValueChange={(value: 'basic' | 'premium' | 'basicAndPremium') => 
@@ -200,28 +213,29 @@ export function BaugruppeDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="prozesszeit">Prozesszeit (Minuten)</Label>
+              <Label htmlFor="demontagezeit">Demontagezeit (Minuten)</Label>
               <Input
-                id="prozesszeit"
+                id="demontagezeit"
                 type="number"
-                value={formData.prozesszeit}
-                onChange={(e) => setFormData({ ...formData, prozesszeit: e.target.value })}
-                placeholder="z.B. 120"
+                value={formData.demontagezeit}
+                onChange={(e) => setFormData({ ...formData, demontagezeit: e.target.value })}
+                placeholder="z.B. 60"
                 min="0"
+                required
                 disabled={isLoading}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="volumen">Volumen (m³)</Label>
+              <Label htmlFor="montagezeit">Montagezeit (Minuten)</Label>
               <Input
-                id="volumen"
+                id="montagezeit"
                 type="number"
-                step="0.1"
-                value={formData.volumen}
-                onChange={(e) => setFormData({ ...formData, volumen: e.target.value })}
-                placeholder="z.B. 2.5"
+                value={formData.montagezeit}
+                onChange={(e) => setFormData({ ...formData, montagezeit: e.target.value })}
+                placeholder="z.B. 90"
                 min="0"
+                required
                 disabled={isLoading}
               />
             </div>

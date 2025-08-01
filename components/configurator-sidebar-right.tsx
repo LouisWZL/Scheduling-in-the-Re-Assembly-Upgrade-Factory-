@@ -12,7 +12,6 @@ import * as joint from '@joint/plus'
 interface Baugruppentyp {
   id: string
   bezeichnung: string
-  beschreibung?: string | null
 }
 
 interface ConfiguratorSidebarRightProps {

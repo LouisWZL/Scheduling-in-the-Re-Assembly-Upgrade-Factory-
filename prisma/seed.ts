@@ -5,30 +5,30 @@ const prisma = new PrismaClient()
 // BAUGRUPPENTYPEN DEFINITION (Factory-specific)
 // ==========================================
 const porscheBaugruppentypenDefinitions = [
-  { bezeichnung: "Porsche-Chassis", beschreibung: "Porsche Fahrzeugrahmen und Bodengruppe" },
-  { bezeichnung: "Porsche-Karosserie", beschreibung: "Porsche Außenhülle und Struktur" },
-  { bezeichnung: "Porsche-Fahrwerk", beschreibung: "Porsche Räder, Achsen, Federung" },
-  { bezeichnung: "Porsche-Antrieb", beschreibung: "Porsche Motor und Getriebe" },
-  { bezeichnung: "Porsche-Interieur", beschreibung: "Porsche Innenausstattung" },
-  { bezeichnung: "Porsche-Elektronik", beschreibung: "Porsche Elektronische Systeme" }
+  { bezeichnung: "Porsche-Chassis" },
+  { bezeichnung: "Porsche-Karosserie" },
+  { bezeichnung: "Porsche-Fahrwerk" },
+  { bezeichnung: "Porsche-Antrieb" },
+  { bezeichnung: "Porsche-Interieur" },
+  { bezeichnung: "Porsche-Elektronik" }
 ]
 
 const audiBaugruppentypenDefinitions = [
-  { bezeichnung: "Audi-Chassis", beschreibung: "Audi Fahrzeugrahmen und Bodengruppe" },
-  { bezeichnung: "Audi-Karosserie", beschreibung: "Audi Außenhülle und Struktur" },
-  { bezeichnung: "Audi-Fahrwerk", beschreibung: "Audi Räder, Achsen, Federung" },
-  { bezeichnung: "Audi-Antrieb", beschreibung: "Audi Motor und Getriebe" },
-  { bezeichnung: "Audi-Interieur", beschreibung: "Audi Innenausstattung" },
-  { bezeichnung: "Audi-Elektronik", beschreibung: "Audi Elektronische Systeme" }
+  { bezeichnung: "Audi-Chassis" },
+  { bezeichnung: "Audi-Karosserie" },
+  { bezeichnung: "Audi-Fahrwerk" },
+  { bezeichnung: "Audi-Antrieb" },
+  { bezeichnung: "Audi-Interieur" },
+  { bezeichnung: "Audi-Elektronik" }
 ]
 
 const vwBaugruppentypenDefinitions = [
-  { bezeichnung: "VW-Chassis", beschreibung: "VW Fahrzeugrahmen und Bodengruppe" },
-  { bezeichnung: "VW-Karosserie", beschreibung: "VW Außenhülle und Struktur" },
-  { bezeichnung: "VW-Fahrwerk", beschreibung: "VW Räder, Achsen, Federung" },
-  { bezeichnung: "VW-Antrieb", beschreibung: "VW Motor und Getriebe" },
-  { bezeichnung: "VW-Interieur", beschreibung: "VW Innenausstattung" },
-  { bezeichnung: "VW-Elektronik", beschreibung: "VW Elektronische Systeme" }
+  { bezeichnung: "VW-Chassis" },
+  { bezeichnung: "VW-Karosserie" },
+  { bezeichnung: "VW-Fahrwerk" },
+  { bezeichnung: "VW-Antrieb" },
+  { bezeichnung: "VW-Interieur" },
+  { bezeichnung: "VW-Elektronik" }
 ]
 
 // ==========================================
@@ -55,8 +55,8 @@ interface BaugruppeWithType {
   bezeichnung: string
   artikelnummer: string
   variantenTyp: 'basic' | 'premium' | 'basicAndPremium'
-  prozesszeit?: number | null
-  volumen?: number | null
+  demontagezeit?: number | null
+  montagezeit?: number | null
   baugruppentyp: string
 }
 
@@ -65,80 +65,80 @@ const porscheBaugruppen: BaugruppeWithType[] = [
     bezeichnung: "Porsche-Chassis",
     artikelnummer: "CHS-BP-001",
     variantenTyp: "basicAndPremium",
-    prozesszeit: 180,
-    volumen: 2.5,
+    demontagezeit: 72,
+    montagezeit: 108,
     baugruppentyp: "Porsche-Chassis"
   },
   {
     bezeichnung: "Porsche-Karosserie",
     artikelnummer: "KAR-B1-001",
     variantenTyp: "basic",
-    prozesszeit: 120,
-    volumen: 3.0,
+    demontagezeit: 48,
+    montagezeit: 72,
     baugruppentyp: "Porsche-Karosserie"
   },
   {
     bezeichnung: "Porsche-Karosserie",
     artikelnummer: "KAR-B2-001",
     variantenTyp: "basic",
-    prozesszeit: 90,
-    volumen: 2.0,
+    demontagezeit: 36,
+    montagezeit: 54,
     baugruppentyp: "Porsche-Karosserie"
   },
   {
     bezeichnung: "Porsche-Karosserie",
     artikelnummer: "KAR-P1-001",
     variantenTyp: "premium",
-    prozesszeit: 150,
-    volumen: 3.5,
+    demontagezeit: 60,
+    montagezeit: 90,
     baugruppentyp: "Porsche-Karosserie"
   },
   {
     bezeichnung: "Porsche-Karosserie",
     artikelnummer: "KAR-P2-001",
     variantenTyp: "premium",
-    prozesszeit: 100,
-    volumen: 2.5,
+    demontagezeit: 40,
+    montagezeit: 60,
     baugruppentyp: "Porsche-Karosserie"
   },
   {
     bezeichnung: "Porsche-Fahrwerk",
     artikelnummer: "FAH-BP-001",
     variantenTyp: "basicAndPremium",
-    prozesszeit: 240,
-    volumen: 1.8,
+    demontagezeit: 96,
+    montagezeit: 144,
     baugruppentyp: "Porsche-Fahrwerk"
   },
   {
     bezeichnung: "Porsche-Antrieb",
     artikelnummer: "ANT-BP-001",
     variantenTyp: "basicAndPremium",
-    prozesszeit: 360,
-    volumen: 1.5,
+    demontagezeit: 144,
+    montagezeit: 216,
     baugruppentyp: "Porsche-Antrieb"
   },
   {
     bezeichnung: "Porsche-Interieur",
     artikelnummer: "INT-B-001",
     variantenTyp: "basic",
-    prozesszeit: 150,
-    volumen: 2.0,
+    demontagezeit: 60,
+    montagezeit: 90,
     baugruppentyp: "Porsche-Interieur"
   },
   {
     bezeichnung: "Porsche-Interieur",
     artikelnummer: "INT-P-001",
     variantenTyp: "premium",
-    prozesszeit: 180,
-    volumen: 2.2,
+    demontagezeit: 72,
+    montagezeit: 108,
     baugruppentyp: "Porsche-Interieur"
   },
   {
     bezeichnung: "Porsche-Elektronik",
     artikelnummer: "ELE-BP-001",
     variantenTyp: "basicAndPremium",
-    prozesszeit: 120,
-    volumen: 0.5,
+    demontagezeit: 48,
+    montagezeit: 72,
     baugruppentyp: "Porsche-Elektronik"
   }
 ]
@@ -175,72 +175,72 @@ const audiBaugruppen: BaugruppeWithType[] = [
     bezeichnung: "Audi-Chassis",
     artikelnummer: "AUDI-CHS-001",
     variantenTyp: "basicAndPremium",
-    prozesszeit: 160,
-    volumen: 2.3,
+    demontagezeit: 64,
+    montagezeit: 96,
     baugruppentyp: "Audi-Chassis"
   },
   {
     bezeichnung: "Audi-Karosserie",
     artikelnummer: "AUDI-KAR-B-001",
     variantenTyp: "basic",
-    prozesszeit: 110,
-    volumen: 2.8,
+    demontagezeit: 44,
+    montagezeit: 66,
     baugruppentyp: "Audi-Karosserie"
   },
   {
     bezeichnung: "Audi-Karosserie",
     artikelnummer: "AUDI-KAR-P-001",
     variantenTyp: "premium",
-    prozesszeit: 140,
-    volumen: 3.2,
+    demontagezeit: 56,
+    montagezeit: 84,
     baugruppentyp: "Audi-Karosserie"
   },
   {
     bezeichnung: "Audi-Fahrwerk",
     artikelnummer: "AUDI-FAH-001",
     variantenTyp: "basicAndPremium",
-    prozesszeit: 220,
-    volumen: 1.7,
+    demontagezeit: 88,
+    montagezeit: 132,
     baugruppentyp: "Audi-Fahrwerk"
   },
   {
     bezeichnung: "Audi-Antrieb",
     artikelnummer: "AUDI-ANT-B-001",
     variantenTyp: "basic",
-    prozesszeit: 320,
-    volumen: 1.4,
+    demontagezeit: 128,
+    montagezeit: 192,
     baugruppentyp: "Audi-Antrieb"
   },
   {
     bezeichnung: "Audi-Antrieb",
     artikelnummer: "AUDI-ANT-P-001",
     variantenTyp: "premium",
-    prozesszeit: 380,
-    volumen: 1.6,
+    demontagezeit: 152,
+    montagezeit: 228,
     baugruppentyp: "Audi-Antrieb"
   },
   {
     bezeichnung: "Audi-Interieur",
     artikelnummer: "AUDI-INT-001",
     variantenTyp: "basicAndPremium",
-    prozesszeit: 160,
-    volumen: 2.1,
+    demontagezeit: 64,
+    montagezeit: 96,
     baugruppentyp: "Audi-Interieur"
   },
   {
     bezeichnung: "Audi-Elektronik",
     artikelnummer: "AUDI-ELE-B-001",
     variantenTyp: "basic",
-    prozesszeit: 100,
-    volumen: 0.4,
+    demontagezeit: 40,
+    montagezeit: 60,
     baugruppentyp: "Audi-Elektronik"
   },
   {
     bezeichnung: "Audi-Elektronik",
     artikelnummer: "AUDI-ELE-P-001",
     variantenTyp: "premium",
-    prozesszeit: 140,
-    volumen: 0.6,
+    demontagezeit: 56,
+    montagezeit: 84,
     baugruppentyp: "Audi-Elektronik"
   }
 ]
@@ -284,64 +284,64 @@ const vwBaugruppen: BaugruppeWithType[] = [
     bezeichnung: "VW-Chassis",
     artikelnummer: "VW-CHS-001",
     variantenTyp: "basicAndPremium",
-    prozesszeit: 140,
-    volumen: 2.2,
+    demontagezeit: 56,
+    montagezeit: 84,
     baugruppentyp: "VW-Chassis"
   },
   {
     bezeichnung: "VW-Karosserie",
     artikelnummer: "VW-KAR-001",
     variantenTyp: "basicAndPremium",
-    prozesszeit: 100,
-    volumen: 2.7,
+    demontagezeit: 40,
+    montagezeit: 60,
     baugruppentyp: "VW-Karosserie"
   },
   {
     bezeichnung: "VW-Fahrwerk",
     artikelnummer: "VW-FAH-B-001",
     variantenTyp: "basic",
-    prozesszeit: 200,
-    volumen: 1.6,
+    demontagezeit: 80,
+    montagezeit: 120,
     baugruppentyp: "VW-Fahrwerk"
   },
   {
     bezeichnung: "VW-Fahrwerk",
     artikelnummer: "VW-FAH-P-001",
     variantenTyp: "premium",
-    prozesszeit: 250,
-    volumen: 1.8,
+    demontagezeit: 100,
+    montagezeit: 150,
     baugruppentyp: "VW-Fahrwerk"
   },
   {
     bezeichnung: "VW-Antrieb",
     artikelnummer: "VW-ANT-001",
     variantenTyp: "basicAndPremium",
-    prozesszeit: 300,
-    volumen: 1.3,
+    demontagezeit: 120,
+    montagezeit: 180,
     baugruppentyp: "VW-Antrieb"
   },
   {
     bezeichnung: "VW-Interieur",
     artikelnummer: "VW-INT-B-001",
     variantenTyp: "basic",
-    prozesszeit: 140,
-    volumen: 1.9,
+    demontagezeit: 56,
+    montagezeit: 84,
     baugruppentyp: "VW-Interieur"
   },
   {
     bezeichnung: "VW-Interieur",
     artikelnummer: "VW-INT-P-001",
     variantenTyp: "premium",
-    prozesszeit: 170,
-    volumen: 2.0,
+    demontagezeit: 68,
+    montagezeit: 102,
     baugruppentyp: "VW-Interieur"
   },
   {
     bezeichnung: "VW-Elektronik",
     artikelnummer: "VW-ELE-001",
     variantenTyp: "basicAndPremium",
-    prozesszeit: 110,
-    volumen: 0.45,
+    demontagezeit: 44,
+    montagezeit: 66,
     baugruppentyp: "VW-Elektronik"
   }
 ]
