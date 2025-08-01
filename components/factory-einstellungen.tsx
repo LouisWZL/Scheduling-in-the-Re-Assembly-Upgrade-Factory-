@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { Loader2, Save } from 'lucide-react'
-import { updateFactoryName, updateFactoryCapacity, getFactory } from '@/app/actions/factory.actions'
+import { Loader2, Save, Clock, Wrench } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { updateFactoryName, updateFactoryCapacity, getFactory, updateFactorySchichtmodell, updateFactoryMontagestationen } from '@/app/actions/factory.actions'
 
 interface FactoryEinstellungenProps {
   factoryId: string
@@ -17,9 +18,13 @@ export function FactoryEinstellungen({ factoryId }: FactoryEinstellungenProps) {
   const [loading, setLoading] = useState(true)
   const [savingName, setSavingName] = useState(false)
   const [savingCapacity, setSavingCapacity] = useState(false)
+  const [savingSchichtmodell, setSavingSchichtmodell] = useState(false)
+  const [savingMontagestationen, setSavingMontagestationen] = useState(false)
   const [factoryData, setFactoryData] = useState<any>(null)
   const [name, setName] = useState('')
   const [capacity, setCapacity] = useState('')
+  const [schichtmodell, setSchichtmodell] = useState('EINSCHICHT')
+  const [montagestationen, setMontagestationen] = useState('')
 
   useEffect(() => {
     loadFactoryData()
@@ -33,6 +38,8 @@ export function FactoryEinstellungen({ factoryId }: FactoryEinstellungenProps) {
         setFactoryData(result.data)
         setName(result.data.name)
         setCapacity(result.data.kapazität.toString())
+        setSchichtmodell(result.data.schichtmodell || 'EINSCHICHT')
+        setMontagestationen(result.data.anzahlMontagestationen?.toString() || '10')
       } else {
         toast.error('Fehler beim Laden der Factory-Daten')
       }
@@ -91,6 +98,47 @@ export function FactoryEinstellungen({ factoryId }: FactoryEinstellungenProps) {
     }
   }
 
+  const handleUpdateSchichtmodell = async () => {
+    setSavingSchichtmodell(true)
+    try {
+      const result = await updateFactorySchichtmodell(factoryId, schichtmodell as 'EINSCHICHT' | 'ZWEISCHICHT' | 'DREISCHICHT')
+      if (result.success) {
+        toast.success(result.message)
+        await loadFactoryData()
+      } else {
+        toast.error(result.error)
+      }
+    } catch (error) {
+      toast.error('Ein unerwarteter Fehler ist aufgetreten')
+    } finally {
+      setSavingSchichtmodell(false)
+    }
+  }
+
+  const handleUpdateMontagestationen = async () => {
+    const stationenValue = parseInt(montagestationen)
+    
+    if (isNaN(stationenValue) || stationenValue < 1 || stationenValue > 100) {
+      toast.error('Bitte geben Sie eine gültige Anzahl ein (1-100)')
+      return
+    }
+
+    setSavingMontagestationen(true)
+    try {
+      const result = await updateFactoryMontagestationen(factoryId, stationenValue)
+      if (result.success) {
+        toast.success(result.message)
+        await loadFactoryData()
+      } else {
+        toast.error(result.error)
+      }
+    } catch (error) {
+      toast.error('Ein unerwarteter Fehler ist aufgetreten')
+    } finally {
+      setSavingMontagestationen(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex flex-col h-full p-6">
@@ -107,15 +155,15 @@ export function FactoryEinstellungen({ factoryId }: FactoryEinstellungenProps) {
 
   return (
     <div className="flex flex-col h-full p-6">
-      <h2 className="text-2xl font-bold mb-6">Factory Einstellungen</h2>
+      <h2 className="text-2xl font-bold mb-6">Fabrikeinstellungen</h2>
       
       <div className="grid gap-6 max-w-2xl">
         {/* Factory Name Card */}
         <Card>
           <CardHeader>
-            <CardTitle>Factory Name</CardTitle>
+            <CardTitle>Re-Assembly Upgrade Factory Name</CardTitle>
             <CardDescription>
-              Bearbeiten Sie den Namen Ihrer Factory
+              Bearbeiten Sie den Namen Ihrer Re-Assembly Upgrade Factory
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -152,15 +200,15 @@ export function FactoryEinstellungen({ factoryId }: FactoryEinstellungenProps) {
         {/* Factory Capacity Card */}
         <Card>
           <CardHeader>
-            <CardTitle>Factory Kapazität</CardTitle>
+            <CardTitle>Re-Assembly Upgrade Factory Kapazität</CardTitle>
             <CardDescription>
-              Die Kapazität der Factory gibt an, wie viele Produkte pro Tag in der Factory bearbeitet werden können. 
+              Die Kapazität der Re-Assembly Upgrade Factory gibt an, wie viele Produkte gleichzeitig in der Factory bearbeitet werden können. 
               Diese Einstellung beeinflusst die Produktionsplanung und Terminierung von Aufträgen.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="factoryCapacity">Kapazität (Produkte pro Tag)</Label>
+              <Label htmlFor="factoryCapacity">Kapazität (Gleichzeitig bearbeitbare Produkte)</Label>
               <Input
                 id="factoryCapacity"
                 type="number"
@@ -180,6 +228,120 @@ export function FactoryEinstellungen({ factoryId }: FactoryEinstellungenProps) {
               className="w-full sm:w-auto"
             >
               {savingCapacity ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Speichern...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Speichern
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Schichtmodell Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Schichtmodell
+            </CardTitle>
+            <CardDescription>
+              Wählen Sie das Schichtmodell für Ihre Re-Assembly Upgrade Factory. 
+              Dies bestimmt, wie viele Stunden pro Tag produziert werden kann.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="schichtmodell">Schichtmodell</Label>
+              <Select
+                value={schichtmodell}
+                onValueChange={setSchichtmodell}
+                disabled={savingSchichtmodell}
+              >
+                <SelectTrigger id="schichtmodell">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="EINSCHICHT">
+                    <div>
+                      <div className="font-medium">Einschicht</div>
+                      <div className="text-sm text-muted-foreground">8 Stunden pro Tag</div>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="ZWEISCHICHT">
+                    <div>
+                      <div className="font-medium">Zweischicht</div>
+                      <div className="text-sm text-muted-foreground">16 Stunden pro Tag</div>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="DREISCHICHT">
+                    <div>
+                      <div className="font-medium">Dreischicht</div>
+                      <div className="text-sm text-muted-foreground">24 Stunden pro Tag</div>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button 
+              onClick={handleUpdateSchichtmodell}
+              disabled={savingSchichtmodell || schichtmodell === factoryData?.schichtmodell}
+              className="w-full sm:w-auto"
+            >
+              {savingSchichtmodell ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Speichern...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Speichern
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Montagestationen Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Wrench className="h-5 w-5" />
+              Montagestationen
+            </CardTitle>
+            <CardDescription>
+              Die Anzahl der Montagestationen bestimmt, wie viele Baugruppen gleichzeitig 
+              bearbeitet werden können. Mehr Stationen ermöglichen eine höhere Parallelisierung.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="montagestationen">Anzahl Montagestationen</Label>
+              <Input
+                id="montagestationen"
+                type="number"
+                value={montagestationen}
+                onChange={(e) => setMontagestationen(e.target.value)}
+                placeholder="z.B. 10"
+                min="1"
+                max="100"
+                disabled={savingMontagestationen}
+              />
+              <p className="text-sm text-muted-foreground">
+                Empfohlen: 5-20 Stationen je nach Produktkomplexität
+              </p>
+            </div>
+            <Button 
+              onClick={handleUpdateMontagestationen}
+              disabled={savingMontagestationen || montagestationen === factoryData?.anzahlMontagestationen?.toString()}
+              className="w-full sm:w-auto"
+            >
+              {savingMontagestationen ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Speichern...

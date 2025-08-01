@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ChevronRight, Wrench, Car, Package, Cpu, Cog, Box, BarChart3 } from 'lucide-react'
+import { ChevronRight, Wrench, Car, Package, Cpu, Cog, Box, Settings, ClipboardList } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -56,6 +56,7 @@ export function ConfiguratorSidebarLeft({ factoryId }: ConfiguratorSidebarLeftPr
   const [produkte, setProdukte] = useState<Produkt[]>([])
   const [selectedVariante, setSelectedVariante] = useState<string | null>(null)
   const [selectedProdukt, setSelectedProdukt] = useState<string | null>(null)
+  const [activeView, setActiveView] = useState<string>('einstellungen')
   const [loading, setLoading] = useState(true)
   const [factoryName, setFactoryName] = useState<string>('')
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['produkte']))
@@ -113,7 +114,15 @@ export function ConfiguratorSidebarLeft({ factoryId }: ConfiguratorSidebarLeftPr
 
   const handleVarianteClick = (varianteId: string) => {
     setSelectedVariante(varianteId)
+    setActiveView('variante')
     window.dispatchEvent(new CustomEvent('varianteSelected', { detail: varianteId }))
+  }
+  
+  const handleViewClick = (view: string) => {
+    setActiveView(view)
+    setSelectedProdukt(null)
+    setSelectedVariante(null)
+    window.dispatchEvent(new CustomEvent('viewChanged', { detail: view }))
   }
 
   const toggleSection = (sectionId: string) => {
@@ -158,29 +167,15 @@ export function ConfiguratorSidebarLeft({ factoryId }: ConfiguratorSidebarLeftPr
               </div>
             ) : (
               <>
-                {/* Baugruppen Menüpunkt */}
+                {/* Fabrikeinstellungen Menüpunkt */}
                 <SidebarMenuItem>
                   <SidebarMenuButton 
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent('viewChanged', { detail: 'baugruppen' }))
-                    }}
+                    onClick={() => handleViewClick('einstellungen')}
+                    isActive={activeView === 'einstellungen'}
                     className="font-semibold"
                   >
-                    <Box className="mr-2 h-4 w-4" />
-                    <span>Baugruppen</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-
-                {/* Einstellungen Menüpunkt */}
-                <SidebarMenuItem>
-                  <SidebarMenuButton 
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent('viewChanged', { detail: 'einstellungen' }))
-                    }}
-                    className="font-semibold"
-                  >
-                    <BarChart3 className="mr-2 h-4 w-4" />
-                    <span>Einstellungen</span>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Fabrikeinstellungen</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
 
@@ -206,6 +201,7 @@ export function ConfiguratorSidebarLeft({ factoryId }: ConfiguratorSidebarLeftPr
                               onClick={() => {
                                 setSelectedProdukt(produkt.id)
                                 setSelectedVariante(null)
+                                setActiveView('produkt')
                                 window.dispatchEvent(new CustomEvent('produktSelected', { detail: produkt.id }))
                               }}
                               isActive={selectedProdukt === produkt.id && !selectedVariante}
@@ -254,6 +250,30 @@ export function ConfiguratorSidebarLeft({ factoryId }: ConfiguratorSidebarLeftPr
                       ))}
                     </SidebarMenuSub>
                   )}
+                </SidebarMenuItem>
+
+                {/* Baugruppen Menüpunkt */}
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    onClick={() => handleViewClick('baugruppen')}
+                    isActive={activeView === 'baugruppen'}
+                    className="font-semibold"
+                  >
+                    <Box className="mr-2 h-4 w-4" />
+                    <span>Baugruppen</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                
+                {/* Prozesse Menüpunkt */}
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    onClick={() => handleViewClick('prozesse')}
+                    isActive={activeView === 'prozesse'}
+                    className="font-semibold"
+                  >
+                    <ClipboardList className="mr-2 h-4 w-4" />
+                    <span>Prozesse</span>
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
               </>
             )}

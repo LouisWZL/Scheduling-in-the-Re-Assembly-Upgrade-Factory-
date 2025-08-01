@@ -57,6 +57,12 @@ enum VariantenTyp {
   basicAndPremium
 }
 
+enum Schichtmodell {
+  EINSCHICHT      // 8 Stunden
+  ZWEISCHICHT     // 16 Stunden
+  DREISCHICHT     // 24 Stunden
+}
+
 
 // Baugruppentyp (Assembly Type)
 model Baugruppentyp {
@@ -77,6 +83,8 @@ model ReassemblyFactory {
   id                    String              @id @default(cuid())
   name                  String
   kapazität             Int                 // Begrenzt wie viele Produkte gleichzeitig in der Halle sein können
+  schichtmodell         Schichtmodell       @default(EINSCHICHT)
+  anzahlMontagestationen Int                @default(10)
   auftraege             Auftrag[]
   produkte              Produkt[]           // Produkte der Reassembly Factory
   baugruppentypen       Baugruppentyp[]     // Baugruppentypen der Factory

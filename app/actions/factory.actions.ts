@@ -82,6 +82,84 @@ export async function updateFactoryCapacity(id: string, kapazität: number) {
   }
 }
 
+export async function updateFactorySchichtmodell(id: string, schichtmodell: 'EINSCHICHT' | 'ZWEISCHICHT' | 'DREISCHICHT') {
+  try {
+    const factory = await prisma.reassemblyFactory.update({
+      where: { id },
+      data: { schichtmodell }
+    })
+    
+    revalidatePath('/factory-configurator')
+    revalidatePath(`/factory-configurator/${id}`)
+    revalidatePath('/api/factories')
+    
+    return {
+      success: true,
+      data: factory,
+      message: 'Schichtmodell erfolgreich aktualisiert'
+    }
+  } catch (error) {
+    console.error('Error updating factory schichtmodell:', error)
+    
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2025') {
+        return {
+          success: false,
+          error: 'Factory nicht gefunden'
+        }
+      }
+    }
+    
+    return {
+      success: false,
+      error: 'Fehler beim Aktualisieren des Schichtmodells'
+    }
+  }
+}
+
+export async function updateFactoryMontagestationen(id: string, anzahlMontagestationen: number) {
+  try {
+    // Validate anzahlMontagestationen
+    if (anzahlMontagestationen < 1 || anzahlMontagestationen > 100) {
+      return {
+        success: false,
+        error: 'Die Anzahl der Montagestationen muss zwischen 1 und 100 liegen'
+      }
+    }
+    
+    const factory = await prisma.reassemblyFactory.update({
+      where: { id },
+      data: { anzahlMontagestationen }
+    })
+    
+    revalidatePath('/factory-configurator')
+    revalidatePath(`/factory-configurator/${id}`)
+    revalidatePath('/api/factories')
+    
+    return {
+      success: true,
+      data: factory,
+      message: 'Anzahl der Montagestationen erfolgreich aktualisiert'
+    }
+  } catch (error) {
+    console.error('Error updating factory montagestationen:', error)
+    
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2025') {
+        return {
+          success: false,
+          error: 'Factory nicht gefunden'
+        }
+      }
+    }
+    
+    return {
+      success: false,
+      error: 'Fehler beim Aktualisieren der Montagestationen'
+    }
+  }
+}
+
 export async function getFactory(id: string) {
   try {
     const factory = await prisma.reassemblyFactory.findUnique({

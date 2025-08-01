@@ -263,6 +263,22 @@ export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
     return <FactoryEinstellungen factoryId={factoryId} />
   }
 
+  // Prozesse View
+  if (currentView === 'prozesse') {
+    return (
+      <div className="flex flex-col h-full p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Prozesse</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">Die Prozessverwaltung wird in Kürze verfügbar sein.</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   // Produkt View
   if (currentView === 'produkt' && selectedProdukt) {
     return (
