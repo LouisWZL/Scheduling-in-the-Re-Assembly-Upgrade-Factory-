@@ -157,48 +157,52 @@ export function FactoryEinstellungen({ factoryId }: FactoryEinstellungenProps) {
     <div className="flex flex-col h-full p-6">
       <h2 className="text-2xl font-bold mb-6">Fabrikeinstellungen</h2>
       
-      <div className="grid gap-6 max-w-2xl">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl">
         {/* Factory Name Card */}
-        <Card>
+        <Card className="flex flex-col h-full">
           <CardHeader>
             <CardTitle>Re-Assembly Upgrade Factory Name</CardTitle>
             <CardDescription>
               Bearbeiten Sie den Namen Ihrer Re-Assembly Upgrade Factory
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="factoryName">Name</Label>
-              <Input
-                id="factoryName"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="z.B. Stuttgart Factory"
-                disabled={savingName}
-              />
+          <CardContent className="flex flex-col flex-1">
+            <div className="flex-1">
+              <div className="space-y-2">
+                <Label htmlFor="factoryName">Name</Label>
+                <Input
+                  id="factoryName"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="z.B. Stuttgart Factory"
+                  disabled={savingName}
+                />
+              </div>
             </div>
-            <Button 
-              onClick={handleUpdateName}
-              disabled={savingName || name === factoryData?.name}
-              className="w-full sm:w-auto"
-            >
-              {savingName ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Speichern...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Speichern
-                </>
-              )}
-            </Button>
+            <div className="pt-4">
+              <Button 
+                onClick={handleUpdateName}
+                disabled={savingName || name === factoryData?.name}
+                size="sm"
+              >
+                {savingName ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Speichern...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Speichern
+                  </>
+                )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
         {/* Factory Capacity Card */}
-        <Card>
+        <Card className="flex flex-col h-full">
           <CardHeader>
             <CardTitle>Re-Assembly Upgrade Factory Kapazität</CardTitle>
             <CardDescription>
@@ -206,44 +210,48 @@ export function FactoryEinstellungen({ factoryId }: FactoryEinstellungenProps) {
               Diese Einstellung beeinflusst die Produktionsplanung und Terminierung von Aufträgen.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="factoryCapacity">Kapazität (Gleichzeitig bearbeitbare Produkte)</Label>
-              <Input
-                id="factoryCapacity"
-                type="number"
-                value={capacity}
-                onChange={(e) => setCapacity(e.target.value)}
-                placeholder="z.B. 50"
-                min="1"
-                disabled={savingCapacity}
-              />
-              <p className="text-sm text-muted-foreground">
-                Aktuelle Auslastung: {factoryData?.auftraege?.length || 0} von {capacity} Aufträgen
-              </p>
+          <CardContent className="flex flex-col flex-1">
+            <div className="flex-1">
+              <div className="space-y-2">
+                <Label htmlFor="factoryCapacity">Kapazität (Gleichzeitig bearbeitbare Produkte)</Label>
+                <Input
+                  id="factoryCapacity"
+                  type="number"
+                  value={capacity}
+                  onChange={(e) => setCapacity(e.target.value)}
+                  placeholder="z.B. 50"
+                  min="1"
+                  disabled={savingCapacity}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Aktuelle Auslastung: {factoryData?.auftraege?.length || 0} von {capacity} Aufträgen
+                </p>
+              </div>
             </div>
-            <Button 
-              onClick={handleUpdateCapacity}
-              disabled={savingCapacity || capacity === factoryData?.kapazität?.toString()}
-              className="w-full sm:w-auto"
-            >
-              {savingCapacity ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Speichern...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Speichern
-                </>
-              )}
-            </Button>
+            <div className="pt-4">
+              <Button 
+                onClick={handleUpdateCapacity}
+                disabled={savingCapacity || capacity === factoryData?.kapazität?.toString()}
+                size="sm"
+              >
+                {savingCapacity ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Speichern...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Speichern
+                  </>
+                )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
         {/* Schichtmodell Card */}
-        <Card>
+        <Card className="flex flex-col h-full">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5" />
@@ -254,61 +262,65 @@ export function FactoryEinstellungen({ factoryId }: FactoryEinstellungenProps) {
               Dies bestimmt, wie viele Stunden pro Tag produziert werden kann.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="schichtmodell">Schichtmodell</Label>
-              <Select
-                value={schichtmodell}
-                onValueChange={setSchichtmodell}
-                disabled={savingSchichtmodell}
-              >
-                <SelectTrigger id="schichtmodell">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="EINSCHICHT">
-                    <div>
-                      <div className="font-medium">Einschicht</div>
-                      <div className="text-sm text-muted-foreground">8 Stunden pro Tag</div>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="ZWEISCHICHT">
-                    <div>
-                      <div className="font-medium">Zweischicht</div>
-                      <div className="text-sm text-muted-foreground">16 Stunden pro Tag</div>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="DREISCHICHT">
-                    <div>
-                      <div className="font-medium">Dreischicht</div>
-                      <div className="text-sm text-muted-foreground">24 Stunden pro Tag</div>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+          <CardContent className="flex flex-col flex-1">
+            <div className="flex-1">
+              <div className="space-y-2">
+                <Label htmlFor="schichtmodell">Schichtmodell</Label>
+                <Select
+                  value={schichtmodell}
+                  onValueChange={setSchichtmodell}
+                  disabled={savingSchichtmodell}
+                >
+                  <SelectTrigger id="schichtmodell">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="EINSCHICHT">
+                      <div>
+                        <div className="font-medium">Einschicht</div>
+                        <div className="text-sm text-muted-foreground">8 Stunden pro Tag</div>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="ZWEISCHICHT">
+                      <div>
+                        <div className="font-medium">Zweischicht</div>
+                        <div className="text-sm text-muted-foreground">16 Stunden pro Tag</div>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="DREISCHICHT">
+                      <div>
+                        <div className="font-medium">Dreischicht</div>
+                        <div className="text-sm text-muted-foreground">24 Stunden pro Tag</div>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <Button 
-              onClick={handleUpdateSchichtmodell}
-              disabled={savingSchichtmodell || schichtmodell === factoryData?.schichtmodell}
-              className="w-full sm:w-auto"
-            >
-              {savingSchichtmodell ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Speichern...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Speichern
-                </>
-              )}
-            </Button>
+            <div className="pt-4">
+              <Button 
+                onClick={handleUpdateSchichtmodell}
+                disabled={savingSchichtmodell || schichtmodell === factoryData?.schichtmodell}
+                size="sm"
+              >
+                {savingSchichtmodell ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Speichern...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Speichern
+                  </>
+                )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
         {/* Montagestationen Card */}
-        <Card>
+        <Card className="flex flex-col h-full">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Wrench className="h-5 w-5" />
@@ -319,40 +331,44 @@ export function FactoryEinstellungen({ factoryId }: FactoryEinstellungenProps) {
               bearbeitet werden können. Mehr Stationen ermöglichen eine höhere Parallelisierung.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="montagestationen">Anzahl Montagestationen</Label>
-              <Input
-                id="montagestationen"
-                type="number"
-                value={montagestationen}
-                onChange={(e) => setMontagestationen(e.target.value)}
-                placeholder="z.B. 10"
-                min="1"
-                max="100"
-                disabled={savingMontagestationen}
-              />
-              <p className="text-sm text-muted-foreground">
-                Empfohlen: 5-20 Stationen je nach Produktkomplexität
-              </p>
+          <CardContent className="flex flex-col flex-1">
+            <div className="flex-1">
+              <div className="space-y-2">
+                <Label htmlFor="montagestationen">Anzahl Montagestationen</Label>
+                <Input
+                  id="montagestationen"
+                  type="number"
+                  value={montagestationen}
+                  onChange={(e) => setMontagestationen(e.target.value)}
+                  placeholder="z.B. 10"
+                  min="1"
+                  max="100"
+                  disabled={savingMontagestationen}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Empfohlen: 5-20 Stationen je nach Produktkomplexität
+                </p>
+              </div>
             </div>
-            <Button 
-              onClick={handleUpdateMontagestationen}
-              disabled={savingMontagestationen || montagestationen === factoryData?.anzahlMontagestationen?.toString()}
-              className="w-full sm:w-auto"
-            >
-              {savingMontagestationen ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Speichern...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Speichern
-                </>
-              )}
-            </Button>
+            <div className="pt-4">
+              <Button 
+                onClick={handleUpdateMontagestationen}
+                disabled={savingMontagestationen || montagestationen === factoryData?.anzahlMontagestationen?.toString()}
+                size="sm"
+              >
+                {savingMontagestationen ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Speichern...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Speichern
+                  </>
+                )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
