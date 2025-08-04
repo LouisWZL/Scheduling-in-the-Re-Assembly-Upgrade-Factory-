@@ -72,6 +72,18 @@ export async function createProdukt(
   }
 ) {
   try {
+    // Check if factory already has a product
+    const existingProdukt = await prisma.produkt.findFirst({
+      where: { factoryId }
+    })
+
+    if (existingProdukt) {
+      return {
+        success: false,
+        error: 'Diese Factory hat bereits ein Produkt. Bitte löschen Sie das vorhandene Produkt, bevor Sie ein neues erstellen.'
+      }
+    }
+
     // Check if seriennummer already exists
     const existing = await prisma.produkt.findUnique({
       where: { seriennummer: data.seriennummer }
@@ -84,12 +96,29 @@ export async function createProdukt(
       }
     }
 
+    // Create product with automatic Basic and Premium variants
     const newProdukt = await prisma.produkt.create({
       data: {
         bezeichnung: data.bezeichnung,
         seriennummer: data.seriennummer,
         glbFile: data.glbFile,
-        factoryId
+        factoryId,
+        varianten: {
+          create: [
+            {
+              bezeichnung: `${data.bezeichnung} Basic`,
+              typ: 'basic',
+              zustand: 'GUT',
+              links: {} // Empty links object as required by schema
+            },
+            {
+              bezeichnung: `${data.bezeichnung} Premium`,
+              typ: 'premium',
+              zustand: 'SEHR_GUT',
+              links: {} // Empty links object as required by schema
+            }
+          ]
+        }
       },
       include: {
         baugruppentypen: true,
@@ -102,7 +131,7 @@ export async function createProdukt(
     revalidatePath(`/factory-configurator/${factoryId}`)
     revalidatePath('/api/factories') // Revalidate factories API for sidebar
 
-    return { success: true, data: newProdukt, message: 'Produkt erfolgreich erstellt' }
+    return { success: true, data: newProdukt, message: 'Produkt mit Basic und Premium Varianten erfolgreich erstellt' }
   } catch (error) {
     console.error('Error creating product:', error)
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -139,12 +168,35 @@ export async function updateProdukt(
       }
     }
 
+    // Update product and its variants' names
     const updatedProdukt = await prisma.produkt.update({
       where: { id: produktId },
       data: {
         bezeichnung: data.bezeichnung,
         seriennummer: data.seriennummer,
-        glbFile: data.glbFile
+        glbFile: data.glbFile,
+        varianten: {
+          updateMany: [
+            {
+              where: { 
+                produktId: produktId,
+                typ: 'basic'
+              },
+              data: {
+                bezeichnung: `${data.bezeichnung} Basic`
+              }
+            },
+            {
+              where: { 
+                produktId: produktId,
+                typ: 'premium'
+              },
+              data: {
+                bezeichnung: `${data.bezeichnung} Premium`
+              }
+            }
+          ]
+        }
       },
       include: {
         baugruppentypen: true,
@@ -177,11 +229,17 @@ export async function updateProdukt(
 
 export async function deleteProdukt(produktId: string) {
   try {
-    // Check if product has variants
+    // Get product with all relations
     const produkt = await prisma.produkt.findUnique({
       where: { id: produktId },
       include: {
-        varianten: true
+        varianten: {
+          include: {
+            baugruppen: true,
+            auftraege: true
+          }
+        },
+        baugruppentypen: true
       }
     })
 
@@ -192,13 +250,60 @@ export async function deleteProdukt(produktId: string) {
       }
     }
 
-    if (produkt.varianten.length > 0) {
-      return {
-        success: false,
-        error: 'Produkt kann nicht gelöscht werden, da es noch Varianten besitzt'
+    // Delete all orders (Aufträge) that use this product's variants
+    for (const variante of produkt.varianten) {
+      if (variante.auftraege && variante.auftraege.length > 0) {
+        // First delete all Liefertermine for each Auftrag
+        const auftragIds = variante.auftraege.map(a => a.id)
+        await prisma.liefertermin.deleteMany({
+          where: {
+            auftragId: {
+              in: auftragIds
+            }
+          }
+        })
+        
+        // Then delete all Aufträge
+        await prisma.auftrag.deleteMany({
+          where: {
+            produktvarianteId: variante.id
+          }
+        })
       }
     }
 
+    // First disconnect all baugruppen from variants (many-to-many relationship)
+    for (const variante of produkt.varianten) {
+      if (variante.baugruppen.length > 0) {
+        await prisma.produktvariante.update({
+          where: { id: variante.id },
+          data: {
+            baugruppen: {
+              set: [] // Disconnect all baugruppen
+            }
+          }
+        })
+      }
+    }
+
+    // Disconnect all baugruppentypen from the product
+    if (produkt.baugruppentypen.length > 0) {
+      await prisma.produkt.update({
+        where: { id: produktId },
+        data: {
+          baugruppentypen: {
+            set: [] // Disconnect all baugruppentypen
+          }
+        }
+      })
+    }
+
+    // Delete all variants
+    await prisma.produktvariante.deleteMany({
+      where: { produktId: produktId }
+    })
+
+    // Delete the product
     await prisma.produkt.delete({
       where: { id: produktId }
     })
@@ -209,7 +314,7 @@ export async function deleteProdukt(produktId: string) {
     }
     revalidatePath('/api/factories') // Revalidate factories API for sidebar
 
-    return { success: true, message: 'Produkt erfolgreich gelöscht' }
+    return { success: true, message: 'Produkt und zugehörige Varianten erfolgreich gelöscht' }
   } catch (error) {
     console.error('Error deleting product:', error)
     if (error instanceof Prisma.PrismaClientKnownRequestError) {

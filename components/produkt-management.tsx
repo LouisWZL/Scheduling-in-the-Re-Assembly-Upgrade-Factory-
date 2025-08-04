@@ -12,10 +12,20 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Plus, Edit, Trash2, Package } from 'lucide-react'
+import { Plus, Edit, Trash2, Package, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { DeleteDialog } from '@/components/delete-dialog'
 import { ProduktDialog } from '@/components/dialogs/produkt-dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { ThreeViewer, ThreeViewerEmpty } from '@/components/three-viewer'
 import { 
   getProdukte, 
@@ -38,6 +48,9 @@ export function ProduktManagement({ factoryId }: ProduktManagementProps) {
   // Delete dialog states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingProdukt, setDeletingProdukt] = useState<any>(null)
+  
+  // Alert dialog for product limit
+  const [showProductLimitAlert, setShowProductLimitAlert] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -75,6 +88,8 @@ export function ProduktManagement({ factoryId }: ProduktManagementProps) {
         setSelectedProdukt(remainingProdukte.length > 0 ? remainingProdukte[0] : null)
       }
       await loadData()
+      // Dispatch event to update the sidebar menu
+      window.dispatchEvent(new CustomEvent('factoryUpdated'))
     } else {
       toast.error(result.error)
     }
@@ -92,6 +107,17 @@ export function ProduktManagement({ factoryId }: ProduktManagementProps) {
     setProduktDialogOpen(false)
     setEditingProdukt(null)
     loadData()
+    // Dispatch event to update the sidebar menu
+    window.dispatchEvent(new CustomEvent('factoryUpdated'))
+  }
+  
+  const handleCreateButtonClick = () => {
+    if (produkte.length > 0) {
+      setShowProductLimitAlert(true)
+    } else {
+      setEditingProdukt(null)
+      setProduktDialogOpen(true)
+    }
   }
 
   const handleRowClick = (produkt: any) => {
@@ -114,14 +140,46 @@ export function ProduktManagement({ factoryId }: ProduktManagementProps) {
     <div className="flex flex-col h-full p-6 gap-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Produkt Manager</h2>
-        <Button onClick={() => {
-          setEditingProdukt(null)
-          setProduktDialogOpen(true)
-        }}>
+        <Button onClick={handleCreateButtonClick}>
           <Plus className="mr-2 h-4 w-4" />
           Produkt erstellen
         </Button>
       </div>
+
+      {/* Alert Dialog for Product Limit */}
+      <AlertDialog open={showProductLimitAlert} onOpenChange={setShowProductLimitAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              Produktlimit erreicht
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  Jede Factory kann nur <strong>ein Produkt</strong> haben. Dieses Produkt wird automatisch mit Basic- und Premium-Varianten erstellt.
+                </p>
+                <p>
+                  Um ein neues Produkt zu erstellen, müssen Sie zuerst das vorhandene Produkt <strong>"{produkte[0]?.bezeichnung}"</strong> löschen.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Verstanden</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (produkte[0]) {
+                  confirmDelete(produkte[0])
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Produkt löschen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Dialogs */}
       <ProduktDialog
@@ -148,7 +206,7 @@ export function ProduktManagement({ factoryId }: ProduktManagementProps) {
         {/* Produkte Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Produkte</CardTitle>
+            <CardTitle>Produkt</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
@@ -243,7 +301,16 @@ export function ProduktManagement({ factoryId }: ProduktManagementProps) {
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Varianten:</span>
-                        <Badge variant="outline">{selectedProdukt.varianten?.length || 0}</Badge>
+                        <div className="flex gap-2">
+                          {selectedProdukt.varianten?.map((v: any) => (
+                            <Badge 
+                              key={v.id} 
+                              variant={v.typ === 'premium' ? 'default' : 'secondary'}
+                            >
+                              {v.typ}
+                            </Badge>
+                          )) || <Badge variant="outline">0</Badge>}
+                        </div>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Baugruppentypen:</span>

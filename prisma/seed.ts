@@ -245,17 +245,11 @@ const audiBaugruppen: BaugruppeWithType[] = [
   }
 ]
 
-// Audi Produkte
-const audiProdukte: Omit<Prisma.ProduktCreateInput, 'factory'>[] = [
-  {
-    bezeichnung: "Audi A6",
-    seriennummer: "A6-2024-001"
-  },
-  {
-    bezeichnung: "Audi Q7",
-    seriennummer: "Q7-2024-001"
-  }
-]
+// Audi Produkt (nur eines pro Factory)
+const audiProdukt: Omit<Prisma.ProduktCreateInput, 'factory'> = {
+  bezeichnung: "Audi A6",
+  seriennummer: "A6-2024-001"
+}
 
 // ==========================================
 // WOLFSBURG VOLKSWAGEN RE-MANUFACTURING PLANT
@@ -346,21 +340,11 @@ const vwBaugruppen: BaugruppeWithType[] = [
   }
 ]
 
-// VW Produkte
-const vwProdukte: Omit<Prisma.ProduktCreateInput, 'factory'>[] = [
-  {
-    bezeichnung: "Volkswagen Polo",
-    seriennummer: "POLO-2024-001"
-  },
-  {
-    bezeichnung: "Volkswagen Tiguan",
-    seriennummer: "TIG-2024-001"
-  },
-  {
-    bezeichnung: "Volkswagen ID.4",
-    seriennummer: "ID4-2024-001"
-  }
-]
+// VW Produkt (nur eines pro Factory)
+const vwProdukt: Omit<Prisma.ProduktCreateInput, 'factory'> = {
+  bezeichnung: "Volkswagen Tiguan",
+  seriennummer: "TIG-2024-001"
+}
 
 // ==========================================
 // SEEDING FUNCTION
@@ -516,55 +500,49 @@ async function main() {
     })
   )
 
-  // Erstelle Audi Produkte mit Baugruppentypen
-  const createdAudiProdukte = await Promise.all(
-    audiProdukte.map(produkt =>
-      prisma.produkt.create({
-        data: {
-          ...produkt,
-          factory: {
-            connect: { id: createdAudiFactory.id }
-          },
-          baugruppentypen: {
-            connect: createdAudiBaugruppentypen.map(typ => ({ id: typ.id }))
-          }
-        }
-      })
-    )
-  )
+  // Erstelle Audi Produkt mit Baugruppentypen
+  const createdAudiProdukt = await prisma.produkt.create({
+    data: {
+      ...audiProdukt,
+      factory: {
+        connect: { id: createdAudiFactory.id }
+      },
+      baugruppentypen: {
+        connect: createdAudiBaugruppentypen.map(typ => ({ id: typ.id }))
+      }
+    }
+  })
 
   // Erstelle Audi Produktvarianten
-  for (const produkt of createdAudiProdukte) {
-    await prisma.produktvariante.create({
-      data: {
-        bezeichnung: `${produkt.bezeichnung} Basic`,
-        typ: "basic",
-        produkt: { connect: { id: produkt.id } },
-        baugruppen: {
-          connect: createdAudiBaugruppen
-            .filter(bg => bg.variantenTyp === "basic" || bg.variantenTyp === "basicAndPremium")
-            .map(bg => ({ id: bg.id }))
-        },
-        links: {},
-        zustand: "GUT"
-      }
-    })
+  const audiVarianteBasic = await prisma.produktvariante.create({
+    data: {
+      bezeichnung: `${createdAudiProdukt.bezeichnung} Basic`,
+      typ: "basic",
+      produkt: { connect: { id: createdAudiProdukt.id } },
+      baugruppen: {
+        connect: createdAudiBaugruppen
+          .filter(bg => bg.variantenTyp === "basic" || bg.variantenTyp === "basicAndPremium")
+          .map(bg => ({ id: bg.id }))
+      },
+      links: {},
+      zustand: "GUT"
+    }
+  })
 
-    await prisma.produktvariante.create({
-      data: {
-        bezeichnung: `${produkt.bezeichnung} Premium`,
-        typ: "premium",
-        produkt: { connect: { id: produkt.id } },
-        baugruppen: {
-          connect: createdAudiBaugruppen
-            .filter(bg => bg.variantenTyp === "premium" || bg.variantenTyp === "basicAndPremium")
-            .map(bg => ({ id: bg.id }))
-        },
-        links: {},
-        zustand: "SEHR_GUT"
-      }
-    })
-  }
+  const audiVariantePremium = await prisma.produktvariante.create({
+    data: {
+      bezeichnung: `${createdAudiProdukt.bezeichnung} Premium`,
+      typ: "premium",
+      produkt: { connect: { id: createdAudiProdukt.id } },
+      baugruppen: {
+        connect: createdAudiBaugruppen
+          .filter(bg => bg.variantenTyp === "premium" || bg.variantenTyp === "basicAndPremium")
+          .map(bg => ({ id: bg.id }))
+      },
+      links: {},
+      zustand: "SEHR_GUT"
+    }
+  })
 
   // ==========================================
   // ERSTELLE VW FACTORY
@@ -612,74 +590,49 @@ async function main() {
     })
   )
 
-  // Erstelle VW Produkte mit Baugruppentypen
-  const createdVWProdukte = await Promise.all(
-    vwProdukte.map(produkt =>
-      prisma.produkt.create({
-        data: {
-          ...produkt,
-          factory: {
-            connect: { id: createdVWFactory.id }
-          },
-          baugruppentypen: {
-            connect: createdVWBaugruppentypen.map(typ => ({ id: typ.id }))
-          }
-        }
-      })
-    )
-  )
+  // Erstelle VW Produkt mit Baugruppentypen
+  const createdVWProdukt = await prisma.produkt.create({
+    data: {
+      ...vwProdukt,
+      factory: {
+        connect: { id: createdVWFactory.id }
+      },
+      baugruppentypen: {
+        connect: createdVWBaugruppentypen.map(typ => ({ id: typ.id }))
+      }
+    }
+  })
 
   // Erstelle VW Produktvarianten
-  for (const produkt of createdVWProdukte) {
-    if (produkt.bezeichnung.includes("Polo") || produkt.bezeichnung.includes("ID.4")) {
-      // Nur Basic Variante für Polo und ID.4
-      await prisma.produktvariante.create({
-        data: {
-          bezeichnung: `${produkt.bezeichnung} Basic`,
-          typ: "basic",
-          produkt: { connect: { id: produkt.id } },
-          baugruppen: {
-            connect: createdVWBaugruppen
-              .filter(bg => bg.variantenTyp === "basic" || bg.variantenTyp === "basicAndPremium")
-              .map(bg => ({ id: bg.id }))
-          },
-          links: {},
-          zustand: "GUT"
-        }
-      })
-    } else {
-      // Basic und Premium für andere Produkte
-      await prisma.produktvariante.create({
-        data: {
-          bezeichnung: `${produkt.bezeichnung} Basic`,
-          typ: "basic",
-          produkt: { connect: { id: produkt.id } },
-          baugruppen: {
-            connect: createdVWBaugruppen
-              .filter(bg => bg.variantenTyp === "basic" || bg.variantenTyp === "basicAndPremium")
-              .map(bg => ({ id: bg.id }))
-          },
-          links: {},
-          zustand: "GUT"
-        }
-      })
-
-      await prisma.produktvariante.create({
-        data: {
-          bezeichnung: `${produkt.bezeichnung} Premium`,
-          typ: "premium",
-          produkt: { connect: { id: produkt.id } },
-          baugruppen: {
-            connect: createdVWBaugruppen
-              .filter(bg => bg.variantenTyp === "premium" || bg.variantenTyp === "basicAndPremium")
-              .map(bg => ({ id: bg.id }))
-          },
-          links: {},
-          zustand: "SEHR_GUT"
-        }
-      })
+  const vwVarianteBasic = await prisma.produktvariante.create({
+    data: {
+      bezeichnung: `${createdVWProdukt.bezeichnung} Basic`,
+      typ: "basic",
+      produkt: { connect: { id: createdVWProdukt.id } },
+      baugruppen: {
+        connect: createdVWBaugruppen
+          .filter(bg => bg.variantenTyp === "basic" || bg.variantenTyp === "basicAndPremium")
+          .map(bg => ({ id: bg.id }))
+      },
+      links: {},
+      zustand: "GUT"
     }
-  }
+  })
+
+  const vwVariantePremium = await prisma.produktvariante.create({
+    data: {
+      bezeichnung: `${createdVWProdukt.bezeichnung} Premium`,
+      typ: "premium",
+      produkt: { connect: { id: createdVWProdukt.id } },
+      baugruppen: {
+        connect: createdVWBaugruppen
+          .filter(bg => bg.variantenTyp === "premium" || bg.variantenTyp === "basicAndPremium")
+          .map(bg => ({ id: bg.id }))
+      },
+      links: {},
+      zustand: "SEHR_GUT"
+    }
+  })
 
   // ==========================================
   // ERSTELLE KUNDEN
@@ -771,54 +724,59 @@ async function main() {
   })
 
   // Audi Aufträge
-  const audiVarianten = await prisma.produktvariante.findMany({
-    where: { produkt: { factoryId: createdAudiFactory.id } }
-  })
-
-  if (audiVarianten.length > 0) {
-    await prisma.auftrag.create({
-      data: {
-        kunde: { connect: { id: createdKunden[2].id } },
-        produktvariante: { connect: { id: audiVarianten[0].id } },
-        phase: "REMONTAGE",
-        upgradeTyp: "PFLICHT",
-        factory: { connect: { id: createdAudiFactory.id } },
-        liefertermine: {
-          create: {
-            typ: "FEINTERMIN",
-            datum: new Date("2024-04-25"),
-            istAktuell: true,
-            bemerkung: "In Bearbeitung"
-          }
+  await prisma.auftrag.create({
+    data: {
+      kunde: { connect: { id: createdKunden[2].id } },
+      produktvariante: { connect: { id: audiVarianteBasic.id } },
+      phase: "REMONTAGE",
+      upgradeTyp: "PFLICHT",
+      factory: { connect: { id: createdAudiFactory.id } },
+      liefertermine: {
+        create: {
+          typ: "FEINTERMIN",
+          datum: new Date("2024-04-25"),
+          istAktuell: true,
+          bemerkung: "In Bearbeitung"
         }
       }
-    })
-  }
+    }
+  })
 
   // VW Aufträge
-  const vwVarianten = await prisma.produktvariante.findMany({
-    where: { produkt: { factoryId: createdVWFactory.id } },
-    take: 2
-  })
-
-  for (const variante of vwVarianten) {
-    await prisma.auftrag.create({
-      data: {
-        kunde: { connect: { id: createdKunden[Math.floor(Math.random() * createdKunden.length)].id } },
-        produktvariante: { connect: { id: variante.id } },
-        phase: "GROBTERMINIERUNG",
-        upgradeTyp: "WUNSCH",
-        factory: { connect: { id: createdVWFactory.id } },
-        liefertermine: {
-          create: {
-            typ: "GROB_ZEITSCHIENE",
-            datum: new Date("2024-07-01"),
-            istAktuell: true
-          }
+  await prisma.auftrag.create({
+    data: {
+      kunde: { connect: { id: createdKunden[0].id } },
+      produktvariante: { connect: { id: vwVarianteBasic.id } },
+      phase: "GROBTERMINIERUNG",
+      upgradeTyp: "WUNSCH",
+      factory: { connect: { id: createdVWFactory.id } },
+      liefertermine: {
+        create: {
+          typ: "GROB_ZEITSCHIENE",
+          datum: new Date("2024-07-01"),
+          istAktuell: true
         }
       }
-    })
-  }
+    }
+  })
+
+  await prisma.auftrag.create({
+    data: {
+      kunde: { connect: { id: createdKunden[1].id } },
+      produktvariante: { connect: { id: vwVariantePremium.id } },
+      phase: "INSPEKTION",
+      upgradeTyp: "KOMBINIERT",
+      factory: { connect: { id: createdVWFactory.id } },
+      liefertermine: {
+        create: {
+          typ: "GROBTERMIN",
+          datum: new Date("2024-06-15"),
+          istAktuell: true,
+          bemerkung: "Wartet auf Inspektion"
+        }
+      }
+    }
+  })
 
   console.log('✅ Seeding completed successfully!')
 }
