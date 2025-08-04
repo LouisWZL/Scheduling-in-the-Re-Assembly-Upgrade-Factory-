@@ -87,7 +87,6 @@ export async function createProdukt(
   data: {
     bezeichnung: string
     seriennummer: string
-    glbFile?: string | null
   }
 ) {
   try {
@@ -120,7 +119,6 @@ export async function createProdukt(
       data: {
         bezeichnung: data.bezeichnung,
         seriennummer: data.seriennummer,
-        glbFile: data.glbFile,
         factoryId,
         varianten: {
           create: [
@@ -168,7 +166,6 @@ export async function updateProdukt(
   data: {
     bezeichnung: string
     seriennummer: string
-    glbFile?: string | null
   }
 ) {
   try {
@@ -193,7 +190,6 @@ export async function updateProdukt(
       data: {
         bezeichnung: data.bezeichnung,
         seriennummer: data.seriennummer,
-        glbFile: data.glbFile,
         varianten: {
           updateMany: [
             {

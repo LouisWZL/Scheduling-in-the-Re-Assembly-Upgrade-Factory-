@@ -12,6 +12,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Plus, Edit, Trash2, Package, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { DeleteDialog } from '@/components/delete-dialog'
@@ -26,11 +27,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { ThreeViewer, ThreeViewerEmpty } from '@/components/three-viewer'
+import { ProduktvarianteTab } from '@/components/produktvariante-tab'
 import { 
   getProdukte, 
   deleteProdukt 
 } from '@/app/actions/produkt.actions'
+import { getProduktvarianten } from '@/app/actions/produktvariante.actions'
 
 interface ProduktManagementProps {
   factoryId: string
@@ -39,6 +41,7 @@ interface ProduktManagementProps {
 export function ProduktManagement({ factoryId }: ProduktManagementProps) {
   const [produkte, setProdukte] = useState<any[]>([])
   const [selectedProdukt, setSelectedProdukt] = useState<any>(null)
+  const [selectedVarianten, setSelectedVarianten] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   
   // Dialog states
@@ -63,9 +66,16 @@ export function ProduktManagement({ factoryId }: ProduktManagementProps) {
 
       if (result.success && result.data) {
         setProdukte(result.data)
-        // Select first product by default
+        // Select first product by default and load its variants
         if (result.data.length > 0 && !selectedProdukt) {
-          setSelectedProdukt(result.data[0])
+          const firstProduct = result.data[0]
+          setSelectedProdukt(firstProduct)
+          
+          // Load variants for the first product
+          const variantenResult = await getProduktvarianten(firstProduct.id)
+          if (variantenResult.success && variantenResult.data) {
+            setSelectedVarianten(variantenResult.data)
+          }
         }
       }
     } catch (error) {
@@ -120,8 +130,22 @@ export function ProduktManagement({ factoryId }: ProduktManagementProps) {
     }
   }
 
-  const handleRowClick = (produkt: any) => {
+  const handleRowClick = async (produkt: any) => {
     setSelectedProdukt(produkt)
+    // Load variants for the selected product
+    const result = await getProduktvarianten(produkt.id)
+    if (result.success && result.data) {
+      setSelectedVarianten(result.data)
+    }
+  }
+
+  const refreshVarianten = async () => {
+    if (selectedProdukt) {
+      const result = await getProduktvarianten(selectedProdukt.id)
+      if (result.success && result.data) {
+        setSelectedVarianten(result.data)
+      }
+    }
   }
 
   if (loading) {
@@ -270,14 +294,12 @@ export function ProduktManagement({ factoryId }: ProduktManagementProps) {
           </CardContent>
         </Card>
 
-        {/* Produkt Details */}
+        {/* Produkt Details with Variants */}
         <Card>
-          <CardHeader>
-            <CardTitle>Produktdetails</CardTitle>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {selectedProdukt ? (
-              <div className="space-y-6">
+              <div className="space-y-4">
+                {/* Product Header */}
                 <div>
                   <h3 className="text-lg font-semibold">{selectedProdukt.bezeichnung}</h3>
                   <p className="text-sm text-muted-foreground">
@@ -285,59 +307,50 @@ export function ProduktManagement({ factoryId }: ProduktManagementProps) {
                   </p>
                 </div>
 
-                {/* 3D Model Viewer */}
-                <div className="h-[400px]">
-                  {selectedProdukt.glbFile ? (
-                    <ThreeViewer glbUrl={selectedProdukt.glbFile} />
-                  ) : (
-                    <ThreeViewerEmpty />
-                  )}
-                </div>
-
-                {/* Additional Details */}
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold mb-2">Weitere Details</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Varianten:</span>
-                        <div className="flex gap-2">
-                          {selectedProdukt.varianten?.map((v: any) => (
-                            <Badge 
-                              key={v.id} 
-                              variant={v.typ === 'premium' ? 'default' : 'secondary'}
-                            >
-                              {v.typ}
+                {/* Product Info */}
+                <div className="pb-4 border-b">
+                  <div className="flex gap-2">
+                    <span className="text-sm text-muted-foreground whitespace-nowrap pt-1">Baugruppentypen:</span>
+                    {selectedProdukt.baugruppentypen?.length > 0 ? (
+                      <div className="flex-1 max-h-[4.5rem] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                        <div className="flex flex-wrap gap-1">
+                          {selectedProdukt.baugruppentypen.map((typ: any) => (
+                            <Badge key={typ.id} variant="outline" className="text-xs">
+                              {typ.bezeichnung}
                             </Badge>
-                          )) || <Badge variant="outline">0</Badge>}
+                          ))}
                         </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Baugruppentypen:</span>
-                        <Badge variant="outline">{selectedProdukt.baugruppentypen?.length || 0}</Badge>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Erstellt am:</span>
-                        <span className="text-sm">
-                          {new Date(selectedProdukt.createdAt).toLocaleDateString('de-DE')}
-                        </span>
-                      </div>
-                    </div>
+                    ) : (
+                      <span className="text-sm text-muted-foreground pt-1">Keine</span>
+                    )}
                   </div>
-
-                  {selectedProdukt.baugruppentypen?.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold mb-2">Zugeordnete Baugruppentypen</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedProdukt.baugruppentypen.map((typ: any) => (
-                          <Badge key={typ.id} variant="secondary">
-                            {typ.bezeichnung}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
+
+                {/* Variants Tabs */}
+                {selectedVarianten.length > 0 ? (
+                  <Tabs defaultValue={selectedVarianten[0]?.id} className="w-full mt-4">
+                    <TabsList className="grid w-full grid-cols-2">
+                      {selectedVarianten.map((variante) => (
+                        <TabsTrigger key={variante.id} value={variante.id}>
+                          {variante.typ === 'basic' ? 'Basic' : 'Premium'}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                    {selectedVarianten.map((variante) => (
+                      <TabsContent key={variante.id} value={variante.id}>
+                        <ProduktvarianteTab 
+                          variante={variante} 
+                          onUpdate={refreshVarianten}
+                        />
+                      </TabsContent>
+                    ))}
+                  </Tabs>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Keine Varianten vorhanden
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
