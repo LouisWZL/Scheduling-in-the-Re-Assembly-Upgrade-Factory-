@@ -2,17 +2,17 @@
 
 import { createContext, useContext, useState, ReactNode } from 'react'
 
-type ViewType = 'variante' | 'baugruppen' | 'kapazitaet' | 'produkt'
+type ViewType = 'home' | 'variante' | 'baugruppen' | 'einstellungen' | 'produkte' | 'produkt'
 
 interface ViewContextType {
-  currentView: ViewType
-  setCurrentView: (view: ViewType) => void
+  currentView: ViewType | string
+  setCurrentView: (view: ViewType | string) => void
 }
 
 const ViewContext = createContext<ViewContextType | undefined>(undefined)
 
 export function ViewProvider({ children }: { children: ReactNode }) {
-  const [currentView, setCurrentView] = useState<ViewType>('variante')
+  const [currentView, setCurrentView] = useState<ViewType | string>('home')
 
   return (
     <ViewContext.Provider value={{ currentView, setCurrentView }}>

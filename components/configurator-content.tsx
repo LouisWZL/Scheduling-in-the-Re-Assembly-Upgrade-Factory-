@@ -19,6 +19,7 @@ import { ProduktManagement } from '@/components/produkt-management'
 import { JointJSProductView } from '@/components/jointjs-product-view'
 import { SidebarInsetHeader } from '@/components/sidebar-inset-header'
 import { SidebarInset } from '@/components/ui/sidebar'
+import { ConfiguratorWelcome } from '@/components/configurator-welcome'
 import { useView } from '@/contexts/view-context'
 import { toast } from 'sonner'
 import { updateProduktGraph } from '@/app/actions/produkt.actions'
@@ -254,6 +255,11 @@ export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
     }
   }, [factoryId])
 
+  // Home View
+  if (currentView === 'home') {
+    return <ConfiguratorWelcome />
+  }
+
   // Baugruppen View
   if (currentView === 'baugruppen') {
     return <BaugruppenManagement factoryId={factoryId} />
@@ -304,25 +310,13 @@ export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
     )
   }
 
-  // Varianten View (Default)
-  if (!selectedVariante) {
-    return (
-      <div className="flex flex-col h-full p-6">
-        <div className="flex-1 flex items-center justify-center">
-          <Card className="w-full max-w-2xl">
-            <CardContent className="p-8 text-center">
-              <h3 className="text-lg font-semibold mb-2">Keine Variante ausgewählt</h3>
-              <p className="text-muted-foreground">
-                Wählen Sie eine Produktvariante aus der linken Seitenleiste aus, um Details anzuzeigen.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    )
+  // Varianten View
+  if (currentView === 'variante' && !selectedVariante) {
+    return null
   }
 
-  return (
+  if (currentView === 'variante' && selectedVariante) {
+    return (
     <div className="flex flex-col h-full p-6 gap-6">
       {/* Oberer Bereich - 60vh */}
       <div className="flex-[6] min-h-0">
@@ -430,5 +424,9 @@ export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
         </Card>
       </div>
     </div>
-  )
+    )
+  }
+
+  // Default - return Home view if no view matches or view is empty
+  return <ConfiguratorWelcome />
 }

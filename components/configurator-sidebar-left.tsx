@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ChevronRight, Wrench, Car, Package, Cpu, Cog, Box, Settings, ClipboardList } from 'lucide-react'
+import { Home, Settings, Package, Box, Workflow, ChevronRight } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuItem,
@@ -13,9 +15,8 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
+  SidebarRail,
 } from '@/components/ui/sidebar'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Badge } from '@/components/ui/badge'
 
 interface Produkt {
   id: string
@@ -42,36 +43,19 @@ interface ConfiguratorSidebarLeftProps {
   factoryId: string
 }
 
-// Icon mapping for Baugruppentypen
-const baugruppentypenIcons: Record<string, React.ComponentType<any>> = {
-  Chassis: Car,
-  Karosserie: Car,
-  Fahrwerk: Wrench,
-  Interieur: Package,
-  Elektronik: Cpu,
-  Antrieb: Cog,
-}
-
 export function ConfiguratorSidebarLeft({ factoryId }: ConfiguratorSidebarLeftProps) {
   const [produkte, setProdukte] = useState<Produkt[]>([])
   const [selectedVariante, setSelectedVariante] = useState<string | null>(null)
   const [selectedProdukt, setSelectedProdukt] = useState<string | null>(null)
-  const [activeView, setActiveView] = useState<string>('einstellungen')
+  const [activeView, setActiveView] = useState<string>('home')
   const [loading, setLoading] = useState(true)
-  const [factoryName, setFactoryName] = useState<string>('')
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['prozesse']))
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetchProdukte()
+    // Trigger initial home view
+    window.dispatchEvent(new CustomEvent('viewChanged', { detail: 'home' }))
   }, [factoryId])
-
-  useEffect(() => {
-    // Expand all products by default
-    if (produkte.length > 0) {
-      setExpandedProducts(new Set(produkte.map(p => p.id)))
-    }
-  }, [produkte])
 
   useEffect(() => {
     // Listen for factory updates
@@ -91,7 +75,6 @@ export function ConfiguratorSidebarLeft({ factoryId }: ConfiguratorSidebarLeftPr
       const response = await fetch('/api/factories')
       const data = await response.json()
       
-      // Check if data is an array
       if (!Array.isArray(data)) {
         console.error('Invalid response format:', data)
         setProdukte([])
@@ -102,7 +85,6 @@ export function ConfiguratorSidebarLeft({ factoryId }: ConfiguratorSidebarLeftPr
       const factory = data.find((f: any) => f.id === factoryId)
       if (factory) {
         setProdukte(factory.produkte)
-        setFactoryName(factory.name)
       }
       setLoading(false)
     } catch (error) {
@@ -112,8 +94,9 @@ export function ConfiguratorSidebarLeft({ factoryId }: ConfiguratorSidebarLeftPr
     }
   }
 
-  const handleVarianteClick = (varianteId: string) => {
+  const handleVarianteClick = (produktId: string, varianteId: string) => {
     setSelectedVariante(varianteId)
+    setSelectedProdukt(produktId)
     setActiveView('variante')
     window.dispatchEvent(new CustomEvent('varianteSelected', { detail: varianteId }))
   }
@@ -125,161 +108,148 @@ export function ConfiguratorSidebarLeft({ factoryId }: ConfiguratorSidebarLeftPr
     window.dispatchEvent(new CustomEvent('viewChanged', { detail: view }))
   }
 
-  const toggleSection = (sectionId: string) => {
-    const newExpanded = new Set(expandedSections)
-    if (newExpanded.has(sectionId)) {
-      newExpanded.delete(sectionId)
-    } else {
-      newExpanded.add(sectionId)
-    }
-    setExpandedSections(newExpanded)
-  }
-
-  const toggleProduct = (productId: string) => {
+  const handleProduktClick = (produkt: Produkt) => {
+    setSelectedProdukt(produkt.id)
+    setSelectedVariante(null)
+    setActiveView('produkt')
+    window.dispatchEvent(new CustomEvent('produktSelected', { detail: produkt.id }))
+    
+    // Toggle expansion
     const newExpanded = new Set(expandedProducts)
-    if (newExpanded.has(productId)) {
-      newExpanded.delete(productId)
+    if (newExpanded.has(produkt.id)) {
+      newExpanded.delete(produkt.id)
     } else {
-      newExpanded.add(productId)
+      newExpanded.add(produkt.id)
     }
     setExpandedProducts(newExpanded)
   }
+
+  const navigationItems = [
+    {
+      title: "Home",
+      icon: Home,
+      view: "home",
+    },
+    {
+      title: "Fabrikeinstellungen",
+      icon: Settings,
+      view: "einstellungen",
+    },
+  ]
 
   return (
     <Sidebar 
       side="left" 
       collapsible="icon"
-      className="sticky top-0 h-svh border-r"
+      className="border-r"
     >
-      <SidebarHeader className="border-b px-4 py-3">
-        <h2 className="text-sm font-semibold">{factoryName || 'Factory'}</h2>
+      <SidebarHeader className="border-b">
+        <div className="px-3 py-2">
+          <h2 className="text-sm font-semibold">Factory Configurator</h2>
+        </div>
       </SidebarHeader>
       <SidebarContent>
-        <ScrollArea className="h-full">
-          <SidebarMenu>
-            {loading ? (
-              <div className="p-4">
-                <div className="animate-pulse space-y-4">
-                  <div className="h-8 bg-muted rounded"></div>
-                  <div className="h-8 bg-muted rounded"></div>
-                  <div className="h-8 bg-muted rounded"></div>
-                </div>
-              </div>
-            ) : (
-              <>
-                {/* Fabrikeinstellungen Menüpunkt */}
-                <SidebarMenuItem>
+        {/* Navigation Group */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navigationItems.map((item) => (
+                <SidebarMenuItem key={item.view}>
                   <SidebarMenuButton 
-                    onClick={() => handleViewClick('einstellungen')}
-                    isActive={activeView === 'einstellungen'}
-                    className="font-semibold"
+                    onClick={() => handleViewClick(item.view)}
+                    isActive={activeView === item.view}
                   >
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Fabrikeinstellungen</span>
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
-                {/* Prozesse Menüpunkt mit Untermenüs */}
-                <SidebarMenuItem>
-                  <SidebarMenuButton 
-                    onClick={() => toggleSection('prozesse')}
-                    className="font-semibold"
-                  >
-                    <ChevronRight 
-                      className={`mr-2 h-4 w-4 transition-transform ${
-                        expandedSections.has('prozesse') ? 'rotate-90' : ''
-                      }`}
-                    />
-                    <span>Prozesse</span>
-                  </SidebarMenuButton>
-                  {expandedSections.has('prozesse') && (
-                    <SidebarMenuSub>
-                      {produkte.map((produkt) => (
-                        <SidebarMenuSubItem key={produkt.id}>
-                          <div className="relative">
+        {/* Verwaltung Group */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Verwaltung</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  onClick={() => handleViewClick('produkte')}
+                  isActive={activeView === 'produkte'}
+                >
+                  <Package className="h-4 w-4" />
+                  <span>Produkte</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  onClick={() => handleViewClick('baugruppen')}
+                  isActive={activeView === 'baugruppen'}
+                >
+                  <Box className="h-4 w-4" />
+                  <span>Baugruppen</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Prozesse Group */}
+        {!loading && produkte.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Prozesse</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {produkte.map((produkt) => (
+                  <SidebarMenuItem key={produkt.id}>
+                    <SidebarMenuButton
+                      onClick={() => handleProduktClick(produkt)}
+                      isActive={selectedProdukt === produkt.id && activeView === 'produkt'}
+                    >
+                      <Workflow className="h-4 w-4" />
+                      <span>{produkt.bezeichnung}</span>
+                      <ChevronRight 
+                        className={`ml-auto h-4 w-4 transition-transform ${
+                          expandedProducts.has(produkt.id) ? 'rotate-90' : ''
+                        }`}
+                      />
+                    </SidebarMenuButton>
+                    {expandedProducts.has(produkt.id) && produkt.varianten.length > 0 && (
+                      <SidebarMenuSub>
+                        {produkt.varianten.map((variante) => (
+                          <SidebarMenuSubItem key={variante.id}>
                             <SidebarMenuSubButton
-                              onClick={() => {
-                                setSelectedProdukt(produkt.id)
-                                setSelectedVariante(null)
-                                setActiveView('produkt')
-                                window.dispatchEvent(new CustomEvent('produktSelected', { detail: produkt.id }))
-                              }}
-                              isActive={selectedProdukt === produkt.id && !selectedVariante}
-                              className="font-medium pr-8"
-                            >
-                              <Package className="mr-2 h-4 w-4 text-muted-foreground" />
-                              <span>{produkt.bezeichnung}</span>
-                            </SidebarMenuSubButton>
-                            <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                toggleProduct(produkt.id)
+                                handleVarianteClick(produkt.id, variante.id)
                               }}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-muted rounded-sm"
+                              isActive={selectedVariante === variante.id}
                             >
-                              <ChevronRight 
-                                className={`h-3 w-3 transition-transform text-muted-foreground ${
-                                  expandedProducts.has(produkt.id) ? 'rotate-90' : ''
-                                }`}
-                              />
-                            </button>
-                          </div>
-                          {expandedProducts.has(produkt.id) && (
-                            <div className="ml-6 border-l pl-2">
-                              {produkt.varianten.map((variante) => (
-                                <SidebarMenuSubButton
-                                  key={variante.id}
-                                  onClick={() => {
-                                    handleVarianteClick(variante.id)
-                                    setSelectedProdukt(null)
-                                  }}
-                                  isActive={selectedVariante === variante.id}
-                                  className="cursor-pointer py-1.5 text-sm"
-                                >
-                                  <div className="flex items-center justify-between w-full">
-                                    <span className="text-muted-foreground">{variante.bezeichnung}</span>
-                                    <Badge variant="outline" className="text-xs ml-2">
-                                      {variante.typ}
-                                    </Badge>
-                                  </div>
-                                </SidebarMenuSubButton>
-                              ))}
-                            </div>
-                          )}
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  )}
-                </SidebarMenuItem>
-
-                {/* Baugruppen Menüpunkt */}
-                <SidebarMenuItem>
-                  <SidebarMenuButton 
-                    onClick={() => handleViewClick('baugruppen')}
-                    isActive={activeView === 'baugruppen'}
-                    className="font-semibold"
-                  >
-                    <Box className="mr-2 h-4 w-4" />
-                    <span>Baugruppen</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                
-                {/* Produkte Menüpunkt */}
-                <SidebarMenuItem>
-                  <SidebarMenuButton 
-                    onClick={() => handleViewClick('produkte')}
-                    isActive={activeView === 'produkte'}
-                    className="font-semibold"
-                  >
-                    <Package className="mr-2 h-4 w-4" />
-                    <span>Produkte</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </>
-            )}
-          </SidebarMenu>
-        </ScrollArea>
+                              <span className="text-xs">{variante.bezeichnung}</span>
+                              {variante.typ && (
+                                <span className={`ml-auto text-xs px-1.5 py-0.5 rounded-full ${
+                                  variante.typ === 'premium' 
+                                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' 
+                                    : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
+                                }`}>
+                                  {variante.typ}
+                                </span>
+                              )}
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    )}
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
+      <SidebarRail />
     </Sidebar>
   )
 }
