@@ -543,10 +543,13 @@ export function JointJSProductView({
           const graphData = graphRef.current.toJSON()
           const result = await updateProduktGraph(produktId, graphData)
           if (result.success) {
-            toast.success('Graph erfolgreich gespeichert')
+            // Show message with Baugruppentypen count
+            toast.success(result.message || 'Graph erfolgreich gespeichert')
             if (window.onGraphChanged) {
               window.onGraphChanged(false)
             }
+            // Dispatch event to update sidebar or other components
+            window.dispatchEvent(new CustomEvent('factoryUpdated'))
           } else {
             toast.error(result.error || 'Fehler beim Speichern')
           }

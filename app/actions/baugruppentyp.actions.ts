@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { Prisma } from '@prisma/client'
+import { removeShapeFromGraph, graphContainsBaugruppentyp, updateShapeInGraph } from '@/lib/graph-utils'
 
 export async function createBaugruppentyp(data: {
   bezeichnung: string
@@ -48,6 +49,7 @@ export async function updateBaugruppentyp(id: string, data: {
   bezeichnung?: string
 }) {
   try {
+    // Update the Baugruppentyp
     const baugruppentyp = await prisma.baugruppentyp.update({
       where: { id },
       data: {
@@ -55,12 +57,45 @@ export async function updateBaugruppentyp(id: string, data: {
       }
     })
     
+    // Find all products that have this Baugruppentyp in their graph
+    const produkteWithBaugruppentyp = await prisma.produkt.findMany({
+      where: {
+        baugruppentypen: {
+          some: { id }
+        }
+      }
+    })
+    
+    // Update each product's graph to reflect the new bezeichnung
+    let updatedGraphsCount = 0
+    for (const produkt of produkteWithBaugruppentyp) {
+      if (produkt.graphData) {
+        const graphData = typeof produkt.graphData === 'string' 
+          ? JSON.parse(produkt.graphData) 
+          : produkt.graphData
+        
+        // Only update if the graph contains this Baugruppentyp
+        if (graphContainsBaugruppentyp(graphData, id)) {
+          const updatedGraphData = updateShapeInGraph(graphData, id, data.bezeichnung!)
+          
+          // Update the product with updated graph
+          await prisma.produkt.update({
+            where: { id: produkt.id },
+            data: {
+              graphData: updatedGraphData as any
+            }
+          })
+          updatedGraphsCount++
+        }
+      }
+    }
+    
     revalidatePath('/factory-configurator')
     
     return {
       success: true,
       data: baugruppentyp,
-      message: 'Baugruppentyp erfolgreich aktualisiert'
+      message: `Baugruppentyp erfolgreich aktualisiert. ${updatedGraphsCount} Produkt-Graphen wurden aktualisiert.`
     }
   } catch (error) {
     console.error('Error updating Baugruppentyp:', error)
@@ -89,34 +124,63 @@ export async function updateBaugruppentyp(id: string, data: {
 
 export async function deleteBaugruppentyp(id: string) {
   try {
-    // Check if Baugruppentyp is used by any Baugruppe
-    const baugruppenCount = await prisma.baugruppe.count({
+    // First, delete all Baugruppen that use this Baugruppentyp
+    await prisma.baugruppe.deleteMany({
       where: { baugruppentypId: id }
     })
     
-    if (baugruppenCount > 0) {
-      return {
-        success: false,
-        error: `Dieser Baugruppentyp wird von ${baugruppenCount} Baugruppe(n) verwendet und kann nicht gelöscht werden`
-      }
-    }
-    
-    // Check if Baugruppentyp is assigned to any Produkt
-    const produktCount = await prisma.produkt.count({
+    // Find all products that have this Baugruppentyp in their graph or associations
+    const produkteWithBaugruppentyp = await prisma.produkt.findMany({
       where: {
-        baugruppentypen: {
-          some: { id }
-        }
+        OR: [
+          {
+            baugruppentypen: {
+              some: { id }
+            }
+          }
+        ]
+      },
+      include: {
+        baugruppentypen: true
       }
     })
     
-    if (produktCount > 0) {
-      return {
-        success: false,
-        error: `Dieser Baugruppentyp ist ${produktCount} Produkt(en) zugeordnet und kann nicht gelöscht werden`
+    // Update each product's graph to remove the Baugruppentyp shapes and links
+    for (const produkt of produkteWithBaugruppentyp) {
+      if (produkt.graphData) {
+        const graphData = typeof produkt.graphData === 'string' 
+          ? JSON.parse(produkt.graphData) 
+          : produkt.graphData
+        
+        // Only update if the graph contains this Baugruppentyp
+        if (graphContainsBaugruppentyp(graphData, id)) {
+          const updatedGraphData = removeShapeFromGraph(graphData, id)
+          
+          // Update the product with cleaned graph and remove from associations
+          await prisma.produkt.update({
+            where: { id: produkt.id },
+            data: {
+              graphData: updatedGraphData as any,
+              baugruppentypen: {
+                disconnect: { id }
+              }
+            }
+          })
+        } else {
+          // Just disconnect from associations if not in graph
+          await prisma.produkt.update({
+            where: { id: produkt.id },
+            data: {
+              baugruppentypen: {
+                disconnect: { id }
+              }
+            }
+          })
+        }
       }
     }
     
+    // Finally, delete the Baugruppentyp
     await prisma.baugruppentyp.delete({
       where: { id }
     })
@@ -125,7 +189,7 @@ export async function deleteBaugruppentyp(id: string) {
     
     return {
       success: true,
-      message: 'Baugruppentyp erfolgreich gelöscht'
+      message: `Baugruppentyp erfolgreich gelöscht. ${produkteWithBaugruppentyp.length} Produkt-Graphen wurden bereinigt.`
     }
   } catch (error) {
     console.error('Error deleting Baugruppentyp:', error)

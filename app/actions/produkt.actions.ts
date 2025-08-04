@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { Prisma } from '@prisma/client'
+import { extractBaugruppentypenFromGraph } from '@/lib/graph-utils'
 
 export async function getProdukt(produktId: string) {
   try {
@@ -40,17 +41,35 @@ export async function getProdukt(produktId: string) {
 
 export async function updateProduktGraph(produktId: string, graphData: any) {
   try {
+    // Extract Baugruppentyp IDs from the graph
+    const baugruppentypenIds = extractBaugruppentypenFromGraph(graphData)
+    
+    // Update product with new graph data and Baugruppentypen associations
     const updatedProdukt = await prisma.produkt.update({
       where: { id: produktId },
-      data: { graphData }
+      data: { 
+        graphData,
+        // Replace existing Baugruppentypen associations with the ones from the graph
+        baugruppentypen: {
+          set: baugruppentypenIds.map(id => ({ id }))
+        }
+      },
+      include: {
+        baugruppentypen: true
+      }
     })
 
     // Revalidate the factory page to reflect changes
     if (updatedProdukt.factoryId) {
       revalidatePath(`/factory/${updatedProdukt.factoryId}`)
+      revalidatePath(`/factory-configurator/${updatedProdukt.factoryId}`)
     }
 
-    return { success: true, data: updatedProdukt }
+    return { 
+      success: true, 
+      data: updatedProdukt,
+      message: `Graph gespeichert. ${baugruppentypenIds.length} Baugruppentypen zugeordnet.`
+    }
   } catch (error) {
     console.error('Error updating product graph:', error)
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
