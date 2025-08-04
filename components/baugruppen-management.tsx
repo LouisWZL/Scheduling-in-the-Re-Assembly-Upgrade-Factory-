@@ -33,6 +33,8 @@ interface BaugruppenManagementProps {
 export function BaugruppenManagement({ factoryId }: BaugruppenManagementProps) {
   const [baugruppentypen, setBaugruppentypen] = useState<any[]>([])
   const [baugruppen, setBaugruppen] = useState<any[]>([])
+  const [filteredBaugruppen, setFilteredBaugruppen] = useState<any[]>([])
+  const [selectedBaugruppentyp, setSelectedBaugruppentyp] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   
   // Dialog states
@@ -48,6 +50,16 @@ export function BaugruppenManagement({ factoryId }: BaugruppenManagementProps) {
   useEffect(() => {
     loadData()
   }, [])
+
+  // Filter Baugruppen when selection changes
+  useEffect(() => {
+    if (selectedBaugruppentyp) {
+      const filtered = baugruppen.filter(bg => bg.baugruppentyp?.id === selectedBaugruppentyp)
+      setFilteredBaugruppen(filtered)
+    } else {
+      setFilteredBaugruppen(baugruppen)
+    }
+  }, [selectedBaugruppentyp, baugruppen])
 
   const loadData = async () => {
     setLoading(true)
@@ -115,6 +127,29 @@ export function BaugruppenManagement({ factoryId }: BaugruppenManagementProps) {
     loadData()
   }
 
+  const handleBaugruppentypClick = (typId: string) => {
+    // Toggle selection: if the same type is clicked, deselect
+    if (selectedBaugruppentyp === typId) {
+      setSelectedBaugruppentyp(null)
+    } else {
+      setSelectedBaugruppentyp(typId)
+    }
+  }
+
+  // Add click outside handler to deselect
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      // Check if click is outside the tables
+      if (!target.closest('.baugruppentyp-table') && !target.closest('.baugruppen-table')) {
+        setSelectedBaugruppentyp(null)
+      }
+    }
+
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [])
+
   if (loading) {
     return (
       <div className="flex flex-col h-full p-6 gap-6">
@@ -175,7 +210,7 @@ export function BaugruppenManagement({ factoryId }: BaugruppenManagementProps) {
       {/* Tables */}
       <div className="grid grid-cols-2 gap-6 flex-1">
           {/* Baugruppentypen */}
-          <Card>
+          <Card className="baugruppentyp-table">
             <CardHeader>
               <CardTitle>Baugruppentypen</CardTitle>
             </CardHeader>
@@ -190,7 +225,20 @@ export function BaugruppenManagement({ factoryId }: BaugruppenManagementProps) {
                 </TableHeader>
                 <TableBody>
                   {baugruppentypen.map((typ) => (
-                    <TableRow key={typ.id}>
+                    <TableRow 
+                      key={typ.id}
+                      className={`cursor-pointer transition-colors ${
+                        selectedBaugruppentyp === typ.id 
+                          ? 'bg-muted/50' 
+                          : 'hover:bg-muted/30'
+                      }`}
+                      onClick={(e) => {
+                        // Don't trigger click when clicking on action buttons
+                        if (!(e.target as HTMLElement).closest('button')) {
+                          handleBaugruppentypClick(typ.id)
+                        }
+                      }}
+                    >
                       <TableCell className="font-medium">{typ.bezeichnung}</TableCell>
                       <TableCell>
                         <div className="text-sm">
@@ -198,7 +246,7 @@ export function BaugruppenManagement({ factoryId }: BaugruppenManagementProps) {
                           <div className="text-muted-foreground">{typ.produkte?.length || 0} Produkte</div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex gap-1">
                           <Button 
                             variant="ghost" 
@@ -229,9 +277,19 @@ export function BaugruppenManagement({ factoryId }: BaugruppenManagementProps) {
           </Card>
 
           {/* Baugruppen */}
-          <Card>
+          <Card className="baugruppen-table">
             <CardHeader>
-              <CardTitle>Alle Baugruppen</CardTitle>
+              <CardTitle>
+                {selectedBaugruppentyp 
+                  ? `Baugruppen von "${baugruppentypen.find(t => t.id === selectedBaugruppentyp)?.bezeichnung || 'Unbekannt'}"`
+                  : 'Alle Baugruppen'
+                }
+                {selectedBaugruppentyp && (
+                  <Badge variant="secondary" className="ml-2">
+                    {filteredBaugruppen.length} Baugruppen
+                  </Badge>
+                )}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-auto max-h-[600px]">
@@ -246,48 +304,59 @@ export function BaugruppenManagement({ factoryId }: BaugruppenManagementProps) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {baugruppen.map((baugruppe) => (
-                      <TableRow key={baugruppe.id}>
-                        <TableCell className="font-medium">{baugruppe.bezeichnung}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">
-                            {baugruppe.baugruppentyp?.bezeichnung || '-'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">
-                            {baugruppe.variantenTyp}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm">{baugruppe.artikelnummer}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8"
-                              onClick={() => {
-                                setEditingBaugruppe({
-                                  ...baugruppe,
-                                  baugruppentypId: baugruppe.baugruppentyp?.id || baugruppe.baugruppentypId
-                                })
-                                setBaugruppeDialogOpen(true)
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8"
-                              onClick={() => confirmDelete('baugruppe', baugruppe)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                    {filteredBaugruppen.length > 0 ? (
+                      filteredBaugruppen.map((baugruppe) => (
+                        <TableRow key={baugruppe.id}>
+                          <TableCell className="font-medium">{baugruppe.bezeichnung}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">
+                              {baugruppe.baugruppentyp?.bezeichnung || '-'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {baugruppe.variantenTyp}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm">{baugruppe.artikelnummer}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={() => {
+                                  setEditingBaugruppe({
+                                    ...baugruppe,
+                                    baugruppentypId: baugruppe.baugruppentyp?.id || baugruppe.baugruppentypId
+                                  })
+                                  setBaugruppeDialogOpen(true)
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={() => confirmDelete('baugruppe', baugruppe)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                          {selectedBaugruppentyp 
+                            ? 'Keine Baugruppen für diesen Baugruppentyp gefunden'
+                            : 'Keine Baugruppen vorhanden'
+                          }
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -311,7 +380,7 @@ export function BaugruppenManagement({ factoryId }: BaugruppenManagementProps) {
         }
         description={
           deletingItem?.type === 'baugruppentyp'
-            ? `Möchten Sie den Baugruppentyp "${deletingItem?.item?.bezeichnung}" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`
+            ? `Möchten Sie den Baugruppentyp "${deletingItem?.item?.bezeichnung}" wirklich löschen? Alle mit diesem Baugruppentyp verknüpften Baugruppen werden ebenfalls gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.`
             : `Möchten Sie die Baugruppe "${deletingItem?.item?.bezeichnung}" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`
         }
       />
