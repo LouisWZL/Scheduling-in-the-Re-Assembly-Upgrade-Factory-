@@ -160,6 +160,50 @@ export async function updateFactoryMontagestationen(id: string, anzahlMontagesta
   }
 }
 
+export async function deleteAllFactoryOrders(factoryId: string) {
+  try {
+    // First, delete all BaugruppeInstances for orders of this factory
+    await prisma.baugruppeInstance.deleteMany({
+      where: {
+        auftrag: {
+          factoryId
+        }
+      }
+    })
+    
+    // Then delete all Liefertermine for orders of this factory
+    await prisma.liefertermin.deleteMany({
+      where: {
+        auftrag: {
+          factoryId
+        }
+      }
+    })
+    
+    // Finally, delete all orders for this factory
+    await prisma.auftrag.deleteMany({
+      where: {
+        factoryId
+      }
+    })
+    
+    revalidatePath('/')
+    revalidatePath(`/factory-configurator/${factoryId}`)
+    
+    return {
+      success: true,
+      message: 'Alle Aufträge und zugehörigen Daten wurden erfolgreich gelöscht'
+    }
+  } catch (error) {
+    console.error('Error deleting factory orders:', error)
+    
+    return {
+      success: false,
+      error: 'Fehler beim Löschen der Aufträge'
+    }
+  }
+}
+
 export async function getFactory(id: string) {
   try {
     const factory = await prisma.reassemblyFactory.findUnique({
@@ -168,16 +212,7 @@ export async function getFactory(id: string) {
         produkte: {
           include: {
             baugruppentypen: true,
-            varianten: {
-              include: {
-                baugruppen: {
-                  include: {
-                    prozesse: true,
-                    baugruppentyp: true
-                  }
-                }
-              }
-            }
+            varianten: true
           }
         },
         auftraege: {

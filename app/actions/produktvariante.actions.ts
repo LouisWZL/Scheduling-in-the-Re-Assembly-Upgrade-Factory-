@@ -29,10 +29,7 @@ export async function getProduktvarianten(produktId: string) {
   try {
     const varianten = await prisma.produktvariante.findMany({
       where: { produktId },
-      orderBy: { typ: 'asc' }, // basic first, then premium
-      include: {
-        baugruppen: true
-      }
+      orderBy: { typ: 'asc' } // basic first, then premium
     })
 
     return { success: true, data: varianten }

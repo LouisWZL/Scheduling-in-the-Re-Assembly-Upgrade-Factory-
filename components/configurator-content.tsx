@@ -123,44 +123,49 @@ export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
 
   const fetchFactoryData = async () => {
     try {
-      const response = await fetch('/api/factories')
-      const data = await response.json()
+      const [factoryResponse, baugruppenResponse] = await Promise.all([
+        fetch('/api/factories'),
+        fetch(`/api/baugruppen?factoryId=${factoryId}`)
+      ])
+      
+      const factoryData = await factoryResponse.json()
+      const baugruppenData = await baugruppenResponse.json()
       
       // Check if data is an array
-      if (!Array.isArray(data)) {
-        console.error('Invalid response format:', data)
+      if (!Array.isArray(factoryData)) {
+        console.error('Invalid factory response format:', factoryData)
         return
       }
       
-      const factory = data.find((f: any) => f.id === factoryId)
+      const factory = factoryData.find((f: any) => f.id === factoryId)
       
       if (factory) {
         setFactoryData(factory)
         
-        // Sammle alle einzigartigen Baugruppen, Baugruppentypen und Prozesse
-        const baugruppenMap = new Map<string, Baugruppe>()
-        const baugruppentypMap = new Map<string, Baugruppentyp>()
-        const prozesseMap = new Map<string, Prozess>()
-        
-        factory.produkte.forEach((produkt: Produkt) => {
-          // Baugruppentypen vom Produkt
-          produkt.baugruppentypen.forEach((typ: Baugruppentyp) => {
-            baugruppentypMap.set(typ.id, typ)
-          })
+        // Set Baugruppen from API response
+        if (baugruppenData && Array.isArray(baugruppenData)) {
+          setAllBaugruppen(baugruppenData)
           
-          produkt.varianten.forEach((variante: Variante) => {
-            variante.baugruppen.forEach((baugruppe: Baugruppe) => {
-              baugruppenMap.set(baugruppe.id, baugruppe)
+          // Sammle Prozesse aus den Baugruppen
+          const prozesseMap = new Map<string, Prozess>()
+          baugruppenData.forEach((baugruppe: Baugruppe) => {
+            if (baugruppe.prozesse) {
               baugruppe.prozesse.forEach((prozess: Prozess) => {
                 prozesseMap.set(prozess.id, prozess)
               })
-            })
+            }
+          })
+          setAllProzesse(Array.from(prozesseMap.values()))
+        }
+        
+        // Sammle Baugruppentypen vom Produkt
+        const baugruppentypMap = new Map<string, Baugruppentyp>()
+        factory.produkte.forEach((produkt: Produkt) => {
+          produkt.baugruppentypen?.forEach((typ: Baugruppentyp) => {
+            baugruppentypMap.set(typ.id, typ)
           })
         })
-        
-        setAllBaugruppen(Array.from(baugruppenMap.values()))
         setAllBaugruppentypen(Array.from(baugruppentypMap.values()))
-        setAllProzesse(Array.from(prozesseMap.values()))
       }
     } catch (error) {
       console.error('Error fetching factory data:', error)
@@ -342,17 +347,10 @@ export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
                 </Badge>
               </div>
               <div>
-                <span className="font-semibold">Anzahl Baugruppen:</span> {selectedVariante.baugruppen.length}
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2">Zugeordnete Baugruppen:</h4>
-                <div className="flex flex-wrap gap-2">
-                  {selectedVariante.baugruppen.map((bg) => (
-                    <Badge key={bg.id} variant="outline">
-                      {bg.bezeichnung} ({bg.baugruppentyp?.bezeichnung})
-                    </Badge>
-                  ))}
-                </div>
+                <span className="font-semibold">Varianten-Typ:</span>{' '}
+                <Badge variant="outline">
+                  {selectedVariante.typ}
+                </Badge>
               </div>
             </div>
           </CardContent>
@@ -364,7 +362,7 @@ export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
         {/* Baugruppen Tabelle */}
         <Card className="overflow-hidden">
           <CardHeader className="py-4">
-            <CardTitle className="text-base">Baugruppen dieser Variante</CardTitle>
+            <CardTitle className="text-base">Verfügbare Baugruppen für {selectedVariante.typ} Varianten</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-auto h-[calc(100%-4rem)]">
@@ -378,18 +376,22 @@ export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {selectedVariante.baugruppen.map((baugruppe) => (
-                    <TableRow key={baugruppe.id}>
-                      <TableCell className="font-medium">{baugruppe.bezeichnung}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className="text-xs">
-                          {baugruppe.baugruppentyp?.bezeichnung || '-'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{baugruppe.artikelnummer}</TableCell>
-                      <TableCell>{baugruppe.prozesszeit ? `${baugruppe.prozesszeit} Min` : '-'}</TableCell>
-                    </TableRow>
-                  ))}
+                  {allBaugruppen
+                    .filter(bg => bg.variantenTyp === selectedVariante.typ || bg.variantenTyp === 'basicAndPremium')
+                    .map((baugruppe) => (
+                      <TableRow key={baugruppe.id}>
+                        <TableCell className="font-medium">{baugruppe.bezeichnung}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="text-xs">
+                            {baugruppe.baugruppentyp?.bezeichnung || '-'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{baugruppe.artikelnummer}</TableCell>
+                        <TableCell>
+                          {baugruppe.montagezeit ? `${baugruppe.montagezeit} Min` : '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
                 </TableBody>
               </Table>
             </div>

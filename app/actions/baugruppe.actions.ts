@@ -209,7 +209,6 @@ export async function getBaugruppen(factoryId?: string) {
       where: factoryId ? { factoryId } : undefined,
       include: {
         baugruppentyp: true,
-        varianten: true,
         prozesse: true,
         factory: true
       },

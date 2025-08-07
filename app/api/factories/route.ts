@@ -8,16 +8,7 @@ export async function GET() {
         produkte: {
           include: {
             baugruppentypen: true,
-            varianten: {
-              include: {
-                baugruppen: {
-                  include: {
-                    prozesse: true,
-                    baugruppentyp: true
-                  }
-                }
-              }
-            }
+            varianten: true
           }
         },
         auftraege: {

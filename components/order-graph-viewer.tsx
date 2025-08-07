@@ -94,7 +94,11 @@ export function OrderGraphViewer({ order }: OrderGraphViewerProps) {
           { color: '#d0d0d0', thickness: 1, scaleFactor: 5 } // major grid
         ]
       },
-      interactive: false, // Read-only for order view
+      interactive: { 
+        elementMove: false, // Prevent moving elements
+        linkMove: false,    // Prevent moving links
+        labelMove: false    // Prevent moving labels
+      },
       async: true,
       frozen: true,
       sorting: joint.dia.Paper.sorting.APPROX
@@ -106,7 +110,7 @@ export function OrderGraphViewer({ order }: OrderGraphViewerProps) {
       paper: paper,
       autoResizePaper: true,
       padding: 50,
-      cursor: 'grab',
+      cursor: 'default',
       baseWidth: paperRef.current.clientWidth || 800,
       baseHeight: 400,
       contentOptions: {
@@ -157,6 +161,11 @@ export function OrderGraphViewer({ order }: OrderGraphViewerProps) {
       })
     })
 
+    // Add panning functionality like in factory-configurator
+    paper.on('blank:pointerdown', (evt: any) => {
+      paperScroller.startPanning(evt)
+    })
+
     // Add click handler for elements
     paper.on('element:pointerclick', (elementView: joint.dia.ElementView) => {
       const element = elementView.model
@@ -172,7 +181,7 @@ export function OrderGraphViewer({ order }: OrderGraphViewerProps) {
       }
     })
 
-    // Update element colors based on zustand
+    // Update element colors based on zustand and remove move cursor
     graph.getElements().forEach(element => {
       const cellData = element.toJSON()
       if (cellData.baugruppe) {
@@ -192,6 +201,7 @@ export function OrderGraphViewer({ order }: OrderGraphViewerProps) {
           element.attr('body/fillOpacity', 0.3)
           element.attr('body/stroke', color)
           element.attr('body/strokeWidth', 2)
+          element.attr('body/cursor', 'pointer') // Use pointer cursor instead of move
         }
       }
     })
@@ -284,10 +294,13 @@ export function OrderGraphViewer({ order }: OrderGraphViewerProps) {
 
       {/* Baugruppe Details Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent aria-describedby="baugruppe-details-description">
           <DialogHeader>
             <DialogTitle>{selectedBaugruppe?.bezeichnung}</DialogTitle>
           </DialogHeader>
+          <div id="baugruppe-details-description" className="sr-only">
+            Details zur ausgewählten Baugruppe
+          </div>
           {selectedBaugruppe && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">

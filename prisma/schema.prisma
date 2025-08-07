@@ -151,7 +151,6 @@ model Produktvariante {
   typ             VariantenTyp      // basic, premium oder basicAndPremium
   glbFile         String?           // Pfad zur GLB-Datei für 3D-Modell der Variante
   links           Json?             // JointJS Verbindungen zwischen Baugruppen
-  baugruppen      Baugruppe[]       // Welche Baugruppen gehören zu dieser Variante
   auftraege       Auftrag[]         // Alle Aufträge für diese Produktvariante
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
@@ -170,7 +169,6 @@ model Baugruppe {
   baugruppentypId      String?
   demontagezeit        Int?                 // in Minuten. Wie lange dauert es, diese Baugruppe zu demontieren?
   montagezeit          Int?                 // in Minuten. Wie lange dauert es, diese Baugruppe zu montieren?
-  varianten            Produktvariante[]  
   prozesse             Prozess[]            // Prozesse die dieser Baugruppe zugeordnet sind
   baugruppenInstances  BaugruppeInstance[]  // Instances of this assembly in orders
   createdAt            DateTime             @default(now())

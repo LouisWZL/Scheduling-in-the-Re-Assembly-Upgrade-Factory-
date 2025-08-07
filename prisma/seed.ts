@@ -5,30 +5,30 @@ const prisma = new PrismaClient()
 // BAUGRUPPENTYPEN DEFINITION (Factory-specific)
 // ==========================================
 const porscheBaugruppentypenDefinitions = [
-  { bezeichnung: "Porsche-Chassis" },
-  { bezeichnung: "Porsche-Karosserie" },
-  { bezeichnung: "Porsche-Fahrwerk" },
-  { bezeichnung: "Porsche-Antrieb" },
-  { bezeichnung: "Porsche-Interieur" },
-  { bezeichnung: "Porsche-Elektronik" }
+  { bezeichnung: "BGT-PS-Chassis" },
+  { bezeichnung: "BGT-PS-Karosserie" },
+  { bezeichnung: "BGT-PS-Fahrwerk" },
+  { bezeichnung: "BGT-PS-Antrieb" },
+  { bezeichnung: "BGT-PS-Interieur" },
+  { bezeichnung: "BGT-PS-Elektronik" }
 ]
 
 const audiBaugruppentypenDefinitions = [
-  { bezeichnung: "Audi-Chassis" },
-  { bezeichnung: "Audi-Karosserie" },
-  { bezeichnung: "Audi-Fahrwerk" },
-  { bezeichnung: "Audi-Antrieb" },
-  { bezeichnung: "Audi-Interieur" },
-  { bezeichnung: "Audi-Elektronik" }
+  { bezeichnung: "BGT-AU-Chassis" },
+  { bezeichnung: "BGT-AU-Karosserie" },
+  { bezeichnung: "BGT-AU-Fahrwerk" },
+  { bezeichnung: "BGT-AU-Antrieb" },
+  { bezeichnung: "BGT-AU-Interieur" },
+  { bezeichnung: "BGT-AU-Elektronik" }
 ]
 
 const vwBaugruppentypenDefinitions = [
-  { bezeichnung: "VW-Chassis" },
-  { bezeichnung: "VW-Karosserie" },
-  { bezeichnung: "VW-Fahrwerk" },
-  { bezeichnung: "VW-Antrieb" },
-  { bezeichnung: "VW-Interieur" },
-  { bezeichnung: "VW-Elektronik" }
+  { bezeichnung: "BGT-VW-Chassis" },
+  { bezeichnung: "BGT-VW-Karosserie" },
+  { bezeichnung: "BGT-VW-Fahrwerk" },
+  { bezeichnung: "BGT-VW-Antrieb" },
+  { bezeichnung: "BGT-VW-Interieur" },
+  { bezeichnung: "BGT-VW-Elektronik" }
 ]
 
 // ==========================================
@@ -62,84 +62,84 @@ interface BaugruppeWithType {
 
 const porscheBaugruppen: BaugruppeWithType[] = [
   {
-    bezeichnung: "Porsche-Chassis",
+    bezeichnung: "BG-PS-Chassis",
     artikelnummer: "CHS-BP-001",
     variantenTyp: "basicAndPremium",
     demontagezeit: 72,
     montagezeit: 108,
-    baugruppentyp: "Porsche-Chassis"
+    baugruppentyp: "BGT-PS-Chassis"
   },
   {
-    bezeichnung: "Porsche-Karosserie",
+    bezeichnung: "BG-PS-Karosserie-B1",
     artikelnummer: "KAR-B1-001",
     variantenTyp: "basic",
     demontagezeit: 48,
     montagezeit: 72,
-    baugruppentyp: "Porsche-Karosserie"
+    baugruppentyp: "BGT-PS-Karosserie"
   },
   {
-    bezeichnung: "Porsche-Karosserie",
+    bezeichnung: "BG-PS-Karosserie-B2",
     artikelnummer: "KAR-B2-001",
     variantenTyp: "basic",
     demontagezeit: 36,
     montagezeit: 54,
-    baugruppentyp: "Porsche-Karosserie"
+    baugruppentyp: "BGT-PS-Karosserie"
   },
   {
-    bezeichnung: "Porsche-Karosserie",
+    bezeichnung: "BG-PS-Karosserie-P1",
     artikelnummer: "KAR-P1-001",
     variantenTyp: "premium",
     demontagezeit: 60,
     montagezeit: 90,
-    baugruppentyp: "Porsche-Karosserie"
+    baugruppentyp: "BGT-PS-Karosserie"
   },
   {
-    bezeichnung: "Porsche-Karosserie",
+    bezeichnung: "BG-PS-Karosserie-P2",
     artikelnummer: "KAR-P2-001",
     variantenTyp: "premium",
     demontagezeit: 40,
     montagezeit: 60,
-    baugruppentyp: "Porsche-Karosserie"
+    baugruppentyp: "BGT-PS-Karosserie"
   },
   {
-    bezeichnung: "Porsche-Fahrwerk",
+    bezeichnung: "BG-PS-Fahrwerk",
     artikelnummer: "FAH-BP-001",
     variantenTyp: "basicAndPremium",
     demontagezeit: 96,
     montagezeit: 144,
-    baugruppentyp: "Porsche-Fahrwerk"
+    baugruppentyp: "BGT-PS-Fahrwerk"
   },
   {
-    bezeichnung: "Porsche-Antrieb",
+    bezeichnung: "BG-PS-Antrieb",
     artikelnummer: "ANT-BP-001",
     variantenTyp: "basicAndPremium",
     demontagezeit: 144,
     montagezeit: 216,
-    baugruppentyp: "Porsche-Antrieb"
+    baugruppentyp: "BGT-PS-Antrieb"
   },
   {
-    bezeichnung: "Porsche-Interieur",
+    bezeichnung: "BG-PS-Interieur-Basic",
     artikelnummer: "INT-B-001",
     variantenTyp: "basic",
     demontagezeit: 60,
     montagezeit: 90,
-    baugruppentyp: "Porsche-Interieur"
+    baugruppentyp: "BGT-PS-Interieur"
   },
   {
-    bezeichnung: "Porsche-Interieur",
+    bezeichnung: "BG-PS-Interieur-Premium",
     artikelnummer: "INT-P-001",
     variantenTyp: "premium",
     demontagezeit: 72,
     montagezeit: 108,
-    baugruppentyp: "Porsche-Interieur"
+    baugruppentyp: "BGT-PS-Interieur"
   },
   {
-    bezeichnung: "Porsche-Elektronik",
+    bezeichnung: "BG-PS-Elektronik",
     artikelnummer: "ELE-BP-001",
     variantenTyp: "basicAndPremium",
     demontagezeit: 48,
     montagezeit: 72,
-    baugruppentyp: "Porsche-Elektronik"
+    baugruppentyp: "BGT-PS-Elektronik"
   }
 ]
 
@@ -172,76 +172,76 @@ const audiProzesse: Prisma.ProzessCreateInput[] = [
 // Audi Baugruppen
 const audiBaugruppen: BaugruppeWithType[] = [
   {
-    bezeichnung: "Audi-Chassis",
+    bezeichnung: "BG-AU-Chassis",
     artikelnummer: "AUDI-CHS-001",
     variantenTyp: "basicAndPremium",
     demontagezeit: 64,
     montagezeit: 96,
-    baugruppentyp: "Audi-Chassis"
+    baugruppentyp: "BGT-AU-Chassis"
   },
   {
-    bezeichnung: "Audi-Karosserie",
+    bezeichnung: "BG-AU-Karosserie-Basic",
     artikelnummer: "AUDI-KAR-B-001",
     variantenTyp: "basic",
     demontagezeit: 44,
     montagezeit: 66,
-    baugruppentyp: "Audi-Karosserie"
+    baugruppentyp: "BGT-AU-Karosserie"
   },
   {
-    bezeichnung: "Audi-Karosserie",
+    bezeichnung: "BG-AU-Karosserie-Premium",
     artikelnummer: "AUDI-KAR-P-001",
     variantenTyp: "premium",
     demontagezeit: 56,
     montagezeit: 84,
-    baugruppentyp: "Audi-Karosserie"
+    baugruppentyp: "BGT-AU-Karosserie"
   },
   {
-    bezeichnung: "Audi-Fahrwerk",
+    bezeichnung: "BG-AU-Fahrwerk",
     artikelnummer: "AUDI-FAH-001",
     variantenTyp: "basicAndPremium",
     demontagezeit: 88,
     montagezeit: 132,
-    baugruppentyp: "Audi-Fahrwerk"
+    baugruppentyp: "BGT-AU-Fahrwerk"
   },
   {
-    bezeichnung: "Audi-Antrieb",
+    bezeichnung: "BG-AU-Antrieb-Basic",
     artikelnummer: "AUDI-ANT-B-001",
     variantenTyp: "basic",
     demontagezeit: 128,
     montagezeit: 192,
-    baugruppentyp: "Audi-Antrieb"
+    baugruppentyp: "BGT-AU-Antrieb"
   },
   {
-    bezeichnung: "Audi-Antrieb",
+    bezeichnung: "BG-AU-Antrieb-Premium",
     artikelnummer: "AUDI-ANT-P-001",
     variantenTyp: "premium",
     demontagezeit: 152,
     montagezeit: 228,
-    baugruppentyp: "Audi-Antrieb"
+    baugruppentyp: "BGT-AU-Antrieb"
   },
   {
-    bezeichnung: "Audi-Interieur",
+    bezeichnung: "BG-AU-Interieur",
     artikelnummer: "AUDI-INT-001",
     variantenTyp: "basicAndPremium",
     demontagezeit: 64,
     montagezeit: 96,
-    baugruppentyp: "Audi-Interieur"
+    baugruppentyp: "BGT-AU-Interieur"
   },
   {
-    bezeichnung: "Audi-Elektronik",
+    bezeichnung: "BG-AU-Elektronik-Basic",
     artikelnummer: "AUDI-ELE-B-001",
     variantenTyp: "basic",
     demontagezeit: 40,
     montagezeit: 60,
-    baugruppentyp: "Audi-Elektronik"
+    baugruppentyp: "BGT-AU-Elektronik"
   },
   {
-    bezeichnung: "Audi-Elektronik",
+    bezeichnung: "BG-AU-Elektronik-Premium",
     artikelnummer: "AUDI-ELE-P-001",
     variantenTyp: "premium",
     demontagezeit: 56,
     montagezeit: 84,
-    baugruppentyp: "Audi-Elektronik"
+    baugruppentyp: "BGT-AU-Elektronik"
   }
 ]
 
@@ -275,68 +275,68 @@ const vwProzesse: Prisma.ProzessCreateInput[] = [
 // VW Baugruppen
 const vwBaugruppen: BaugruppeWithType[] = [
   {
-    bezeichnung: "VW-Chassis",
+    bezeichnung: "BG-VW-Chassis",
     artikelnummer: "VW-CHS-001",
     variantenTyp: "basicAndPremium",
     demontagezeit: 56,
     montagezeit: 84,
-    baugruppentyp: "VW-Chassis"
+    baugruppentyp: "BGT-VW-Chassis"
   },
   {
-    bezeichnung: "VW-Karosserie",
+    bezeichnung: "BG-VW-Karosserie",
     artikelnummer: "VW-KAR-001",
     variantenTyp: "basicAndPremium",
     demontagezeit: 40,
     montagezeit: 60,
-    baugruppentyp: "VW-Karosserie"
+    baugruppentyp: "BGT-VW-Karosserie"
   },
   {
-    bezeichnung: "VW-Fahrwerk",
+    bezeichnung: "BG-VW-Fahrwerk-Basic",
     artikelnummer: "VW-FAH-B-001",
     variantenTyp: "basic",
     demontagezeit: 80,
     montagezeit: 120,
-    baugruppentyp: "VW-Fahrwerk"
+    baugruppentyp: "BGT-VW-Fahrwerk"
   },
   {
-    bezeichnung: "VW-Fahrwerk",
+    bezeichnung: "BG-VW-Fahrwerk-Premium",
     artikelnummer: "VW-FAH-P-001",
     variantenTyp: "premium",
     demontagezeit: 100,
     montagezeit: 150,
-    baugruppentyp: "VW-Fahrwerk"
+    baugruppentyp: "BGT-VW-Fahrwerk"
   },
   {
-    bezeichnung: "VW-Antrieb",
+    bezeichnung: "BG-VW-Antrieb",
     artikelnummer: "VW-ANT-001",
     variantenTyp: "basicAndPremium",
     demontagezeit: 120,
     montagezeit: 180,
-    baugruppentyp: "VW-Antrieb"
+    baugruppentyp: "BGT-VW-Antrieb"
   },
   {
-    bezeichnung: "VW-Interieur",
+    bezeichnung: "BG-VW-Interieur-Basic",
     artikelnummer: "VW-INT-B-001",
     variantenTyp: "basic",
     demontagezeit: 56,
     montagezeit: 84,
-    baugruppentyp: "VW-Interieur"
+    baugruppentyp: "BGT-VW-Interieur"
   },
   {
-    bezeichnung: "VW-Interieur",
+    bezeichnung: "BG-VW-Interieur-Premium",
     artikelnummer: "VW-INT-P-001",
     variantenTyp: "premium",
     demontagezeit: 68,
     montagezeit: 102,
-    baugruppentyp: "VW-Interieur"
+    baugruppentyp: "BGT-VW-Interieur"
   },
   {
-    bezeichnung: "VW-Elektronik",
+    bezeichnung: "BG-VW-Elektronik",
     artikelnummer: "VW-ELE-001",
     variantenTyp: "basicAndPremium",
     demontagezeit: 44,
     montagezeit: 66,
-    baugruppentyp: "VW-Elektronik"
+    baugruppentyp: "BGT-VW-Elektronik"
   }
 ]
 
@@ -430,11 +430,6 @@ async function main() {
       bezeichnung: "911 Carrera Basic",
       typ: "basic",
       produkt: { connect: { id: createdPorscheProdukt.id } },
-      baugruppen: {
-        connect: createdPorscheBaugruppen
-          .filter(bg => bg.variantenTyp === "basic" || bg.variantenTyp === "basicAndPremium")
-          .map(bg => ({ id: bg.id }))
-      },
       links: {},
     }
   })
@@ -444,11 +439,6 @@ async function main() {
       bezeichnung: "911 Turbo S Premium",
       typ: "premium",
       produkt: { connect: { id: createdPorscheProdukt.id } },
-      baugruppen: {
-        connect: createdPorscheBaugruppen
-          .filter(bg => bg.variantenTyp === "premium" || bg.variantenTyp === "basicAndPremium")
-          .map(bg => ({ id: bg.id }))
-      },
       links: {},
     }
   })
@@ -518,11 +508,6 @@ async function main() {
       bezeichnung: `${createdAudiProdukt.bezeichnung} Basic`,
       typ: "basic",
       produkt: { connect: { id: createdAudiProdukt.id } },
-      baugruppen: {
-        connect: createdAudiBaugruppen
-          .filter(bg => bg.variantenTyp === "basic" || bg.variantenTyp === "basicAndPremium")
-          .map(bg => ({ id: bg.id }))
-      },
       links: {}
     }
   })
@@ -532,11 +517,6 @@ async function main() {
       bezeichnung: `${createdAudiProdukt.bezeichnung} Premium`,
       typ: "premium",
       produkt: { connect: { id: createdAudiProdukt.id } },
-      baugruppen: {
-        connect: createdAudiBaugruppen
-          .filter(bg => bg.variantenTyp === "premium" || bg.variantenTyp === "basicAndPremium")
-          .map(bg => ({ id: bg.id }))
-      },
       links: {},
     }
   })
@@ -606,11 +586,6 @@ async function main() {
       bezeichnung: `${createdVWProdukt.bezeichnung} Basic`,
       typ: "basic",
       produkt: { connect: { id: createdVWProdukt.id } },
-      baugruppen: {
-        connect: createdVWBaugruppen
-          .filter(bg => bg.variantenTyp === "basic" || bg.variantenTyp === "basicAndPremium")
-          .map(bg => ({ id: bg.id }))
-      },
       links: {}
     }
   })
@@ -620,11 +595,6 @@ async function main() {
       bezeichnung: `${createdVWProdukt.bezeichnung} Premium`,
       typ: "premium",
       produkt: { connect: { id: createdVWProdukt.id } },
-      baugruppen: {
-        connect: createdVWBaugruppen
-          .filter(bg => bg.variantenTyp === "premium" || bg.variantenTyp === "basicAndPremium")
-          .map(bg => ({ id: bg.id }))
-      },
       links: {},
     }
   })

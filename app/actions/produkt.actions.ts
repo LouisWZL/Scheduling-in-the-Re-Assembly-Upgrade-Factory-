@@ -11,16 +11,7 @@ export async function getProdukt(produktId: string) {
       where: { id: produktId },
       include: {
         baugruppentypen: true,
-        varianten: {
-          include: {
-            baugruppen: {
-              include: {
-                baugruppentyp: true,
-                prozesse: true
-              }
-            }
-          }
-        },
+        varianten: true,
         factory: true
       }
     })

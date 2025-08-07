@@ -31,6 +31,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
+import { deleteAllFactoryOrders } from "@/app/actions/factory.actions"
 
 interface FactoryData {
   id: string
@@ -44,6 +45,8 @@ export function FactorySwitcher() {
   const [createDialogOpen, setCreateDialogOpen] = React.useState(false)
   const [newFactoryName, setNewFactoryName] = React.useState("")
   const [creating, setCreating] = React.useState(false)
+  const [confirmDialogOpen, setConfirmDialogOpen] = React.useState(false)
+  const [deletingOrders, setDeletingOrders] = React.useState(false)
   
   const router = useRouter()
   const pathname = usePathname()
@@ -230,7 +233,7 @@ export function FactorySwitcher() {
           if (isConfigurator) {
             router.push('/')
           } else {
-            router.push(`/factory-configurator/${activeFactory.id}`)
+            setConfirmDialogOpen(true)
           }
         }}
       >
@@ -238,6 +241,64 @@ export function FactorySwitcher() {
       </Button>
     </div>
 
+      {/* Confirmation Dialog for Factory Configuration */}
+      <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <DialogContent aria-describedby="confirm-dialog-description">
+          <DialogHeader>
+            <DialogTitle>Factory-Konfiguration öffnen</DialogTitle>
+          </DialogHeader>
+          <div id="confirm-dialog-description" className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              <strong>Achtung:</strong> Durch das Öffnen der Factory-Konfiguration werden:
+            </p>
+            <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+              <li>Die Simulation abgebrochen</li>
+              <li>Alle bestehenden Kundenaufträge dieser Factory gelöscht</li>
+              <li>Alle zugehörigen Baugruppen-Instanzen entfernt</li>
+            </ul>
+            <p className="text-sm text-muted-foreground">Möchten Sie wirklich fortfahren?</p>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setConfirmDialogOpen(false)
+              }}
+              disabled={deletingOrders}
+            >
+              Abbrechen
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={async () => {
+                setDeletingOrders(true)
+                try {
+                  const result = await deleteAllFactoryOrders(activeFactory.id)
+                  if (result.success) {
+                    toast.success("Aufträge wurden gelöscht")
+                    router.push(`/factory-configurator/${activeFactory.id}`)
+                    setConfirmDialogOpen(false)
+                  } else {
+                    toast.error(result.error || "Fehler beim Löschen der Aufträge")
+                  }
+                } catch (error) {
+                  console.error('Error deleting orders:', error)
+                  toast.error("Fehler beim Löschen der Aufträge")
+                } finally {
+                  setDeletingOrders(false)
+                }
+              }}
+              disabled={deletingOrders}
+            >
+              {deletingOrders ? "Lösche Aufträge..." : "Fortfahren"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Factory Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent>
           <DialogHeader>
