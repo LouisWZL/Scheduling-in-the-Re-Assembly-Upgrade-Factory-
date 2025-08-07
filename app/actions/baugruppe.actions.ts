@@ -69,38 +69,7 @@ export async function updateBaugruppe(id: string, data: {
   montagezeit?: number | null
 }) {
   try {
-    // Check if type is changing and if it would affect existing Produktvarianten
-    if (data.variantenTyp) {
-      const currentBaugruppe = await prisma.baugruppe.findUnique({
-        where: { id },
-        include: {
-          varianten: true
-        }
-      })
-      
-      if (currentBaugruppe) {
-        // Check if any variante would become incompatible
-        const incompatibleVarianten = currentBaugruppe.varianten.filter(variante => {
-          if (data.variantenTyp === 'basic' && variante.typ === 'premium') return true
-          if (data.variantenTyp === 'premium' && variante.typ === 'basic') return true
-          return false
-        })
-        
-        if (incompatibleVarianten.length > 0) {
-          // Remove baugruppe from incompatible varianten
-          for (const variante of incompatibleVarianten) {
-            await prisma.produktvariante.update({
-              where: { id: variante.id },
-              data: {
-                baugruppen: {
-                  disconnect: { id }
-                }
-              }
-            })
-          }
-        }
-      }
-    }
+    // No need to check for Produktvarianten since the relationship no longer exists
     
     const updateData: any = {
       bezeichnung: data.bezeichnung,
@@ -158,19 +127,17 @@ export async function updateBaugruppe(id: string, data: {
 
 export async function deleteBaugruppe(id: string) {
   try {
-    // Check if Baugruppe is used by any Produktvariante
-    const variantenCount = await prisma.produktvariante.count({
+    // Check if Baugruppe is used by any BaugruppeInstance (in orders)
+    const instanceCount = await prisma.baugruppeInstance.count({
       where: {
-        baugruppen: {
-          some: { id }
-        }
+        baugruppeId: id
       }
     })
     
-    if (variantenCount > 0) {
+    if (instanceCount > 0) {
       return {
         success: false,
-        error: `Diese Baugruppe wird von ${variantenCount} Produktvariante(n) verwendet und kann nicht gelöscht werden`
+        error: `Diese Baugruppe wird in ${instanceCount} Auftrag/Aufträgen verwendet und kann nicht gelöscht werden`
       }
     }
     
