@@ -30,9 +30,8 @@ enum AuftragsPhase {
 
 // Enum für Upgrade-Typen
 enum UpgradeTyp {
-  PFLICHT
-  WUNSCH
-  KOMBINIERT
+  PFLICHT // Aufgrund schlechtem Zustand der Baugruppe
+  WUNSCH // Kundenwunsch-Upgrade
 }
 
 // Enum für Liefertermin-Typen
@@ -42,14 +41,6 @@ enum LieferterminTyp {
   FEINTERMIN          // Nach Inspektion und Feinterminierung
 }
 
-// Enum für Zustand
-enum ZustandsTyp {
-  SEHR_GUT
-  GUT
-  MITTEL
-  SCHLECHT
-  DEFEKT
-}
 
 enum VariantenTyp {
   basic
@@ -115,10 +106,11 @@ model Auftrag {
   produktvariante       Produktvariante      @relation(fields: [produktvarianteId], references: [id])
   produktvarianteId     String
   phase                 AuftragsPhase        @default(ERSTKONTAKT)
-  upgradeTyp            UpgradeTyp           // Wenn die Produktvariante Pflichtupgrades besitzt dann PFLICHT, sonst KOMBINIERT
   factory               ReassemblyFactory    @relation(fields: [factoryId], references: [id])
   factoryId             String
   liefertermine         Liefertermin[]
+  graphData             Json?                // Order-specific assembly graph
+  baugruppenInstances   BaugruppeInstance[]  // Assembly instances for this order
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
 }
@@ -160,7 +152,6 @@ model Produktvariante {
   glbFile         String?           // Pfad zur GLB-Datei für 3D-Modell der Variante
   links           Json?             // JointJS Verbindungen zwischen Baugruppen
   baugruppen      Baugruppe[]       // Welche Baugruppen gehören zu dieser Variante
-  zustand         ZustandsTyp?      // Wird über die Baugruppen bestimmt
   auftraege       Auftrag[]         // Alle Aufträge für diese Produktvariante
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
@@ -181,10 +172,23 @@ model Baugruppe {
   montagezeit          Int?                 // in Minuten. Wie lange dauert es, diese Baugruppe zu montieren?
   varianten            Produktvariante[]  
   prozesse             Prozess[]            // Prozesse die dieser Baugruppe zugeordnet sind
+  baugruppenInstances  BaugruppeInstance[]  // Instances of this assembly in orders
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
 }
 
+// BaugruppeInstance: Instance einer Baugruppe für einen spezifischen Auftrag
+model BaugruppeInstance {
+  id              String           @id @default(cuid())
+  baugruppe       Baugruppe        @relation(fields: [baugruppeId], references: [id])
+  baugruppeId     String
+  auftrag         Auftrag          @relation(fields: [auftragId], references: [id])
+  auftragId       String
+  zustand         Int              // Zustand von 0-100 (0 = sehr schlecht, 100 = sehr gut)
+  upgradeTyp      UpgradeTyp?      // PFLICHT wenn zustand < 30, WUNSCH für zufällige 0-2, sonst null
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
 
 // Prozess: Operationen wie montieren, einölen, schleifen etc.
 model Prozess {

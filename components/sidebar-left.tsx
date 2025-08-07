@@ -8,6 +8,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowDown,
+  Plus,
+  Loader2,
 } from "lucide-react"
 import {
   IconCircleCheckFilled,
@@ -31,97 +33,151 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import data from "@/app/data.json"
+import { toast } from "sonner"
+import { useFactory } from "@/contexts/factory-context"
+import { useOrder } from "@/contexts/order-context"
+import { getAuftraege, generateOrders } from "@/app/actions/auftrag.actions"
+import { AuftragsPhase } from "@prisma/client"
 
-interface TableData {
-  id: number
-  header: string
-  status: string
+interface OrderData {
+  id: string
+  phase: AuftragsPhase
+  kunde: {
+    vorname: string
+    nachname: string
+  }
+  produktvariante: {
+    bezeichnung: string
+    typ: string
+    produkt?: any
+  }
+  createdAt: string
+  graphData?: any
+  baugruppenInstances?: any[]
 }
 
 function PaginatedTable({
   title,
   icon,
   data,
+  phase,
+  onOrderClick,
 }: {
   title: string
   icon: React.ReactNode
-  data: TableData[]
+  data: OrderData[]
+  phase: AuftragsPhase
+  onOrderClick?: (order: OrderData) => void
 }) {
   const [currentPage, setCurrentPage] = React.useState(1)
   const itemsPerPage = 5
-  const totalPages = Math.ceil(data.length / itemsPerPage)
+  
+  // Filter data by phase
+  const filteredData = data.filter(order => order.phase === phase)
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage)
 
-  const paginatedData = data.slice(
+  const paginatedData = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   )
+
+  const getStatusBadge = (phase: AuftragsPhase) => {
+    switch (phase) {
+      case "ABGESCHLOSSEN":
+        return (
+          <Badge variant="outline" className="text-muted-foreground px-1.5 inline-flex items-center gap-1">
+            <IconCircleCheckFilled className="h-3.5 w-3.5 fill-green-500 dark:fill-green-400" />
+            <span className="text-xs">Fertig</span>
+          </Badge>
+        )
+      default:
+        return (
+          <Badge variant="outline" className="text-muted-foreground px-1.5 inline-flex items-center gap-1">
+            <IconLoader className="h-3.5 w-3.5" />
+            <span className="text-xs">In Arbeit</span>
+          </Badge>
+        )
+    }
+  }
 
   return (
     <SidebarGroup className="px-3 py-2">
       <SidebarGroupLabel className="flex items-center gap-2 text-xs font-medium text-muted-foreground px-2 mb-2">
         {icon}
         <span>{title}</span>
+        <span className="ml-auto text-xs">({filteredData.length})</span>
       </SidebarGroupLabel>
       <SidebarGroupContent>
         <div className="rounded-lg border bg-card overflow-hidden">
           <Table className="table-fixed">
             <TableHeader>
               <TableRow className="hover:bg-transparent border-b">
-                <TableHead className="w-[65%] h-9 text-xs font-medium text-muted-foreground">Aufgabe</TableHead>
+                <TableHead className="w-[65%] h-9 text-xs font-medium text-muted-foreground">Kunde</TableHead>
                 <TableHead className="w-[35%] h-9 text-right text-xs font-medium text-muted-foreground">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedData.map((item) => (
-                <TableRow key={item.id} className="border-b last:border-0 hover:bg-muted/50">
-                  <TableCell className="py-2 px-3" title={item.header}>
-                    <span className="text-sm truncate block max-w-[180px]">
-                      {item.header}
-                    </span>
-                  </TableCell>
-                  <TableCell className="py-2 px-3">
-                    <div className="flex justify-end">
-                      <Badge variant="outline" className="text-muted-foreground px-1.5 inline-flex items-center gap-1">
-                        {item.status === "Done" ? (
-                          <IconCircleCheckFilled className="h-3.5 w-3.5 fill-green-500 dark:fill-green-400" />
-                        ) : (
-                          <IconLoader className="h-3.5 w-3.5" />
-                        )}
-                        <span className="text-xs">{item.status}</span>
-                      </Badge>
-                    </div>
+              {paginatedData.length > 0 ? (
+                paginatedData.map((order) => (
+                  <TableRow 
+                    key={order.id} 
+                    className="border-b last:border-0 hover:bg-muted/50 cursor-pointer"
+                    onClick={() => onOrderClick?.(order)}
+                  >
+                    <TableCell className="py-2 px-3" title={`${order.kunde.vorname} ${order.kunde.nachname} - ${order.produktvariante.bezeichnung}`}>
+                      <div className="space-y-0.5">
+                        <span className="text-sm truncate block max-w-[180px] font-medium">
+                          {order.kunde.vorname} {order.kunde.nachname}
+                        </span>
+                        <span className="text-xs text-muted-foreground truncate block max-w-[180px]">
+                          {order.produktvariante.bezeichnung}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-2 px-3">
+                      <div className="flex justify-end">
+                        {getStatusBadge(order.phase)}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={2} className="py-4 text-center text-sm text-muted-foreground">
+                    Keine Aufträge vorhanden
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </div>
-        <div className="flex items-center justify-between px-2 pt-2">
-          <span className="text-xs text-muted-foreground">
-            Seite {currentPage} von {totalPages}
-          </span>
-          <div className="flex gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 hover:bg-muted"
-              onClick={() => setCurrentPage(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 hover:bg-muted"
-              onClick={() => setCurrentPage(currentPage + 1)}
-              disabled={currentPage === totalPages}
-            >
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
+        {filteredData.length > itemsPerPage && (
+          <div className="flex items-center justify-between px-2 pt-2">
+            <span className="text-xs text-muted-foreground">
+              Seite {currentPage} von {totalPages}
+            </span>
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 hover:bg-muted"
+                onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 hover:bg-muted"
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </SidebarGroupContent>
     </SidebarGroup>
   )
@@ -130,24 +186,65 @@ function PaginatedTable({
 export function SidebarLeft({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
-  // Prepare data for the three tables
-  const erstkontaktData = data.slice(0, 20).map((item) => ({
-    id: item.id,
-    header: item.header,
-    status: item.status,
-  }))
+  const { activeFactory } = useFactory()
+  const { setSelectedOrder } = useOrder()
+  const [orders, setOrders] = React.useState<OrderData[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [generating, setGenerating] = React.useState(false)
 
-  const grobterminierungData = data.slice(20, 40).map((item) => ({
-    id: item.id,
-    header: item.header,
-    status: item.status,
-  }))
+  // Load orders when factory changes
+  React.useEffect(() => {
+    if (activeFactory) {
+      loadOrders()
+    }
+  }, [activeFactory])
 
-  const feinterminierungData = data.slice(40, 60).map((item) => ({
-    id: item.id,
-    header: item.header,
-    status: item.status,
-  }))
+  const loadOrders = async () => {
+    if (!activeFactory) return
+    
+    setLoading(true)
+    try {
+      const result = await getAuftraege(activeFactory.id)
+      if (result.success && result.data) {
+        setOrders(result.data as any)
+      }
+    } catch (error) {
+      console.error('Error loading orders:', error)
+      toast.error('Fehler beim Laden der Aufträge')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleOrderClick = (order: OrderData) => {
+    setSelectedOrder(order as any)
+  }
+
+  const handleGenerateOrders = async () => {
+    if (!activeFactory) {
+      toast.error('Keine Factory ausgewählt')
+      return
+    }
+
+    setGenerating(true)
+    try {
+      const result = await generateOrders(activeFactory.id, 10)
+      if (result.success) {
+        toast.success(result.message)
+        await loadOrders()
+      } else {
+        toast.error(result.error || 'Fehler beim Erstellen der Aufträge')
+        if (result.errors && result.errors.length > 0) {
+          result.errors.forEach(err => toast.error(err))
+        }
+      }
+    } catch (error) {
+      console.error('Error generating orders:', error)
+      toast.error('Ein unerwarteter Fehler ist aufgetreten')
+    } finally {
+      setGenerating(false)
+    }
+  }
 
   return (
     <Sidebar 
@@ -157,38 +254,76 @@ export function SidebarLeft({
       {...props}
     >
       <SidebarHeader className="border-b px-4 py-3">
-        <h2 className="text-sm font-semibold">Auftragsübersicht</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold">Auftragsübersicht</h2>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleGenerateOrders}
+            disabled={generating || !activeFactory}
+            className="h-7"
+          >
+            {generating ? (
+              <>
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                Erstelle...
+              </>
+            ) : (
+              <>
+                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                +10
+              </>
+            )}
+          </Button>
+        </div>
       </SidebarHeader>
       <SidebarContent className="gap-0 py-2">
-        <PaginatedTable
-          title="Erstkontakt"
-          icon={<Phone className="h-4 w-4" />}
-          data={erstkontaktData}
-        />
-        
-        <div className="flex justify-center py-2">
-          <div className="flex flex-col items-center">
-            <ArrowDown className="h-5 w-5 text-muted-foreground animate-pulse" />
+        {loading ? (
+          <div className="p-4 space-y-4">
+            <div className="animate-pulse space-y-3">
+              <div className="h-4 bg-muted rounded w-1/3"></div>
+              <div className="h-32 bg-muted rounded"></div>
+            </div>
           </div>
-        </div>
-        
-        <PaginatedTable
-          title="Grobterminierung"
-          icon={<Calendar className="h-4 w-4" />}
-          data={grobterminierungData}
-        />
-        
-        <div className="flex justify-center py-2">
-          <div className="flex flex-col items-center">
-            <ArrowDown className="h-5 w-5 text-muted-foreground animate-pulse" />
-          </div>
-        </div>
-        
-        <PaginatedTable
-          title="Feinterminierung"
-          icon={<CalendarCheck className="h-4 w-4" />}
-          data={feinterminierungData}
-        />
+        ) : (
+          <>
+            <PaginatedTable
+              title="Erstkontakt"
+              icon={<Phone className="h-4 w-4" />}
+              data={orders}
+              phase={AuftragsPhase.ERSTKONTAKT}
+              onOrderClick={handleOrderClick}
+            />
+            
+            <div className="flex justify-center py-2">
+              <div className="flex flex-col items-center">
+                <ArrowDown className="h-5 w-5 text-muted-foreground animate-pulse" />
+              </div>
+            </div>
+            
+            <PaginatedTable
+              title="Grobterminierung"
+              icon={<Calendar className="h-4 w-4" />}
+              data={orders}
+              phase={AuftragsPhase.GROBTERMINIERUNG}
+              onOrderClick={handleOrderClick}
+            />
+            
+            <div className="flex justify-center py-2">
+              <div className="flex flex-col items-center">
+                <ArrowDown className="h-5 w-5 text-muted-foreground animate-pulse" />
+              </div>
+            </div>
+            
+            <PaginatedTable
+              title="Feinterminierung"
+              icon={<CalendarCheck className="h-4 w-4" />}
+              data={orders}
+              phase={AuftragsPhase.FEINTERMINIERUNG}
+              onOrderClick={handleOrderClick}
+            />
+          </>
+        )}
       </SidebarContent>
     </Sidebar>
   )

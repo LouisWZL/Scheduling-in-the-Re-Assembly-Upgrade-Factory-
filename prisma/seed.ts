@@ -355,6 +355,7 @@ async function main() {
 
   // Clean database in correct order (dependent records first)
   await prisma.liefertermin.deleteMany()
+  await prisma.baugruppeInstance.deleteMany()
   await prisma.auftrag.deleteMany()
   await prisma.produktvariante.deleteMany()
   await prisma.produkt.deleteMany()
@@ -435,7 +436,6 @@ async function main() {
           .map(bg => ({ id: bg.id }))
       },
       links: {},
-      zustand: "SEHR_GUT"
     }
   })
 
@@ -450,7 +450,6 @@ async function main() {
           .map(bg => ({ id: bg.id }))
       },
       links: {},
-      zustand: "SEHR_GUT"
     }
   })
 
@@ -524,8 +523,7 @@ async function main() {
           .filter(bg => bg.variantenTyp === "basic" || bg.variantenTyp === "basicAndPremium")
           .map(bg => ({ id: bg.id }))
       },
-      links: {},
-      zustand: "GUT"
+      links: {}
     }
   })
 
@@ -540,7 +538,6 @@ async function main() {
           .map(bg => ({ id: bg.id }))
       },
       links: {},
-      zustand: "SEHR_GUT"
     }
   })
 
@@ -614,8 +611,7 @@ async function main() {
           .filter(bg => bg.variantenTyp === "basic" || bg.variantenTyp === "basicAndPremium")
           .map(bg => ({ id: bg.id }))
       },
-      links: {},
-      zustand: "GUT"
+      links: {}
     }
   })
 
@@ -630,7 +626,6 @@ async function main() {
           .map(bg => ({ id: bg.id }))
       },
       links: {},
-      zustand: "SEHR_GUT"
     }
   })
 
@@ -678,7 +673,6 @@ async function main() {
       kunde: { connect: { id: createdKunden[0].id } },
       produktvariante: { connect: { id: porscheVarianteBasic.id } },
       phase: "ERSTKONTAKT",
-      upgradeTyp: "WUNSCH",
       factory: { connect: { id: createdPorscheFactory.id } },
       liefertermine: {
         create: {
@@ -696,7 +690,6 @@ async function main() {
       kunde: { connect: { id: createdKunden[1].id } },
       produktvariante: { connect: { id: porscheVariantePremium.id } },
       phase: "FEINTERMINIERUNG",
-      upgradeTyp: "KOMBINIERT",
       factory: { connect: { id: createdPorscheFactory.id } },
       liefertermine: {
         create: [
@@ -729,7 +722,6 @@ async function main() {
       kunde: { connect: { id: createdKunden[2].id } },
       produktvariante: { connect: { id: audiVarianteBasic.id } },
       phase: "REMONTAGE",
-      upgradeTyp: "PFLICHT",
       factory: { connect: { id: createdAudiFactory.id } },
       liefertermine: {
         create: {
@@ -748,7 +740,6 @@ async function main() {
       kunde: { connect: { id: createdKunden[0].id } },
       produktvariante: { connect: { id: vwVarianteBasic.id } },
       phase: "GROBTERMINIERUNG",
-      upgradeTyp: "WUNSCH",
       factory: { connect: { id: createdVWFactory.id } },
       liefertermine: {
         create: {
@@ -765,7 +756,6 @@ async function main() {
       kunde: { connect: { id: createdKunden[1].id } },
       produktvariante: { connect: { id: vwVariantePremium.id } },
       phase: "INSPEKTION",
-      upgradeTyp: "KOMBINIERT",
       factory: { connect: { id: createdVWFactory.id } },
       liefertermine: {
         create: {
