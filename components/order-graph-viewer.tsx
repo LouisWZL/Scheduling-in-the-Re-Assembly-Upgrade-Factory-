@@ -6,8 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
 import { UpgradeTyp } from '@prisma/client'
 import { BaugruppenDetailsTable } from '@/components/baugruppen-details-table'
+import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react'
 
 // Import JointJS CSS - IMPORTANT!
 import '@joint/plus/joint-plus.css'
@@ -55,6 +57,29 @@ export function OrderGraphViewer({ order }: OrderGraphViewerProps) {
   const paperScrollerRef = useRef<joint.ui.PaperScroller | null>(null)
   const [selectedBaugruppe, setSelectedBaugruppe] = useState<BaugruppeDetail | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
+  
+  // Zoom functions
+  const handleZoomIn = () => {
+    if (paperScrollerRef.current) {
+      paperScrollerRef.current.zoom(0.2, { max: 3 })
+    }
+  }
+  
+  const handleZoomOut = () => {
+    if (paperScrollerRef.current) {
+      paperScrollerRef.current.zoom(-0.2, { min: 0.2 })
+    }
+  }
+  
+  const handleZoomToFit = () => {
+    if (paperScrollerRef.current) {
+      paperScrollerRef.current.zoomToFit({
+        minScale: 0.2,
+        maxScale: 2,
+        padding: 50
+      })
+    }
+  }
 
   useEffect(() => {
     if (!paperRef.current) return
@@ -224,6 +249,34 @@ export function OrderGraphViewer({ order }: OrderGraphViewerProps) {
       }
     }
   }, [order?.id])
+  
+  // Keyboard shortcuts for zoom
+  useEffect(() => {
+    const handleKeydown = (evt: KeyboardEvent) => {
+      // Check if focus is on an input element
+      if (evt.target instanceof HTMLInputElement || evt.target instanceof HTMLTextAreaElement) {
+        return
+      }
+      
+      if (evt.ctrlKey || evt.metaKey) {
+        if (evt.key === '+' || evt.key === '=') {
+          evt.preventDefault()
+          handleZoomIn()
+        } else if (evt.key === '-') {
+          evt.preventDefault()
+          handleZoomOut()
+        } else if (evt.key === '0') {
+          evt.preventDefault()
+          handleZoomToFit()
+        }
+      }
+    }
+    
+    document.addEventListener('keydown', handleKeydown)
+    return () => {
+      document.removeEventListener('keydown', handleKeydown)
+    }
+  }, [])
 
   if (!order) {
     return (
@@ -269,12 +322,44 @@ export function OrderGraphViewer({ order }: OrderGraphViewerProps) {
           <div className="flex gap-6" style={{ height: '460px' }}>
             {/* Graph Container - 40% width */}
             <div className="w-[40%] flex flex-col">
-              {/* Graph */}
-              <div 
-                ref={paperRef} 
-                className="flex-1 border rounded-lg bg-muted/10 relative"
-                style={{ overflow: 'hidden' }}
-              />
+              {/* Graph with Zoom Controls */}
+              <div className="relative flex-1">
+                <div 
+                  ref={paperRef} 
+                  className="absolute inset-0 border rounded-lg bg-muted/10"
+                  style={{ overflow: 'hidden' }}
+                />
+                {/* Zoom Controls */}
+                <div className="absolute top-2 right-2 flex gap-1 bg-background/90 backdrop-blur-sm rounded-md p-1 shadow-sm border">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleZoomIn}
+                    title="Vergrößern"
+                    className="h-7 w-7"
+                  >
+                    <ZoomIn className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleZoomOut}
+                    title="Verkleinern"
+                    className="h-7 w-7"
+                  >
+                    <ZoomOut className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleZoomToFit}
+                    title="Ansicht anpassen"
+                    className="h-7 w-7"
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
               
               {/* Legend and Instructions */}
               <div className="mt-3 space-y-2">
