@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { AuftragsPhase, UpgradeTyp, VariantenTyp, Prisma } from '@prisma/client'
 import { initializeCustomers, getRandomKunde } from './kunde.actions'
-import { createOrderGraphFromProduct } from '@/lib/order-graph-utils'
+import { createOrderGraphFromProduct, getConstrainedZustand } from '@/lib/order-graph-utils'
 
 /**
  * Get all orders for a factory
@@ -40,9 +40,14 @@ export async function getAuftraege(factoryId: string) {
 }
 
 /**
- * Create a single order
+ * Create a single order with optional constrained zustand values
+ * @param factoryId The factory ID
+ * @param constrainedZustandValues Optional array of zustand values to use
  */
-async function createSingleOrder(factoryId: string) {
+async function createSingleOrder(
+  factoryId: string, 
+  constrainedZustandValues?: number[]
+) {
   try {
     // Get factory with product and variants
     const factory = await prisma.reassemblyFactory.findUnique({
@@ -101,7 +106,8 @@ async function createSingleOrder(factoryId: string) {
       const transformation = createOrderGraphFromProduct(
         produkt,
         factory.baugruppen,
-        randomVariante.typ as VariantenTyp
+        randomVariante.typ as VariantenTyp,
+        constrainedZustandValues
       )
       graphData = transformation.graphData
       
@@ -112,9 +118,23 @@ async function createSingleOrder(factoryId: string) {
         upgradeTyp: bi.zustand < 30 ? UpgradeTyp.PFLICHT : undefined
       }))
       
-      // Randomly select 0-2 assemblies for WUNSCH upgrades (from those without PFLICHT)
+      // Check if we have at least one PFLICHT upgrade
+      const hasPflichtUpgrade = baugruppenInstances.some(bi => bi.upgradeTyp === UpgradeTyp.PFLICHT)
+      
+      // Randomly select assemblies for WUNSCH upgrades (from those without PFLICHT)
       const eligibleForWunsch = baugruppenInstances.filter(bi => !bi.upgradeTyp)
-      const wunschCount = Math.floor(Math.random() * 3) // 0, 1, or 2
+      
+      // WICHTIG: Jeder Auftrag muss mindestens ein Upgrade haben (PFLICHT oder WUNSCH)
+      // - Wenn es bereits PFLICHT-Upgrades gibt (Baugruppen < 30%), können zusätzlich 0-2 WUNSCH-Upgrades hinzugefügt werden
+      // - Wenn es keine PFLICHT-Upgrades gibt, MUSS mindestens 1 WUNSCH-Upgrade hinzugefügt werden
+      let wunschCount: number
+      if (!hasPflichtUpgrade && eligibleForWunsch.length > 0) {
+        // Kein PFLICHT-Upgrade vorhanden -> MUSS mindestens 1 WUNSCH-Upgrade haben
+        wunschCount = Math.floor(Math.random() * 2) + 1 // 1 oder 2
+      } else {
+        // PFLICHT-Upgrade(s) vorhanden -> kann zusätzlich 0-2 WUNSCH-Upgrades haben
+        wunschCount = Math.floor(Math.random() * 3) // 0, 1, oder 2
+      }
       
       for (let i = 0; i < Math.min(wunschCount, eligibleForWunsch.length); i++) {
         const randomIndex = Math.floor(Math.random() * eligibleForWunsch.length)
@@ -192,7 +212,7 @@ async function createSingleOrder(factoryId: string) {
 }
 
 /**
- * Generate multiple orders for a factory
+ * Generate multiple orders for a factory with batch average zustand of 65%
  */
 export async function generateOrders(factoryId: string, count: number = 10) {
   try {
@@ -202,17 +222,68 @@ export async function generateOrders(factoryId: string, count: number = 10) {
       return { success: false, error: 'Fehler beim Initialisieren der Kunden' }
     }
 
+    // Get factory info to know how many Baugruppen per order
+    const factory = await prisma.reassemblyFactory.findUnique({
+      where: { id: factoryId },
+      include: {
+        produkte: {
+          include: {
+            baugruppentypen: true
+          }
+        }
+      }
+    })
+
+    if (!factory || factory.produkte.length === 0) {
+      return { success: false, error: 'Factory oder Produkt nicht gefunden' }
+    }
+
+    const avgBaugruppen = factory.produkte[0].baugruppentypen.length || 5
+    const targetBatchAverage = 65
+    const totalBaugruppenCount = count * avgBaugruppen
+    
+    // Pre-generate all zustand values to achieve batch average of 65%
+    const allZustandValues: number[] = []
+    let currentSum = 0
+    
+    for (let i = 0; i < totalBaugruppenCount; i++) {
+      const remaining = totalBaugruppenCount - i - 1
+      const zustand = getConstrainedZustand(currentSum, targetBatchAverage, i, remaining)
+      allZustandValues.push(zustand)
+      currentSum += zustand
+    }
+    
+    // Shuffle the values to distribute them randomly across orders
+    for (let i = allZustandValues.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [allZustandValues[i], allZustandValues[j]] = [allZustandValues[j], allZustandValues[i]]
+    }
+
     const results = {
       created: 0,
       failed: 0,
-      errors: [] as string[]
+      errors: [] as string[],
+      totalZustand: 0,
+      totalBaugruppen: 0
     }
 
-    // Create orders one by one
+    // Create orders one by one with pre-calculated zustand values
     for (let i = 0; i < count; i++) {
-      const result = await createSingleOrder(factoryId)
-      if (result.success) {
+      // Extract zustand values for this order
+      const orderZustandValues = allZustandValues.slice(
+        i * avgBaugruppen, 
+        (i + 1) * avgBaugruppen
+      )
+      
+      const result = await createSingleOrder(factoryId, orderZustandValues)
+      if (result.success && result.data) {
         results.created++
+        // Track actual zustand values for reporting
+        const orderBaugruppen = (result.data as any).baugruppenInstances || []
+        orderBaugruppen.forEach((bi: any) => {
+          results.totalZustand += bi.zustand
+          results.totalBaugruppen++
+        })
       } else {
         results.failed++
         if (result.error && !results.errors.includes(result.error)) {
@@ -220,16 +291,21 @@ export async function generateOrders(factoryId: string, count: number = 10) {
         }
       }
     }
+    
+    const actualAverage = results.totalBaugruppen > 0 
+      ? Math.round(results.totalZustand / results.totalBaugruppen)
+      : 0
 
     revalidatePath('/')
     revalidatePath(`/factory-configurator/${factoryId}`)
 
     return {
       success: true,
-      message: `${results.created} Aufträge erstellt, ${results.failed} fehlgeschlagen`,
+      message: `${results.created} Aufträge erstellt (Ø ${actualAverage}% Zustand), ${results.failed} fehlgeschlagen`,
       created: results.created,
       failed: results.failed,
-      errors: results.errors
+      errors: results.errors,
+      averageZustand: actualAverage
     }
   } catch (error) {
     console.error('Error generating orders:', error)

@@ -8,8 +8,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowDown,
-  Plus,
-  Loader2,
 } from "lucide-react"
 import {
   IconCircleCheckFilled,
@@ -36,7 +34,7 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { useFactory } from "@/contexts/factory-context"
 import { useOrder } from "@/contexts/order-context"
-import { getAuftraege, generateOrders } from "@/app/actions/auftrag.actions"
+import { getAuftraege } from "@/app/actions/auftrag.actions"
 import { AuftragsPhase } from "@prisma/client"
 
 interface OrderData {
@@ -190,7 +188,6 @@ export function SidebarLeft({
   const { setSelectedOrder } = useOrder()
   const [orders, setOrders] = React.useState<OrderData[]>([])
   const [loading, setLoading] = React.useState(true)
-  const [generating, setGenerating] = React.useState(false)
 
   // Load orders when factory changes
   React.useEffect(() => {
@@ -220,31 +217,17 @@ export function SidebarLeft({
     setSelectedOrder(order as any)
   }
 
-  const handleGenerateOrders = async () => {
-    if (!activeFactory) {
-      toast.error('Keine Factory ausgewählt')
-      return
+  // Listen for orders generated event
+  React.useEffect(() => {
+    const handleOrdersGenerated = () => {
+      loadOrders()
     }
 
-    setGenerating(true)
-    try {
-      const result = await generateOrders(activeFactory.id, 10)
-      if (result.success) {
-        toast.success(result.message)
-        await loadOrders()
-      } else {
-        toast.error(result.error || 'Fehler beim Erstellen der Aufträge')
-        if (result.errors && result.errors.length > 0) {
-          result.errors.forEach(err => toast.error(err))
-        }
-      }
-    } catch (error) {
-      console.error('Error generating orders:', error)
-      toast.error('Ein unerwarteter Fehler ist aufgetreten')
-    } finally {
-      setGenerating(false)
+    window.addEventListener('ordersGenerated', handleOrdersGenerated)
+    return () => {
+      window.removeEventListener('ordersGenerated', handleOrdersGenerated)
     }
-  }
+  }, [activeFactory])
 
   return (
     <Sidebar 
@@ -254,28 +237,7 @@ export function SidebarLeft({
       {...props}
     >
       <SidebarHeader className="border-b px-4 py-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Auftragsübersicht</h2>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleGenerateOrders}
-            disabled={generating || !activeFactory}
-            className="h-7"
-          >
-            {generating ? (
-              <>
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                Erstelle...
-              </>
-            ) : (
-              <>
-                <Plus className="mr-1.5 h-3.5 w-3.5" />
-                +10
-              </>
-            )}
-          </Button>
-        </div>
+        <h2 className="text-sm font-semibold">Auftragsübersicht</h2>
       </SidebarHeader>
       <SidebarContent className="gap-0 py-2">
         {loading ? (

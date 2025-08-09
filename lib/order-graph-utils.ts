@@ -36,6 +36,34 @@ export function getRandomZustand(): number {
 }
 
 /**
+ * Get a constrained random condition value that helps achieve a target average
+ * @param currentAverage Current average of all generated values
+ * @param targetAverage Target average to achieve
+ * @param count Number of values already generated
+ * @param remaining Number of values still to generate
+ */
+export function getConstrainedZustand(
+  currentSum: number,
+  targetAverage: number,
+  count: number,
+  remaining: number
+): number {
+  if (remaining === 0) return getRandomZustand()
+  
+  // Calculate what average we need for remaining items
+  const targetSum = targetAverage * (count + remaining)
+  const neededSum = targetSum - currentSum
+  const neededAverage = neededSum / remaining
+  
+  // Add some randomness but bias towards the needed average
+  // Use a range of ±20 from the needed average
+  const min = Math.max(0, Math.floor(neededAverage - 20))
+  const max = Math.min(100, Math.ceil(neededAverage + 20))
+  
+  return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+/**
  * Check if a Baugruppe is compatible with a product variant type
  */
 export function isBaugruppeCompatibleWithVariant(
@@ -77,7 +105,8 @@ function getRandomElement<T>(array: T[]): T | undefined {
 export function transformProductGraphToOrderGraph(
   productGraph: GraphData,
   baugruppen: BaugruppeWithRelations[],
-  variantenTyp: VariantenTyp
+  variantenTyp: VariantenTyp,
+  constrainedZustandValues?: number[]
 ): {
   graph: GraphData
   selectedBaugruppen: Array<{ baugruppeId: string; zustand: number }>
@@ -96,6 +125,7 @@ export function transformProductGraphToOrderGraph(
   const nodesToRemove = new Set<string>()
   const nodeReplacements = new Map<string, string>() // old node id -> new node id
   const removedNodes: string[] = []
+  let zustandIndex = 0 // Track which constrained value to use next
 
   // First pass: Process shapes and determine which to replace or remove
   productGraph.cells.forEach(cell => {
@@ -115,7 +145,10 @@ export function transformProductGraphToOrderGraph(
       if (compatibleBaugruppen.length > 0) {
         // Replace with random compatible Baugruppe
         const selectedBaugruppe = getRandomElement(compatibleBaugruppen)!
-        const zustand = getRandomZustand()
+        // Use constrained zustand value if available, otherwise random
+        const zustand = constrainedZustandValues && zustandIndex < constrainedZustandValues.length
+          ? constrainedZustandValues[zustandIndex++]
+          : getRandomZustand()
 
         // Create new cell with Baugruppe instead of Baugruppentyp
         const newCell: GraphCell = {
@@ -262,7 +295,8 @@ export function createOrderGraphFromProduct(
     baugruppentypen?: Array<{ id: string; bezeichnung: string }>
   },
   baugruppen: BaugruppeWithRelations[],
-  variantenTyp: VariantenTyp
+  variantenTyp: VariantenTyp,
+  constrainedZustandValues?: number[]
 ): {
   graphData: any
   baugruppenInstances: Array<{ baugruppeId: string; zustand: number }>
@@ -272,7 +306,8 @@ export function createOrderGraphFromProduct(
   const { graph, selectedBaugruppen } = transformProductGraphToOrderGraph(
     productGraph,
     baugruppen,
-    variantenTyp
+    variantenTyp,
+    constrainedZustandValues
   )
 
   return {
