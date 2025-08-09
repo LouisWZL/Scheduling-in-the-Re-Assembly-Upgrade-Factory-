@@ -252,7 +252,7 @@ export function JointJSProductView({
         // Define port configuration
         const portsIn = {
           position: {
-            name: 'top',
+            name: 'left',
             args: {}
           },
           attrs: {
@@ -272,7 +272,7 @@ export function JointJSProductView({
 
         const portsOut = {
           position: {
-            name: 'bottom',
+            name: 'right',
             args: {}
           },
           attrs: {
