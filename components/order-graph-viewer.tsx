@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { UpgradeTyp } from '@prisma/client'
+import { BaugruppenDetailsTable } from '@/components/baugruppen-details-table'
 
 // Import JointJS CSS - IMPORTANT!
 import '@joint/plus/joint-plus.css'
@@ -37,6 +38,11 @@ interface OrderGraphViewerProps {
         bezeichnung: string
         artikelnummer: string
         variantenTyp: string
+        demontagezeit?: number | null
+        montagezeit?: number | null
+        baugruppentyp?: {
+          bezeichnung: string
+        } | null
       }
     }>
   } | null
@@ -259,35 +265,53 @@ export function OrderGraphViewer({ order }: OrderGraphViewerProps) {
             </div>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {/* Legend */}
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-red-500 opacity-30 border-2 border-red-500 rounded"></div>
-                <span>Schlechter Zustand (&lt;30)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-amber-500 opacity-30 border-2 border-amber-500 rounded"></div>
-                <span>Mittlerer Zustand (30-60)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-500 opacity-30 border-2 border-green-500 rounded"></div>
-                <span>Guter Zustand (&gt;60)</span>
+        <CardContent className="p-4">
+          <div className="flex gap-6" style={{ height: '460px' }}>
+            {/* Graph Container - 40% width */}
+            <div className="w-[40%] flex flex-col">
+              {/* Graph */}
+              <div 
+                ref={paperRef} 
+                className="flex-1 border rounded-lg bg-muted/10 relative"
+                style={{ overflow: 'hidden' }}
+              />
+              
+              {/* Legend and Instructions */}
+              <div className="mt-3 space-y-2">
+                <div className="flex flex-wrap gap-3 text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 bg-red-500 opacity-30 border-2 border-red-500 rounded"></div>
+                    <span className="text-muted-foreground">Schlecht (&lt;30)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 bg-amber-500 opacity-30 border-2 border-amber-500 rounded"></div>
+                    <span className="text-muted-foreground">Mittel (30-60)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 bg-green-500 opacity-30 border-2 border-green-500 rounded"></div>
+                    <span className="text-muted-foreground">Gut (&gt;60)</span>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Klicken Sie auf eine Baugruppe im Graph für Details
+                </p>
               </div>
             </div>
-
-            {/* Graph Container */}
-            <div 
-              ref={paperRef} 
-              className="border rounded-lg bg-muted/20 relative"
-              style={{ height: '400px', width: '100%', overflow: 'hidden' }}
-            />
-
-            {/* Instructions */}
-            <p className="text-sm text-muted-foreground">
-              Klicken Sie auf eine Baugruppe im Graph, um Details anzuzeigen
-            </p>
+            
+            {/* Table Container - 60% width */}
+            <div className="w-[60%] flex flex-col">
+              <div className="bg-muted/5 rounded-lg p-3 h-full flex flex-col">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold">Baugruppen-Details</h3>
+                  <span className="text-xs text-muted-foreground">
+                    {order.baugruppenInstances?.length || 0} Baugruppen
+                  </span>
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <BaugruppenDetailsTable baugruppenInstances={order.baugruppenInstances} />
+                </div>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

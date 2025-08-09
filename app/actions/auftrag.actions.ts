@@ -25,7 +25,11 @@ export async function getAuftraege(factoryId: string) {
         },
         baugruppenInstances: {
           include: {
-            baugruppe: true
+            baugruppe: {
+              include: {
+                baugruppentyp: true
+              }
+            }
           }
         }
       },
