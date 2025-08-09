@@ -156,41 +156,93 @@ export function transformProductGraphToOrderGraph(
     }
   })
 
+  // Build adjacency lists for the graph
+  const incomingLinks = new Map<string, Set<string>>() // node -> set of nodes that connect TO it
+  const outgoingLinks = new Map<string, Set<string>>() // node -> set of nodes it connects TO
+  
+  // Build the adjacency lists from all links
+  productGraph.cells.forEach(cell => {
+    if (cell.source && cell.target) {
+      // Extract node IDs (handle both direct ID and port-based connections)
+      const sourceId = typeof cell.source === 'string' ? cell.source : cell.source.id
+      const targetId = typeof cell.target === 'string' ? cell.target : cell.target.id
+      
+      // Add to outgoing links
+      if (!outgoingLinks.has(sourceId)) {
+        outgoingLinks.set(sourceId, new Set())
+      }
+      outgoingLinks.get(sourceId)!.add(targetId)
+      
+      // Add to incoming links
+      if (!incomingLinks.has(targetId)) {
+        incomingLinks.set(targetId, new Set())
+      }
+      incomingLinks.get(targetId)!.add(sourceId)
+    }
+  })
+
   // Second pass: Process links and handle removed nodes
   const processedLinks = new Set<string>()
   
-  productGraph.cells.forEach(cell => {
-    // Only process links
-    if (!cell.source || !cell.target) {
-      return
-    }
-
-    const linkKey = `${cell.source.id}-${cell.target.id}`
-    if (processedLinks.has(linkKey)) {
-      return // Skip duplicate links
-    }
-
-    // If both source and target exist (not removed), keep the link
-    if (!nodesToRemove.has(cell.source.id) && !nodesToRemove.has(cell.target.id)) {
-      newCells.push(cell)
-      processedLinks.add(linkKey)
-      return
-    }
-
-    // Handle node removal with link preservation
-    if (nodesToRemove.has(cell.source.id) || nodesToRemove.has(cell.target.id)) {
-      const newLinks = reconnectLinksForRemovedNode(
-        productGraph.cells,
-        cell,
-        nodesToRemove,
-        processedLinks
-      )
-      newLinks.forEach(link => {
-        if (!processedLinks.has(`${link.source.id}-${link.target.id}`)) {
-          newCells.push(link)
-          processedLinks.add(`${link.source.id}-${link.target.id}`)
+  // For each removed node, connect its predecessors to its successors
+  nodesToRemove.forEach(removedNodeId => {
+    const predecessors = incomingLinks.get(removedNodeId) || new Set()
+    const successors = outgoingLinks.get(removedNodeId) || new Set()
+    
+    // Create new links between all predecessors and successors
+    predecessors.forEach(predId => {
+      // Skip if predecessor is also being removed
+      if (nodesToRemove.has(predId)) return
+      
+      successors.forEach(succId => {
+        // Skip if successor is also being removed
+        if (nodesToRemove.has(succId)) return
+        
+        const linkKey = `${predId}-${succId}`
+        if (!processedLinks.has(linkKey)) {
+          newCells.push({
+            id: `${predId}-${succId}-reconnected`,
+            type: 'standard.Link',
+            source: { 
+              id: predId,
+              port: 'out'  // Connect from the 'out' port
+            },
+            target: { 
+              id: succId,
+              port: 'in'   // Connect to the 'in' port
+            },
+            attrs: {
+              line: {
+                stroke: '#525252',
+                strokeWidth: 2,
+                targetMarker: {
+                  name: 'block',
+                  size: 8
+                }
+              }
+            }
+          })
+          processedLinks.add(linkKey)
         }
       })
+    })
+  })
+  
+  // Add all original links that don't involve removed nodes
+  productGraph.cells.forEach(cell => {
+    if (cell.source && cell.target) {
+      // Extract node IDs (handle both direct ID and port-based connections)
+      const sourceId = typeof cell.source === 'string' ? cell.source : cell.source.id
+      const targetId = typeof cell.target === 'string' ? cell.target : cell.target.id
+      const linkKey = `${sourceId}-${targetId}`
+      
+      // Keep link if neither source nor target is removed
+      if (!nodesToRemove.has(sourceId) && !nodesToRemove.has(targetId)) {
+        if (!processedLinks.has(linkKey)) {
+          newCells.push(cell)
+          processedLinks.add(linkKey)
+        }
+      }
     }
   })
 
@@ -199,69 +251,6 @@ export function transformProductGraphToOrderGraph(
     selectedBaugruppen,
     removedNodes
   }
-}
-
-/**
- * Reconnect links when a node is removed
- * Creates new links between all nodes that were connected through the removed node
- */
-function reconnectLinksForRemovedNode(
-  allCells: GraphCell[],
-  currentLink: GraphCell,
-  nodesToRemove: Set<string>,
-  processedLinks: Set<string>
-): GraphCell[] {
-  const newLinks: GraphCell[] = []
-
-  // Find all incoming and outgoing connections for removed nodes
-  const incomingNodes = new Set<string>()
-  const outgoingNodes = new Set<string>()
-
-  // Check if source is removed
-  if (nodesToRemove.has(currentLink.source!.id)) {
-    // Find all nodes that connect TO the removed node
-    allCells.forEach(cell => {
-      if (cell.target?.id === currentLink.source!.id && !nodesToRemove.has(cell.source!.id)) {
-        incomingNodes.add(cell.source!.id)
-      }
-    })
-    // Current link's target is an outgoing node
-    if (!nodesToRemove.has(currentLink.target!.id)) {
-      outgoingNodes.add(currentLink.target!.id)
-    }
-  }
-
-  // Check if target is removed
-  if (nodesToRemove.has(currentLink.target!.id)) {
-    // Current link's source is an incoming node
-    if (!nodesToRemove.has(currentLink.source!.id)) {
-      incomingNodes.add(currentLink.source!.id)
-    }
-    // Find all nodes that the removed node connects TO
-    allCells.forEach(cell => {
-      if (cell.source?.id === currentLink.target!.id && !nodesToRemove.has(cell.target!.id)) {
-        outgoingNodes.add(cell.target!.id)
-      }
-    })
-  }
-
-  // Create new links between all incoming and outgoing nodes
-  incomingNodes.forEach(sourceId => {
-    outgoingNodes.forEach(targetId => {
-      const linkKey = `${sourceId}-${targetId}`
-      if (!processedLinks.has(linkKey)) {
-        newLinks.push({
-          id: `${sourceId}-${targetId}-reconnected`,
-          type: 'standard.Link',
-          source: { id: sourceId },
-          target: { id: targetId },
-          attrs: currentLink.attrs || {}
-        })
-      }
-    })
-  })
-
-  return newLinks
 }
 
 /**
