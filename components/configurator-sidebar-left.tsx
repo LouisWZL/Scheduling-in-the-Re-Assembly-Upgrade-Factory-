@@ -149,11 +149,10 @@ export function ConfiguratorSidebarLeft({ factoryId }: ConfiguratorSidebarLeftPr
         </div>
       </SidebarHeader>
       <SidebarContent>
-        {/* Navigation Group */}
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              {/* Navigation items */}
               {navigationItems.map((item) => (
                 <SidebarMenuItem key={item.view}>
                   <SidebarMenuButton 
@@ -165,15 +164,8 @@ export function ConfiguratorSidebarLeft({ factoryId }: ConfiguratorSidebarLeftPr
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Verwaltung Group */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Verwaltung</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
+              
+              {/* Verwaltung items */}
               <SidebarMenuItem>
                 <SidebarMenuButton 
                   onClick={() => handleViewClick('produkte')}
@@ -192,62 +184,53 @@ export function ConfiguratorSidebarLeft({ factoryId }: ConfiguratorSidebarLeftPr
                   <span>Baugruppen</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              
+              {/* Prozesse items */}
+              {!loading && produkte.length > 0 && produkte.map((produkt) => (
+                <SidebarMenuItem key={produkt.id}>
+                  <SidebarMenuButton
+                    onClick={() => handleProduktClick(produkt)}
+                    isActive={selectedProdukt === produkt.id && activeView === 'produkt'}
+                  >
+                    <Workflow className="h-4 w-4" />
+                    <span>{produkt.bezeichnung}</span>
+                    <ChevronRight 
+                      className={`ml-auto h-4 w-4 transition-transform ${
+                        expandedProducts.has(produkt.id) ? 'rotate-90' : ''
+                      }`}
+                    />
+                  </SidebarMenuButton>
+                  {expandedProducts.has(produkt.id) && produkt.varianten.length > 0 && (
+                    <SidebarMenuSub>
+                      {produkt.varianten.map((variante) => (
+                        <SidebarMenuSubItem key={variante.id}>
+                          <SidebarMenuSubButton
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleVarianteClick(produkt.id, variante.id)
+                            }}
+                            isActive={selectedVariante === variante.id}
+                          >
+                            <span className="text-xs">{variante.bezeichnung}</span>
+                            {variante.typ && (
+                              <span className={`ml-auto text-xs px-1.5 py-0.5 rounded-full ${
+                                variante.typ === 'premium' 
+                                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' 
+                                  : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
+                              }`}>
+                                {variante.typ}
+                              </span>
+                            )}
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  )}
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {/* Prozesse Group */}
-        {!loading && produkte.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Prozesse</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {produkte.map((produkt) => (
-                  <SidebarMenuItem key={produkt.id}>
-                    <SidebarMenuButton
-                      onClick={() => handleProduktClick(produkt)}
-                      isActive={selectedProdukt === produkt.id && activeView === 'produkt'}
-                    >
-                      <Workflow className="h-4 w-4" />
-                      <span>{produkt.bezeichnung}</span>
-                      <ChevronRight 
-                        className={`ml-auto h-4 w-4 transition-transform ${
-                          expandedProducts.has(produkt.id) ? 'rotate-90' : ''
-                        }`}
-                      />
-                    </SidebarMenuButton>
-                    {expandedProducts.has(produkt.id) && produkt.varianten.length > 0 && (
-                      <SidebarMenuSub>
-                        {produkt.varianten.map((variante) => (
-                          <SidebarMenuSubItem key={variante.id}>
-                            <SidebarMenuSubButton
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleVarianteClick(produkt.id, variante.id)
-                              }}
-                              isActive={selectedVariante === variante.id}
-                            >
-                              <span className="text-xs">{variante.bezeichnung}</span>
-                              {variante.typ && (
-                                <span className={`ml-auto text-xs px-1.5 py-0.5 rounded-full ${
-                                  variante.typ === 'premium' 
-                                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' 
-                                    : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
-                                }`}>
-                                  {variante.typ}
-                                </span>
-                              )}
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        ))}
-                      </SidebarMenuSub>
-                    )}
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
       </SidebarContent>
       <SidebarRail />
     </Sidebar>
