@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import * as joint from '@joint/plus'
-import { getProdukt, updateProduktGraph } from '@/app/actions/produkt.actions'
+import { getProdukt, updateProduktGraph, getProduktWithProcessGraph } from '@/app/actions/produkt.actions'
 import { useDebounce } from '@/hooks/use-debounce'
 import { toast } from 'sonner'
+import { generateProcessGraph } from '@/lib/process-graph-generator'
 
 interface JointJSProductViewProps {
   produktId: string
@@ -18,6 +19,7 @@ interface JointJSProductViewProps {
   onCanRedoChange?: (canRedo: boolean) => void
   onSave?: () => void
   onSavingChange?: (isSaving: boolean) => void
+  activeView?: 'structure' | 'process'
 }
 
 export function JointJSProductView({ 
@@ -31,7 +33,8 @@ export function JointJSProductView({
   onCanUndoChange,
   onCanRedoChange,
   onSave,
-  onSavingChange
+  onSavingChange,
+  activeView = 'structure'
 }: JointJSProductViewProps) {
   const paperRef = useRef<HTMLDivElement>(null)
   const graphRef = useRef<joint.dia.Graph | null>(null)
@@ -43,6 +46,9 @@ export function JointJSProductView({
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   const [graphState, setGraphState] = useState<any>(null)
   const debouncedGraphState = useDebounce(graphState, 1000)
+  const [productGraphData, setProductGraphData] = useState<any>(null)
+  const [processGraphData, setProcessGraphData] = useState<any>(null)
+  const currentViewRef = useRef<'structure' | 'process'>('structure')
 
   // Auto-save disabled - manual save only
   // useEffect(() => {
@@ -71,6 +77,69 @@ export function JointJSProductView({
   // }, [debouncedGraphState, produktId, isInitialLoad, onSavingChange])
 
   // This effect is now removed as loading happens in the main effect
+  
+  // Handle view switching
+  useEffect(() => {
+    if (!graphRef.current || !paperInstanceRef.current) return
+    
+    const switchToProcessView = () => {
+      // Save current product structure graph
+      if (currentViewRef.current === 'structure') {
+        setProductGraphData(graphRef.current.toJSON())
+      }
+      
+      // Clear current graph
+      graphRef.current.clear()
+      
+      // Always generate fresh process graph from current product graph
+      if (productGraphData) {
+        const generatedProcessGraph = generateProcessGraph(productGraphData)
+        graphRef.current.fromJSON(generatedProcessGraph)
+        setProcessGraphData(generatedProcessGraph)
+      }
+      
+      // Make graph read-only
+      paperInstanceRef.current.setInteractivity(false)
+      
+      // Disable selection and halo
+      if (selectionRef.current) {
+        selectionRef.current.collection.reset()
+      }
+      if (currentHaloRef.current) {
+        currentHaloRef.current.remove()
+        currentHaloRef.current = null
+      }
+      
+      // Disable stencil
+      window.dispatchEvent(new CustomEvent('stencilControl', { detail: 'disable' }))
+      
+      currentViewRef.current = 'process'
+    }
+    
+    const switchToStructureView = () => {
+      // Clear current graph
+      graphRef.current.clear()
+      
+      // Restore product structure graph
+      if (productGraphData) {
+        graphRef.current.fromJSON(productGraphData)
+      }
+      
+      // Make graph editable
+      paperInstanceRef.current.setInteractivity(true)
+      
+      // Enable stencil
+      window.dispatchEvent(new CustomEvent('stencilControl', { detail: 'enable' }))
+      
+      currentViewRef.current = 'structure'
+    }
+    
+    if (activeView === 'process' && currentViewRef.current !== 'process') {
+      switchToProcessView()
+    } else if (activeView === 'structure' && currentViewRef.current !== 'structure') {
+      switchToStructureView()
+    }
+  }, [activeView, productGraphData, processGraphData])
 
   useEffect(() => {
     if (!paperRef.current) return
@@ -199,14 +268,37 @@ export function JointJSProductView({
     // Load initial data if available
     const loadInitialData = async () => {
       try {
-        const result = await getProdukt(produktId)
-        if (result.success && result.data?.graphData) {
-          const graphData = typeof result.data.graphData === 'string' 
-            ? JSON.parse(result.data.graphData) 
-            : result.data.graphData
+        const result = await getProduktWithProcessGraph(produktId)
+        if (result.success && result.data) {
+          // Load product structure graph
+          if (result.data.graphData) {
+            const graphData = typeof result.data.graphData === 'string' 
+              ? JSON.parse(result.data.graphData) 
+              : result.data.graphData
+            
+            setProductGraphData(graphData)
+            
+            // Only load structure graph if we're in structure view
+            if (currentViewRef.current === 'structure') {
+              graph.fromJSON(graphData)
+              console.log('Initial product structure graph loaded')
+            }
+          }
           
-          graph.fromJSON(graphData)
-          console.log('Initial graph data loaded')
+          // Load process graph if available
+          if (result.data.processGraphData) {
+            const processData = typeof result.data.processGraphData === 'string' 
+              ? JSON.parse(result.data.processGraphData) 
+              : result.data.processGraphData
+            
+            setProcessGraphData(processData)
+            
+            // Only load process graph if we're in process view
+            if (currentViewRef.current === 'process') {
+              graph.fromJSON(processData)
+              console.log('Initial process graph loaded')
+            }
+          }
           
           // Dispatch event to update stencil after graph is loaded
           window.dispatchEvent(new CustomEvent('graph-loaded'))
@@ -328,8 +420,8 @@ export function JointJSProductView({
     let isPanning = false
     
     paper.on('blank:pointerdown', (evt: any) => {
-      // Check if CTRL/CMD is pressed for selection box
-      if (evt.ctrlKey || evt.metaKey) {
+      // Check if CTRL/CMD is pressed for selection box (only in structure view)
+      if ((evt.ctrlKey || evt.metaKey) && currentViewRef.current === 'structure') {
         selection.startSelecting(evt)
       } else {
         // Start panning on blank area
@@ -344,6 +436,9 @@ export function JointJSProductView({
 
     // Handle CTRL/CMD click on elements for multi-select
     paper.on('element:pointerup', (elementView: joint.dia.ElementView, evt: any) => {
+      // Only allow selection in structure view
+      if (currentViewRef.current !== 'structure') return
+      
       if (evt.ctrlKey || evt.metaKey) {
         // Hide halo when multi-selecting
         if (currentHaloRef.current) {
@@ -400,6 +495,9 @@ export function JointJSProductView({
 
     // Set up Halo for element interaction
     const createHalo = (cellView: joint.dia.CellView) => {
+      // Don't create halo in process view
+      if (currentViewRef.current !== 'structure') return
+      
       // Remove existing halo if any
       if (currentHaloRef.current) {
         currentHaloRef.current.remove()
@@ -540,18 +638,35 @@ export function JointJSProductView({
         if (onSavingChange) onSavingChange(true)
         
         try {
-          const graphData = graphRef.current.toJSON()
-          const result = await updateProduktGraph(produktId, graphData)
-          if (result.success) {
-            // Show message with Baugruppentypen count
-            toast.success(result.message || 'Graph erfolgreich gespeichert')
-            if (window.onGraphChanged) {
-              window.onGraphChanged(false)
+          // Save current view's graph data
+          if (currentViewRef.current === 'structure') {
+            const graphData = graphRef.current.toJSON()
+            const result = await updateProduktGraph(produktId, graphData)
+            if (result.success) {
+              setProductGraphData(graphData)
+              toast.success(result.message || 'Produktstruktur erfolgreich gespeichert')
+              if (window.onGraphChanged) {
+                window.onGraphChanged(false)
+              }
+              // Dispatch event to update sidebar or other components
+              window.dispatchEvent(new CustomEvent('factoryUpdated'))
+            } else {
+              toast.error(result.error || 'Fehler beim Speichern')
             }
-            // Dispatch event to update sidebar or other components
-            window.dispatchEvent(new CustomEvent('factoryUpdated'))
-          } else {
-            toast.error(result.error || 'Fehler beim Speichern')
+          } else if (currentViewRef.current === 'process') {
+            // For process view, save the process graph data
+            const processData = graphRef.current.toJSON()
+            setProcessGraphData(processData)
+            
+            // Import the updateProduktProcessGraph action
+            const { updateProduktProcessGraph } = await import('@/app/actions/produkt.actions')
+            const result = await updateProduktProcessGraph(produktId, processData)
+            
+            if (result.success) {
+              toast.success('Prozessstruktur erfolgreich gespeichert')
+            } else {
+              toast.error(result.error || 'Fehler beim Speichern der Prozessstruktur')
+            }
           }
         } catch (error) {
           console.error('Error saving graph:', error)

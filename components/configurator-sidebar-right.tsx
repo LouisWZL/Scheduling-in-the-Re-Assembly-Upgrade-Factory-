@@ -25,6 +25,7 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
   const [baugruppentypen, setBaugruppentypen] = useState<Baugruppentyp[]>([])
   const allBaugruppentypenRef = useRef<Baugruppentyp[]>([])
   const usedBaugruppentypenRef = useRef<Set<string>>(new Set())
+  const [isStencilDisabled, setIsStencilDisabled] = useState(false)
 
   // Fetch Baugruppentypen when factory changes
   useEffect(() => {
@@ -210,10 +211,24 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
       }, 50)
     }
     
+    // Handle stencil control events
+    const handleStencilControl = (event: CustomEvent) => {
+      if (stencilInstanceRef.current) {
+        if (event.detail === 'disable') {
+          stencilInstanceRef.current.stopListening()
+          setIsStencilDisabled(true)
+        } else if (event.detail === 'enable') {
+          stencilInstanceRef.current.startListening()
+          setIsStencilDisabled(false)
+        }
+      }
+    }
+    
     // Listen for events
     window.addEventListener('jointjs-paper-ready', handlePaperReady)
     window.addEventListener('graph-loaded', handleGraphLoaded)
     window.addEventListener('graph-changed', handleGraphChanged)
+    window.addEventListener('stencilControl', handleStencilControl as EventListener)
     
     // Try with a delay to ensure paper is ready
     const timeoutId = setTimeout(handlePaperReady, 100)
@@ -224,6 +239,7 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
       window.removeEventListener('jointjs-paper-ready', handlePaperReady)
       window.removeEventListener('graph-loaded', handleGraphLoaded)
       window.removeEventListener('graph-changed', handleGraphChanged)
+      window.removeEventListener('stencilControl', handleStencilControl as EventListener)
       if (stencilInstanceRef.current) {
         stencilInstanceRef.current.remove()
         stencilInstanceRef.current = null
@@ -267,6 +283,18 @@ export function ConfiguratorSidebarRight({ factoryId }: ConfiguratorSidebarRight
           className="h-full w-full relative"
           style={{ position: 'relative' }}
         />
+        {isStencilDisabled && (
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10">
+            <div className="text-center p-4">
+              <p className="text-sm text-muted-foreground">
+                Baugruppentypen sind in der Prozessstruktur-Ansicht nicht verfügbar
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Wechseln Sie zur Produktstruktur-Ansicht, um Baugruppentypen hinzuzufügen
+              </p>
+            </div>
+          </div>
+        )}
       </SidebarContent>
     </Sidebar>
   )

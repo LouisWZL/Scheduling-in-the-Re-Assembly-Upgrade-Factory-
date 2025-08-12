@@ -137,7 +137,8 @@ model Produkt {
   factoryId       String?
   varianten       Produktvariante[]
   baugruppentypen Baugruppentyp[]     // Welche Baugruppentypen dieses Produkt hat
-  graphData       Json?               // JointJS Graph JSON data
+  graphData       Json?               // JointJS Graph JSON data (Produktstruktur)
+  processGraphData Json?              // JointJS Process Graph JSON data (Prozessstruktur)
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 }

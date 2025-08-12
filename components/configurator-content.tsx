@@ -93,6 +93,7 @@ export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [activeGraphView, setActiveGraphView] = useState<'structure' | 'process'>('structure')
   
   // Control handlers for JointJS (define before any early returns)
   const handleZoomIn = useCallback(() => {
@@ -119,6 +120,17 @@ export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
     if (window.jointJSSave) {
       window.jointJSSave()
     }
+  }, [])
+  
+  const handleViewChange = useCallback(async (view: 'structure' | 'process') => {
+    // Save current graph before switching
+    if (window.jointJSSave) {
+      await window.jointJSSave()
+    }
+    
+    setActiveGraphView(view)
+    // Dispatch event for JointJS view to handle
+    window.dispatchEvent(new CustomEvent('graphViewChanged', { detail: view }))
   }, [])
 
   const fetchFactoryData = async () => {
@@ -295,6 +307,9 @@ export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
           canRedo={canRedo}
           onSave={handleSave}
           isSaving={isSaving}
+          showTabs={true}
+          activeView={activeGraphView}
+          onViewChange={handleViewChange}
         />
         <div className="flex-1 overflow-hidden">
           <JointJSProductView 
@@ -309,6 +324,7 @@ export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
             onCanRedoChange={setCanRedo}
             onSave={handleSave}
             onSavingChange={setIsSaving}
+            activeView={activeGraphView}
           />
         </div>
       </SidebarInset>

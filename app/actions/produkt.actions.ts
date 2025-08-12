@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { Prisma } from '@prisma/client'
 import { extractBaugruppentypenFromGraph } from '@/lib/graph-utils'
+import { generateProcessGraph } from '@/lib/process-graph-generator'
 
 export async function getProdukt(produktId: string) {
   try {
@@ -35,11 +36,15 @@ export async function updateProduktGraph(produktId: string, graphData: any) {
     // Extract Baugruppentyp IDs from the graph
     const baugruppentypenIds = extractBaugruppentypenFromGraph(graphData)
     
+    // Generate process graph from product graph
+    const processGraphData = generateProcessGraph(graphData)
+    
     // Update product with new graph data and Baugruppentypen associations
     const updatedProdukt = await prisma.produkt.update({
       where: { id: produktId },
       data: { 
         graphData,
+        processGraphData, // Save the generated process graph
         // Replace existing Baugruppentypen associations with the ones from the graph
         baugruppentypen: {
           set: baugruppentypenIds.map(id => ({ id }))
@@ -70,6 +75,53 @@ export async function updateProduktGraph(produktId: string, graphData: any) {
       return { success: false, error: `Datenbankfehler: ${error.message}` }
     }
     return { success: false, error: 'Fehler beim Speichern des Graphen' }
+  }
+}
+
+export async function getProduktWithProcessGraph(produktId: string) {
+  try {
+    const produkt = await prisma.produkt.findUnique({
+      where: { id: produktId },
+      select: {
+        id: true,
+        bezeichnung: true,
+        graphData: true,
+        processGraphData: true,
+        baugruppentypen: true
+      }
+    })
+
+    if (!produkt) {
+      return { success: false, error: 'Produkt nicht gefunden' }
+    }
+
+    return { success: true, data: produkt }
+  } catch (error) {
+    console.error('Error fetching product with process graph:', error)
+    return { success: false, error: 'Fehler beim Abrufen des Produkts' }
+  }
+}
+
+export async function updateProduktProcessGraph(produktId: string, processGraphData: any) {
+  try {
+    // Update the product with the process graph data
+    const updatedProdukt = await prisma.produkt.update({
+      where: { id: produktId },
+      data: {
+        processGraphData: processGraphData
+      }
+    })
+
+    return { 
+      success: true, 
+      message: 'Prozessstruktur erfolgreich gespeichert'
+    }
+  } catch (error) {
+    console.error('Error updating product process graph:', error)
+    return { 
+      success: false, 
+      error: 'Fehler beim Speichern der Prozessstruktur' 
+    }
   }
 }
 

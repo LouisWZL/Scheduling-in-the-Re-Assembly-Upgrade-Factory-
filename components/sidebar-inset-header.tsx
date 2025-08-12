@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
   ZoomIn, 
   ZoomOut, 
@@ -21,6 +22,9 @@ interface SidebarInsetHeaderProps {
   canRedo: boolean
   onSave?: () => void
   isSaving?: boolean
+  showTabs?: boolean
+  activeView?: 'structure' | 'process'
+  onViewChange?: (view: 'structure' | 'process') => void
 }
 
 export function SidebarInsetHeader({
@@ -33,13 +37,28 @@ export function SidebarInsetHeader({
   canUndo,
   canRedo,
   onSave,
-  isSaving = false
+  isSaving = false,
+  showTabs = false,
+  activeView = 'structure',
+  onViewChange
 }: SidebarInsetHeaderProps) {
   return (
     <div className="border-b bg-background px-6 py-4">
       <div className="flex items-center justify-between">
-        {/* Product Title */}
-        <h2 className="text-lg font-semibold">{produktName}</h2>
+        {/* Product Title and Tabs */}
+        <div className="flex items-center gap-4">
+          <h2 className="text-lg font-semibold">{produktName}</h2>
+          
+          {/* Tabs for switching views */}
+          {showTabs && onViewChange && (
+            <Tabs value={activeView} onValueChange={(value) => onViewChange(value as 'structure' | 'process')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="structure">Produktstruktur</TabsTrigger>
+                <TabsTrigger value="process">Prozessstruktur</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+        </div>
         
         {/* Toolbar */}
         <div className="flex items-center gap-2">
