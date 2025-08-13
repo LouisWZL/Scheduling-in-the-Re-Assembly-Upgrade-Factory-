@@ -46,6 +46,15 @@ interface OrderGraphViewerProps {
           bezeichnung: string
         } | null
       }
+      austauschBaugruppe?: {
+        id: string
+        bezeichnung: string
+        artikelnummer: string
+        variantenTyp: string
+        baugruppentyp?: {
+          bezeichnung: string
+        } | null
+      } | null
     }>
   } | null
 }

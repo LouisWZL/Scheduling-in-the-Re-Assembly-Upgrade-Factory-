@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { AuftragsPhase, UpgradeTyp, VariantenTyp, Prisma } from '@prisma/client'
 import { initializeCustomers, getRandomKunde } from './kunde.actions'
-import { createOrderGraphFromProduct, getConstrainedZustand } from '@/lib/order-graph-utils'
+import { createOrderGraphFromProduct, getConstrainedZustand, findCompatibleReplacementBaugruppe } from '@/lib/order-graph-utils'
 
 /**
  * Get all orders for a factory
@@ -26,6 +26,11 @@ export async function getAuftraege(factoryId: string) {
         baugruppenInstances: {
           include: {
             baugruppe: {
+              include: {
+                baugruppentyp: true
+              }
+            },
+            austauschBaugruppe: {
               include: {
                 baugruppentyp: true
               }
@@ -104,7 +109,12 @@ async function createSingleOrder(
     
     // Transform product graph to order graph
     let graphData = null
-    let baugruppenInstances: Array<{ baugruppeId: string; zustand: number; upgradeTyp?: UpgradeTyp }> = []
+    let baugruppenInstances: Array<{ 
+      baugruppeId: string; 
+      zustand: number; 
+      upgradeTyp?: UpgradeTyp;
+      austauschBaugruppeId?: string 
+    }> = []
 
     if (produkt.graphData) {
       const transformation = createOrderGraphFromProduct(
@@ -119,7 +129,8 @@ async function createSingleOrder(
       baugruppenInstances = transformation.baugruppenInstances.map(bi => ({
         baugruppeId: bi.baugruppeId,
         zustand: bi.zustand,
-        upgradeTyp: bi.zustand < 30 ? UpgradeTyp.PFLICHT : undefined
+        upgradeTyp: bi.zustand < 30 ? UpgradeTyp.PFLICHT : undefined,
+        austauschBaugruppeId: undefined
       }))
       
       // Check if we have at least one PFLICHT upgrade
@@ -148,6 +159,27 @@ async function createSingleOrder(
           baugruppenInstances[index].upgradeTyp = UpgradeTyp.WUNSCH
         }
       }
+      
+      // Assign replacement Baugruppen for all upgrades
+      for (let i = 0; i < baugruppenInstances.length; i++) {
+        if (baugruppenInstances[i].upgradeTyp) {
+          // Find the current Baugruppe
+          const currentBaugruppe = factory.baugruppen.find(bg => bg.id === baugruppenInstances[i].baugruppeId)
+          
+          if (currentBaugruppe) {
+            // Find a compatible replacement Baugruppe
+            const replacementBaugruppe = findCompatibleReplacementBaugruppe(
+              currentBaugruppe,
+              factory.baugruppen,
+              randomVariante.typ as VariantenTyp
+            )
+            
+            if (replacementBaugruppe) {
+              baugruppenInstances[i].austauschBaugruppeId = replacementBaugruppe.id
+            }
+          }
+        }
+      }
     }
 
     // Create order with transaction
@@ -165,7 +197,8 @@ async function createSingleOrder(
             create: baugruppenInstances.map(bi => ({
               baugruppeId: bi.baugruppeId,
               zustand: bi.zustand,
-              upgradeTyp: bi.upgradeTyp || null
+              upgradeTyp: bi.upgradeTyp || null,
+              austauschBaugruppeId: bi.austauschBaugruppeId || null
             }))
           },
           // Create initial delivery date
@@ -187,7 +220,8 @@ async function createSingleOrder(
           },
           baugruppenInstances: {
             include: {
-              baugruppe: true
+              baugruppe: true,
+              austauschBaugruppe: true
             }
           },
           liefertermine: true

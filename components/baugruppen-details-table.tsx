@@ -30,6 +30,15 @@ interface BaugruppenDetailsTableProps {
         bezeichnung: string
       } | null
     }
+    austauschBaugruppe?: {
+      id: string
+      bezeichnung: string
+      artikelnummer: string
+      variantenTyp: string
+      baugruppentyp?: {
+        bezeichnung: string
+      } | null
+    } | null
   }>
 }
 
@@ -94,9 +103,8 @@ export function BaugruppenDetailsTable({ baugruppenInstances }: BaugruppenDetail
             <TableRow className="hover:bg-transparent border-b">
               <TableHead className="text-xs font-medium h-9 px-2">Name</TableHead>
               <TableHead className="text-xs font-medium h-9 px-2">Typ</TableHead>
-              <TableHead className="text-xs font-medium h-9 px-2 text-center">Demontage</TableHead>
-              <TableHead className="text-xs font-medium h-9 px-2 text-center">Montage</TableHead>
               <TableHead className="text-xs font-medium h-9 px-2 text-center">Upgrade</TableHead>
+              <TableHead className="text-xs font-medium h-9 px-2">Ziel-Baugruppe</TableHead>
               <TableHead className="text-xs font-medium h-9 px-2 text-center">Zustand</TableHead>
             </TableRow>
           </TableHeader>
@@ -116,14 +124,22 @@ export function BaugruppenDetailsTable({ baugruppenInstances }: BaugruppenDetail
                 <TableCell className="py-2 px-2">
                   {getVariantenTypBadge(instance.baugruppe.variantenTyp)}
                 </TableCell>
-                <TableCell className="py-2 px-2 text-center text-xs">
-                  {instance.baugruppe.demontagezeit ? `${instance.baugruppe.demontagezeit} min` : '-'}
-                </TableCell>
-                <TableCell className="py-2 px-2 text-center text-xs">
-                  {instance.baugruppe.montagezeit ? `${instance.baugruppe.montagezeit} min` : '-'}
-                </TableCell>
                 <TableCell className="py-2 px-2 text-center">
                   {getUpgradeTypBadge(instance.upgradeTyp)}
+                </TableCell>
+                <TableCell className="py-2 px-2 text-xs font-medium">
+                  {instance.austauschBaugruppe ? (
+                    <div className="max-w-[140px]">
+                      <div className="truncate" title={instance.austauschBaugruppe.bezeichnung}>
+                        {instance.austauschBaugruppe.bezeichnung}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground truncate">
+                        {instance.austauschBaugruppe.artikelnummer}
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
                 </TableCell>
                 <TableCell className="py-2 px-2">
                   <div className="flex items-center gap-1">

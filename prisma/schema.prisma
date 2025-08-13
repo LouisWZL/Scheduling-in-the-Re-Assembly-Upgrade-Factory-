@@ -161,33 +161,36 @@ model Produktvariante {
 
 // Baugruppe: Definition einer Baugruppe (z.B. "Motor V6", "Getriebe Automatik")
 model Baugruppe {
-  id                   String               @id @default(cuid())
-  bezeichnung          String
-  artikelnummer        String               @unique
-  variantenTyp         VariantenTyp         // Für welche Varianten diese Baugruppe verfügbar ist
-  factory              ReassemblyFactory    @relation(fields: [factoryId], references: [id])
-  factoryId            String
-  baugruppentyp        Baugruppentyp?       @relation(fields: [baugruppentypId], references: [id])
-  baugruppentypId      String?
-  demontagezeit        Int?                 // in Minuten. Wie lange dauert es, diese Baugruppe zu demontieren?
-  montagezeit          Int?                 // in Minuten. Wie lange dauert es, diese Baugruppe zu montieren?
-  prozesse             Prozess[]            // Prozesse die dieser Baugruppe zugeordnet sind
-  baugruppenInstances  BaugruppeInstance[]  // Instances of this assembly in orders
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
+  id                          String               @id @default(cuid())
+  bezeichnung                 String
+  artikelnummer               String               @unique
+  variantenTyp                VariantenTyp         // Für welche Varianten diese Baugruppe verfügbar ist
+  factory                     ReassemblyFactory    @relation(fields: [factoryId], references: [id])
+  factoryId                   String
+  baugruppentyp               Baugruppentyp?       @relation(fields: [baugruppentypId], references: [id])
+  baugruppentypId             String?
+  demontagezeit               Int?                 // in Minuten. Wie lange dauert es, diese Baugruppe zu demontieren?
+  montagezeit                 Int?                 // in Minuten. Wie lange dauert es, diese Baugruppe zu montieren?
+  prozesse                    Prozess[]            // Prozesse die dieser Baugruppe zugeordnet sind
+  originalBaugruppenInstances BaugruppeInstance[]  @relation("OriginalBaugruppe") // Instances where this is the original assembly
+  austauschBaugruppenInstances BaugruppeInstance[] @relation("AustauschBaugruppe") // Instances where this is the replacement assembly
+  createdAt                   DateTime             @default(now())
+  updatedAt                   DateTime             @updatedAt
 }
 
 // BaugruppeInstance: Instance einer Baugruppe für einen spezifischen Auftrag
 model BaugruppeInstance {
-  id              String           @id @default(cuid())
-  baugruppe       Baugruppe        @relation(fields: [baugruppeId], references: [id])
-  baugruppeId     String
-  auftrag         Auftrag          @relation(fields: [auftragId], references: [id])
-  auftragId       String
-  zustand         Int              // Zustand von 0-100 (0 = sehr schlecht, 100 = sehr gut)
-  upgradeTyp      UpgradeTyp?      // PFLICHT wenn zustand < 30, WUNSCH für zufällige 0-2, sonst null
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id                    String           @id @default(cuid())
+  baugruppe             Baugruppe        @relation("OriginalBaugruppe", fields: [baugruppeId], references: [id])
+  baugruppeId           String
+  austauschBaugruppe    Baugruppe?       @relation("AustauschBaugruppe", fields: [austauschBaugruppeId], references: [id])
+  austauschBaugruppeId  String?
+  auftrag               Auftrag          @relation(fields: [auftragId], references: [id])
+  auftragId             String
+  zustand               Int              // Zustand von 0-100 (0 = sehr schlecht, 100 = sehr gut)
+  upgradeTyp            UpgradeTyp?      // PFLICHT wenn zustand < 30, WUNSCH für zufällige 0-2, sonst null
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
 }
 
 // Prozess: Operationen wie montieren, einölen, schleifen etc.

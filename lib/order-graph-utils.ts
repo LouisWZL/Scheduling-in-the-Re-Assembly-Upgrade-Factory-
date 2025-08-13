@@ -108,6 +108,41 @@ function getRandomElement<T>(array: T[]): T | undefined {
 }
 
 /**
+ * Find a compatible replacement Baugruppe for upgrades
+ * @param currentBaugruppe The current Baugruppe that needs replacement
+ * @param allBaugruppen All available Baugruppen in the factory
+ * @param variantenTyp The variant type of the order (basic or premium)
+ * @returns A randomly selected compatible replacement Baugruppe or undefined
+ */
+export function findCompatibleReplacementBaugruppe(
+  currentBaugruppe: BaugruppeWithRelations,
+  allBaugruppen: BaugruppeWithRelations[],
+  variantenTyp: VariantenTyp
+): BaugruppeWithRelations | undefined {
+  // Filter for compatible replacement Baugruppen
+  const compatibleBaugruppen = allBaugruppen.filter(bg => {
+    // Must be of the same Baugruppentyp
+    if (bg.baugruppentypId !== currentBaugruppe.baugruppentypId) return false
+    
+    // Must be compatible with the variant type
+    if (!isBaugruppeCompatibleWithVariant(bg.variantenTyp, variantenTyp)) return false
+    
+    return true
+  })
+  
+  // If there are other compatible Baugruppen, prefer those
+  const otherCompatibleBaugruppen = compatibleBaugruppen.filter(bg => bg.id !== currentBaugruppe.id)
+  
+  // Use other Baugruppen if available, otherwise allow the same Baugruppe
+  const candidateBaugruppen = otherCompatibleBaugruppen.length > 0 
+    ? otherCompatibleBaugruppen 
+    : compatibleBaugruppen
+  
+  // Return a random compatible Baugruppe
+  return getRandomElement(candidateBaugruppen)
+}
+
+/**
  * Transform a product graph to an order-specific graph
  * Replaces Baugruppentypen with compatible Baugruppen
  */
