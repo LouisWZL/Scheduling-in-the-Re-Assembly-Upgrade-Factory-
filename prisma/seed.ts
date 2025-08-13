@@ -38,7 +38,8 @@ const vwBaugruppentypenDefinitions = [
 // Porsche Factory
 const porscheFactory: Prisma.ReassemblyFactoryCreateInput = {
   name: "Stuttgart Porsche Reassembly Center",
-  kapazität: 50
+  kapazität: 50,
+  targetBatchAverage: 65
 }
 
 // Porsche Prozesse
@@ -156,7 +157,8 @@ const porscheProdukt: Omit<Prisma.ProduktCreateInput, 'factory'> = {
 // Audi Factory
 const audiFactory: Prisma.ReassemblyFactoryCreateInput = {
   name: "Ingolstadt Audi Reassembly Factory",
-  kapazität: 75
+  kapazität: 75,
+  targetBatchAverage: 65
 }
 
 // Audi Prozesse
@@ -258,7 +260,8 @@ const audiProdukt: Omit<Prisma.ProduktCreateInput, 'factory'> = {
 // VW Factory
 const vwFactory: Prisma.ReassemblyFactoryCreateInput = {
   name: "Wolfsburg Volkswagen Re-Manufacturing Plant",
-  kapazität: 100
+  kapazität: 100,
+  targetBatchAverage: 65
 }
 
 // VW Prozesse
@@ -354,16 +357,66 @@ async function main() {
   console.log('🌱 Start seeding ...')
 
   // Clean database in correct order (dependent records first)
-  await prisma.liefertermin.deleteMany()
-  await prisma.baugruppeInstance.deleteMany()
-  await prisma.auftrag.deleteMany()
-  await prisma.produktvariante.deleteMany()
-  await prisma.produkt.deleteMany()
-  await prisma.baugruppe.deleteMany()
-  await prisma.baugruppentyp.deleteMany()
-  await prisma.reassemblyFactory.deleteMany()
-  await prisma.prozess.deleteMany()
-  await prisma.kunde.deleteMany()
+  // Use try-catch to handle tables that might not exist yet
+  try {
+    await prisma.liefertermin.deleteMany()
+  } catch (error) {
+    console.log('Liefertermin table not found, skipping...')
+  }
+  
+  try {
+    await prisma.baugruppeInstance.deleteMany()
+  } catch (error) {
+    console.log('BaugruppeInstance table not found, skipping...')
+  }
+  
+  try {
+    await prisma.auftrag.deleteMany()
+  } catch (error) {
+    console.log('Auftrag table not found, skipping...')
+  }
+  
+  try {
+    await prisma.produktvariante.deleteMany()
+  } catch (error) {
+    console.log('Produktvariante table not found, skipping...')
+  }
+  
+  try {
+    await prisma.produkt.deleteMany()
+  } catch (error) {
+    console.log('Produkt table not found, skipping...')
+  }
+  
+  try {
+    await prisma.baugruppe.deleteMany()
+  } catch (error) {
+    console.log('Baugruppe table not found, skipping...')
+  }
+  
+  try {
+    await prisma.baugruppentyp.deleteMany()
+  } catch (error) {
+    console.log('Baugruppentyp table not found, skipping...')
+  }
+  
+  try {
+    await prisma.reassemblyFactory.deleteMany()
+  } catch (error) {
+    console.log('ReassemblyFactory table not found, skipping...')
+  }
+  
+  try {
+    await prisma.prozess.deleteMany()
+  } catch (error) {
+    console.log('Prozess table not found, skipping...')
+  }
+  
+  try {
+    await prisma.kunde.deleteMany()
+  } catch (error) {
+    console.log('Kunde table not found, skipping...')
+  }
 
   // ==========================================
   // ERSTELLE PORSCHE FACTORY

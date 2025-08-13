@@ -243,10 +243,10 @@ export async function generateOrders(factoryId: string, count: number = 10) {
     }
 
     const avgBaugruppen = factory.produkte[0].baugruppentypen.length || 5
-    const targetBatchAverage = 65
+    const targetBatchAverage = factory.targetBatchAverage || 65
     const totalBaugruppenCount = count * avgBaugruppen
     
-    // Pre-generate all zustand values to achieve batch average of 65%
+    // Pre-generate all zustand values to achieve target batch average
     const allZustandValues: number[] = []
     let currentSum = 0
     

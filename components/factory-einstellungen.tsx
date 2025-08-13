@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { Loader2, Save, Clock, Wrench } from 'lucide-react'
+import { Loader2, Save, Clock, Wrench, TrendingUp } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { updateFactoryName, updateFactoryCapacity, getFactory, updateFactorySchichtmodell, updateFactoryMontagestationen } from '@/app/actions/factory.actions'
+import { Slider } from '@/components/ui/slider'
+import { updateFactoryName, updateFactoryCapacity, getFactory, updateFactorySchichtmodell, updateFactoryMontagestationen, updateFactoryTargetBatchAverage } from '@/app/actions/factory.actions'
 
 interface FactoryEinstellungenProps {
   factoryId: string
@@ -20,11 +21,13 @@ export function FactoryEinstellungen({ factoryId }: FactoryEinstellungenProps) {
   const [savingCapacity, setSavingCapacity] = useState(false)
   const [savingSchichtmodell, setSavingSchichtmodell] = useState(false)
   const [savingMontagestationen, setSavingMontagestationen] = useState(false)
+  const [savingTargetBatchAverage, setSavingTargetBatchAverage] = useState(false)
   const [factoryData, setFactoryData] = useState<any>(null)
   const [name, setName] = useState('')
   const [capacity, setCapacity] = useState('')
   const [schichtmodell, setSchichtmodell] = useState('EINSCHICHT')
   const [montagestationen, setMontagestationen] = useState('')
+  const [targetBatchAverage, setTargetBatchAverage] = useState(65)
 
   useEffect(() => {
     loadFactoryData()
@@ -40,6 +43,7 @@ export function FactoryEinstellungen({ factoryId }: FactoryEinstellungenProps) {
         setCapacity(result.data.kapazität.toString())
         setSchichtmodell(result.data.schichtmodell || 'EINSCHICHT')
         setMontagestationen(result.data.anzahlMontagestationen?.toString() || '10')
+        setTargetBatchAverage(result.data.targetBatchAverage || 65)
       } else {
         toast.error('Fehler beim Laden der Factory-Daten')
       }
@@ -136,6 +140,23 @@ export function FactoryEinstellungen({ factoryId }: FactoryEinstellungenProps) {
       toast.error('Ein unerwarteter Fehler ist aufgetreten')
     } finally {
       setSavingMontagestationen(false)
+    }
+  }
+
+  const handleUpdateTargetBatchAverage = async () => {
+    setSavingTargetBatchAverage(true)
+    try {
+      const result = await updateFactoryTargetBatchAverage(factoryId, targetBatchAverage)
+      if (result.success) {
+        toast.success(result.message)
+        await loadFactoryData()
+      } else {
+        toast.error(result.error)
+      }
+    } catch (error) {
+      toast.error('Ein unerwarteter Fehler ist aufgetreten')
+    } finally {
+      setSavingTargetBatchAverage(false)
     }
   }
 
@@ -357,6 +378,72 @@ export function FactoryEinstellungen({ factoryId }: FactoryEinstellungenProps) {
                 size="sm"
               >
                 {savingMontagestationen ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Speichern...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Speichern
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Durchschnittlicher Zustand Card */}
+        <Card className="flex flex-col h-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Durchschnittlicher Baugruppenzustand
+            </CardTitle>
+            <CardDescription>
+              Legen Sie den durchschnittlichen Zustand für Baugruppen in Aufträgen fest. 
+              Dieser Wert bestimmt, wie die Baugruppen-Batches generiert werden.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col flex-1">
+            <div className="flex-1">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="targetBatchAverage">Durchschnittlicher Zustand</Label>
+                    <span className="text-2xl font-bold text-primary">{targetBatchAverage}%</span>
+                  </div>
+                  <Slider
+                    id="targetBatchAverage"
+                    min={10}
+                    max={90}
+                    step={1}
+                    value={[targetBatchAverage]}
+                    onValueChange={(value) => setTargetBatchAverage(value[0])}
+                    disabled={savingTargetBatchAverage}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>10% (Schlecht)</span>
+                    <span>50% (Mittel)</span>
+                    <span>90% (Sehr gut)</span>
+                  </div>
+                </div>
+                <div className="rounded-lg bg-muted p-3">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Hinweis:</strong> Baugruppen mit einem Zustand unter 30% werden automatisch 
+                    als Pflicht-Upgrade markiert.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="pt-4">
+              <Button 
+                onClick={handleUpdateTargetBatchAverage}
+                disabled={savingTargetBatchAverage || targetBatchAverage === (factoryData?.targetBatchAverage || 65)}
+                size="sm"
+              >
+                {savingTargetBatchAverage ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Speichern...

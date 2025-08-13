@@ -48,17 +48,26 @@ export function getConstrainedZustand(
   count: number,
   remaining: number
 ): number {
-  if (remaining === 0) return getRandomZustand()
+  if (remaining === 0) {
+    // For the last item, ensure we don't exceed bounds
+    const targetSum = targetAverage * (count + 1)
+    const neededValue = targetSum - currentSum
+    // Clamp between 0 and 100
+    return Math.max(0, Math.min(100, Math.round(neededValue)))
+  }
   
   // Calculate what average we need for remaining items
-  const targetSum = targetAverage * (count + remaining)
+  const targetSum = targetAverage * (count + remaining + 1)
   const neededSum = targetSum - currentSum
-  const neededAverage = neededSum / remaining
+  const neededAverage = neededSum / (remaining + 1)
+  
+  // Ensure neededAverage is within valid bounds
+  const clampedNeededAverage = Math.max(0, Math.min(100, neededAverage))
   
   // Add some randomness but bias towards the needed average
-  // Use a range of ±20 from the needed average
-  const min = Math.max(0, Math.floor(neededAverage - 20))
-  const max = Math.min(100, Math.ceil(neededAverage + 20))
+  // Use a range of ±20 from the needed average, but strictly within 0-100
+  const min = Math.max(0, Math.floor(clampedNeededAverage - 20))
+  const max = Math.min(100, Math.ceil(clampedNeededAverage + 20))
   
   return Math.floor(Math.random() * (max - min + 1)) + min
 }

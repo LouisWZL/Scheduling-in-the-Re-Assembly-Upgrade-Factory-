@@ -76,6 +76,7 @@ model ReassemblyFactory {
   kapazität             Int                 // Begrenzt wie viele Produkte gleichzeitig in der Halle sein können
   schichtmodell         Schichtmodell       @default(EINSCHICHT)
   anzahlMontagestationen Int                @default(10)
+  targetBatchAverage    Int                 @default(65) // Durchschnittlicher Zustand der Baugruppen in %
   auftraege             Auftrag[]
   produkte              Produkt[]           // Produkte der Reassembly Factory
   baugruppentypen       Baugruppentyp[]     // Baugruppentypen der Factory

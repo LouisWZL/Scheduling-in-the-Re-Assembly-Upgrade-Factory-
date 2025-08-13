@@ -160,31 +160,79 @@ export async function updateFactoryMontagestationen(id: string, anzahlMontagesta
   }
 }
 
+export async function updateFactoryTargetBatchAverage(id: string, targetBatchAverage: number) {
+  try {
+    // Validate targetBatchAverage
+    if (targetBatchAverage < 10 || targetBatchAverage > 90) {
+      return {
+        success: false,
+        error: 'Der durchschnittliche Zustand muss zwischen 10% und 90% liegen'
+      }
+    }
+    
+    const factory = await prisma.reassemblyFactory.update({
+      where: { id },
+      data: { targetBatchAverage }
+    })
+    
+    revalidatePath('/factory-configurator')
+    revalidatePath(`/factory-configurator/${id}`)
+    revalidatePath('/api/factories')
+    
+    return {
+      success: true,
+      data: factory,
+      message: 'Durchschnittlicher Zustand erfolgreich aktualisiert'
+    }
+  } catch (error) {
+    console.error('Error updating factory targetBatchAverage:', error)
+    
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2025') {
+        return {
+          success: false,
+          error: 'Factory nicht gefunden'
+        }
+      }
+    }
+    
+    return {
+      success: false,
+      error: 'Fehler beim Aktualisieren des durchschnittlichen Zustands'
+    }
+  }
+}
+
 export async function deleteAllFactoryOrders(factoryId: string) {
   try {
-    // First, delete all BaugruppeInstances for orders of this factory
-    await prisma.baugruppeInstance.deleteMany({
-      where: {
-        auftrag: {
+    // Use a transaction to ensure all deletes happen together
+    const result = await prisma.$transaction(async (tx) => {
+      // First, delete all BaugruppeInstances for orders of this factory
+      const baugruppeInstances = await tx.baugruppeInstance.deleteMany({
+        where: {
+          auftrag: {
+            factoryId
+          }
+        }
+      })
+      
+      // Then delete all Liefertermine for orders of this factory
+      const liefertermine = await tx.liefertermin.deleteMany({
+        where: {
+          auftrag: {
+            factoryId
+          }
+        }
+      })
+      
+      // Finally, delete all orders for this factory
+      const auftraege = await tx.auftrag.deleteMany({
+        where: {
           factoryId
         }
-      }
-    })
-    
-    // Then delete all Liefertermine for orders of this factory
-    await prisma.liefertermin.deleteMany({
-      where: {
-        auftrag: {
-          factoryId
-        }
-      }
-    })
-    
-    // Finally, delete all orders for this factory
-    await prisma.auftrag.deleteMany({
-      where: {
-        factoryId
-      }
+      })
+      
+      return { baugruppeInstances, liefertermine, auftraege }
     })
     
     revalidatePath('/')
@@ -192,10 +240,21 @@ export async function deleteAllFactoryOrders(factoryId: string) {
     
     return {
       success: true,
-      message: 'Alle Aufträge und zugehörigen Daten wurden erfolgreich gelöscht'
+      message: `Erfolgreich gelöscht: ${result.auftraege.count} Aufträge, ${result.baugruppeInstances.count} Baugruppen-Instanzen, ${result.liefertermine.count} Liefertermine`,
+      data: result
     }
   } catch (error) {
     console.error('Error deleting factory orders:', error)
+    
+    // Check for specific database errors
+    if (error instanceof Error) {
+      if (error.message.includes('readonly database')) {
+        return {
+          success: false,
+          error: 'Die Datenbank ist momentan schreibgeschützt. Bitte versuchen Sie es in ein paar Sekunden erneut.'
+        }
+      }
+    }
     
     return {
       success: false,
