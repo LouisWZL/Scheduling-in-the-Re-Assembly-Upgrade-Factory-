@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { UpgradeTyp } from '@prisma/client'
+import { ReAssemblyTyp } from '@prisma/client'
 import { BaugruppenDetailsTable } from '@/components/baugruppen-details-table'
 import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react'
 
@@ -20,7 +20,7 @@ interface BaugruppeDetail {
   artikelnummer: string
   variantenTyp: string
   zustand: number
-  upgradeTyp?: UpgradeTyp | null
+  reAssemblyTyp?: ReAssemblyTyp | null
 }
 
 interface OrderGraphViewerProps {
@@ -34,7 +34,7 @@ interface OrderGraphViewerProps {
     baugruppenInstances?: Array<{
       id: string
       zustand: number
-      upgradeTyp?: UpgradeTyp | null
+      reAssemblyTyp?: ReAssemblyTyp | null
       baugruppe: {
         id: string
         bezeichnung: string
@@ -197,7 +197,7 @@ export function OrderGraphViewer({ order }: OrderGraphViewerProps) {
         artikelnummer: instance.baugruppe.artikelnummer,
         variantenTyp: instance.baugruppe.variantenTyp,
         zustand: instance.zustand,
-        upgradeTyp: instance.upgradeTyp
+        reAssemblyTyp: instance.reAssemblyTyp
       })
     })
 
@@ -450,14 +450,14 @@ export function OrderGraphViewer({ order }: OrderGraphViewerProps) {
                 </div>
               </div>
 
-              {selectedBaugruppe.upgradeTyp && (
+              {selectedBaugruppe.reAssemblyTyp && (
                 <div>
-                  <Label className="text-muted-foreground">Upgrade-Typ</Label>
+                  <Label className="text-muted-foreground">ReAssembly-Typ</Label>
                   <Badge 
-                    variant={selectedBaugruppe.upgradeTyp === UpgradeTyp.PFLICHT ? 'destructive' : 'default'}
+                    variant={selectedBaugruppe.reAssemblyTyp === ReAssemblyTyp.PFLICHT ? 'destructive' : 'default'}
                     className="mt-1"
                   >
-                    {selectedBaugruppe.upgradeTyp}
+                    {selectedBaugruppe.reAssemblyTyp}
                   </Badge>
                 </div>
               )}

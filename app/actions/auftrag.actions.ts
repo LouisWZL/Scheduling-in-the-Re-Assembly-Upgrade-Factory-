@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
-import { AuftragsPhase, UpgradeTyp, VariantenTyp, Prisma } from '@prisma/client'
+import { AuftragsPhase, ReAssemblyTyp, VariantenTyp, Prisma } from '@prisma/client'
 import { initializeCustomers, getRandomKunde } from './kunde.actions'
 import { createOrderGraphFromProduct, getConstrainedZustand, findCompatibleReplacementBaugruppe } from '@/lib/order-graph-utils'
 
@@ -112,7 +112,7 @@ async function createSingleOrder(
     let baugruppenInstances: Array<{ 
       baugruppeId: string; 
       zustand: number; 
-      upgradeTyp?: UpgradeTyp;
+      reAssemblyTyp?: ReAssemblyTyp;
       austauschBaugruppeId?: string 
     }> = []
 
@@ -125,44 +125,44 @@ async function createSingleOrder(
       )
       graphData = transformation.graphData
       
-      // Assign upgrade types based on condition
+      // Assign reassembly types based on condition
       baugruppenInstances = transformation.baugruppenInstances.map(bi => ({
         baugruppeId: bi.baugruppeId,
         zustand: bi.zustand,
-        upgradeTyp: bi.zustand < 30 ? UpgradeTyp.PFLICHT : undefined,
+        reAssemblyTyp: bi.zustand < 30 ? ReAssemblyTyp.PFLICHT : undefined,
         austauschBaugruppeId: undefined
       }))
       
-      // Check if we have at least one PFLICHT upgrade
-      const hasPflichtUpgrade = baugruppenInstances.some(bi => bi.upgradeTyp === UpgradeTyp.PFLICHT)
+      // Check if we have at least one PFLICHT reassembly
+      const hasPflichtReAssembly = baugruppenInstances.some(bi => bi.reAssemblyTyp === ReAssemblyTyp.PFLICHT)
       
-      // Randomly select assemblies for WUNSCH upgrades (from those without PFLICHT)
-      const eligibleForWunsch = baugruppenInstances.filter(bi => !bi.upgradeTyp)
+      // Randomly select assemblies for UPGRADE reassembly (from those without PFLICHT)
+      const eligibleForReAssembly = baugruppenInstances.filter(bi => !bi.reAssemblyTyp)
       
-      // WICHTIG: Jeder Auftrag muss mindestens ein Upgrade haben (PFLICHT oder WUNSCH)
-      // - Wenn es bereits PFLICHT-Upgrades gibt (Baugruppen < 30%), können zusätzlich 0-2 WUNSCH-Upgrades hinzugefügt werden
-      // - Wenn es keine PFLICHT-Upgrades gibt, MUSS mindestens 1 WUNSCH-Upgrade hinzugefügt werden
-      let wunschCount: number
-      if (!hasPflichtUpgrade && eligibleForWunsch.length > 0) {
-        // Kein PFLICHT-Upgrade vorhanden -> MUSS mindestens 1 WUNSCH-Upgrade haben
-        wunschCount = Math.floor(Math.random() * 2) + 1 // 1 oder 2
+      // WICHTIG: Jeder Auftrag muss mindestens eine ReAssembly haben (PFLICHT oder UPGRADE)
+      // - Wenn es bereits PFLICHT-ReAssemblies gibt (Baugruppen < 30%), können zusätzlich 0-2 UPGRADE-ReAssemblies hinzugefügt werden
+      // - Wenn es keine PFLICHT-ReAssemblies gibt, MUSS mindestens 1 UPGRADE-ReAssembly hinzugefügt werden
+      let reAssemblyCount: number
+      if (!hasPflichtReAssembly && eligibleForReAssembly.length > 0) {
+        // Keine PFLICHT-ReAssembly vorhanden -> MUSS mindestens 1 UPGRADE-ReAssembly haben
+        reAssemblyCount = Math.floor(Math.random() * 2) + 1 // 1 oder 2
       } else {
-        // PFLICHT-Upgrade(s) vorhanden -> kann zusätzlich 0-2 WUNSCH-Upgrades haben
-        wunschCount = Math.floor(Math.random() * 3) // 0, 1, oder 2
+        // PFLICHT-ReAssembly(s) vorhanden -> kann zusätzlich 0-2 UPGRADE-ReAssemblies haben
+        reAssemblyCount = Math.floor(Math.random() * 3) // 0, 1, oder 2
       }
       
-      for (let i = 0; i < Math.min(wunschCount, eligibleForWunsch.length); i++) {
-        const randomIndex = Math.floor(Math.random() * eligibleForWunsch.length)
-        const selected = eligibleForWunsch.splice(randomIndex, 1)[0]
+      for (let i = 0; i < Math.min(reAssemblyCount, eligibleForReAssembly.length); i++) {
+        const randomIndex = Math.floor(Math.random() * eligibleForReAssembly.length)
+        const selected = eligibleForReAssembly.splice(randomIndex, 1)[0]
         const index = baugruppenInstances.findIndex(bi => bi.baugruppeId === selected.baugruppeId)
         if (index !== -1) {
-          baugruppenInstances[index].upgradeTyp = UpgradeTyp.WUNSCH
+          baugruppenInstances[index].reAssemblyTyp = ReAssemblyTyp.UPGRADE
         }
       }
       
-      // Assign replacement Baugruppen for all upgrades
+      // Assign replacement Baugruppen for all reassemblies
       for (let i = 0; i < baugruppenInstances.length; i++) {
-        if (baugruppenInstances[i].upgradeTyp) {
+        if (baugruppenInstances[i].reAssemblyTyp) {
           // Find the current Baugruppe
           const currentBaugruppe = factory.baugruppen.find(bg => bg.id === baugruppenInstances[i].baugruppeId)
           
@@ -197,7 +197,7 @@ async function createSingleOrder(
             create: baugruppenInstances.map(bi => ({
               baugruppeId: bi.baugruppeId,
               zustand: bi.zustand,
-              upgradeTyp: bi.upgradeTyp || null,
+              reAssemblyTyp: bi.reAssemblyTyp || null,
               austauschBaugruppeId: bi.austauschBaugruppeId || null
             }))
           },

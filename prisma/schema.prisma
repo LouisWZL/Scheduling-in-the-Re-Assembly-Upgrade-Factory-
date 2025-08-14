@@ -28,10 +28,10 @@ enum AuftragsPhase {
 }
 
 
-// Enum für Upgrade-Typen
-enum UpgradeTyp {
+// Enum für ReAssembly-Typen
+enum ReAssemblyTyp {
   PFLICHT // Aufgrund schlechtem Zustand der Baugruppe
-  WUNSCH // Kundenwunsch-Upgrade
+  UPGRADE // Kundenwunsch-Upgrade
 }
 
 // Enum für Liefertermin-Typen
@@ -188,7 +188,7 @@ model BaugruppeInstance {
   auftrag               Auftrag          @relation(fields: [auftragId], references: [id])
   auftragId             String
   zustand               Int              // Zustand von 0-100 (0 = sehr schlecht, 100 = sehr gut)
-  upgradeTyp            UpgradeTyp?      // PFLICHT wenn zustand < 30, WUNSCH für zufällige 0-2, sonst null
+  reAssemblyTyp         ReAssemblyTyp?   // PFLICHT wenn zustand < 30, UPGRADE für zufällige 0-2, sonst null
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
 }

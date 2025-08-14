@@ -108,7 +108,7 @@ function getRandomElement<T>(array: T[]): T | undefined {
 }
 
 /**
- * Find a compatible replacement Baugruppe for upgrades
+ * Find a compatible replacement Baugruppe for reassemblies
  * @param currentBaugruppe The current Baugruppe that needs replacement
  * @param allBaugruppen All available Baugruppen in the factory
  * @param variantenTyp The variant type of the order (basic or premium)

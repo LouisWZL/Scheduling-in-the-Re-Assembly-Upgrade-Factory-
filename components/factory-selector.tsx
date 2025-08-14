@@ -56,7 +56,7 @@ interface Prozess {
 interface Auftrag {
   id: string
   phase: string
-  upgradeTyp: string
+  reAssemblyTyp: string
   kunde: {
     vorname: string
     nachname: string

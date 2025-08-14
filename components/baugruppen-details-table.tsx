@@ -12,13 +12,13 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { UpgradeTyp } from '@prisma/client'
+import { ReAssemblyTyp } from '@prisma/client'
 
 interface BaugruppenDetailsTableProps {
   baugruppenInstances?: Array<{
     id: string
     zustand: number
-    upgradeTyp?: UpgradeTyp | null
+    reAssemblyTyp?: ReAssemblyTyp | null
     baugruppe: {
       id: string
       bezeichnung: string
@@ -72,15 +72,15 @@ export function BaugruppenDetailsTable({ baugruppenInstances }: BaugruppenDetail
     return 'bg-red-500'
   }
   
-  const getUpgradeTypBadge = (upgradeTyp?: UpgradeTyp | null) => {
-    if (!upgradeTyp) return <span className="text-muted-foreground">-</span>
+  const getReAssemblyTypBadge = (reAssemblyTyp?: ReAssemblyTyp | null) => {
+    if (!reAssemblyTyp) return <span className="text-muted-foreground">-</span>
     
     return (
       <Badge 
-        variant={upgradeTyp === UpgradeTyp.PFLICHT ? 'destructive' : 'default'}
+        variant={reAssemblyTyp === ReAssemblyTyp.PFLICHT ? 'destructive' : 'default'}
         className="text-xs"
       >
-        {upgradeTyp}
+        {reAssemblyTyp}
       </Badge>
     )
   }
@@ -103,7 +103,7 @@ export function BaugruppenDetailsTable({ baugruppenInstances }: BaugruppenDetail
             <TableRow className="hover:bg-transparent border-b">
               <TableHead className="text-xs font-medium h-9 px-2">Name</TableHead>
               <TableHead className="text-xs font-medium h-9 px-2">Typ</TableHead>
-              <TableHead className="text-xs font-medium h-9 px-2 text-center">Upgrade</TableHead>
+              <TableHead className="text-xs font-medium h-9 px-2 text-center">ReAssembly</TableHead>
               <TableHead className="text-xs font-medium h-9 px-2">Ziel-Baugruppe</TableHead>
               <TableHead className="text-xs font-medium h-9 px-2 text-center">Zustand</TableHead>
             </TableRow>
@@ -125,7 +125,7 @@ export function BaugruppenDetailsTable({ baugruppenInstances }: BaugruppenDetail
                   {getVariantenTypBadge(instance.baugruppe.variantenTyp)}
                 </TableCell>
                 <TableCell className="py-2 px-2 text-center">
-                  {getUpgradeTypBadge(instance.upgradeTyp)}
+                  {getReAssemblyTypBadge(instance.reAssemblyTyp)}
                 </TableCell>
                 <TableCell className="py-2 px-2 text-xs font-medium">
                   {instance.austauschBaugruppe ? (
