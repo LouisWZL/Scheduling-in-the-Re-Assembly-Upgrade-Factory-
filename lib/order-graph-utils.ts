@@ -415,7 +415,7 @@ export function transformProcessGraphToOrderGraph(
           ...cell.attrs,
           line: {
             ...cell.attrs?.line,
-            stroke: '#1a48a5',
+            stroke: '#000000',
             strokeWidth: 2
           }
         }

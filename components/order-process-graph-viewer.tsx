@@ -17,6 +17,29 @@ interface OrderProcessGraphViewerProps {
       typ: string
     }
     processGraphData?: any
+    baugruppenInstances?: Array<{
+      id: string
+      zustand: number
+      reAssemblyTyp?: string | null
+      baugruppe: {
+        id: string
+        bezeichnung: string
+        artikelnummer: string
+        variantenTyp: string
+        baugruppentyp?: {
+          bezeichnung: string
+        } | null
+      }
+      austauschBaugruppe?: {
+        id: string
+        bezeichnung: string
+        artikelnummer: string
+        variantenTyp: string
+        baugruppentyp?: {
+          bezeichnung: string
+        } | null
+      } | null
+    }>
   } | null
 }
 
@@ -128,6 +151,109 @@ export function OrderProcessGraphViewer({ order }: OrderProcessGraphViewerProps)
       console.log('Loading process graph with cells:', order.processGraphData.cells.length)
       graph.fromJSON(order.processGraphData)
       
+      // Apply color coding based on reassembly types and graph structure
+      const elements = graph.getElements()
+      
+      // Collect shapes with reassembly types and by process type
+      const reassemblyShapes = new Set<string>()
+      const demontageShapes = new Map<string, joint.dia.Element>()
+      const remontageShapes = new Map<string, joint.dia.Element>()
+      
+      elements.forEach(element => {
+        const cellData = element.toJSON()
+        
+        // Check if this shape has a reassembly type
+        if (cellData.baugruppenInstance && order.baugruppenInstances) {
+          const instance = order.baugruppenInstances.find(
+            (bi: any) => bi.id === cellData.baugruppenInstance.id
+          )
+          if (instance && instance.reAssemblyTyp) {
+            reassemblyShapes.add(element.id)
+          }
+        }
+        
+        // Categorize by process type
+        if (cellData.processType === 'demontage') {
+          demontageShapes.set(element.id, element)
+        } else if (cellData.processType === 'remontage') {
+          remontageShapes.set(element.id, element)
+        }
+      })
+      
+      // Collect all predecessors of reassembly shapes in demontage
+      const orangeShapes = new Set<string>()
+      reassemblyShapes.forEach(reassemblyId => {
+        const reassemblyElement = graph.getCell(reassemblyId)
+        if (reassemblyElement && demontageShapes.has(reassemblyId)) {
+          // Get all predecessors (deep search)
+          const predecessors = graph.getPredecessors(reassemblyElement as joint.dia.Element, { deep: true })
+          predecessors.forEach(pred => {
+            // Only add if it's not Inspektion and is in demontage subgraph
+            if (pred.id !== 'inspektion' && demontageShapes.has(pred.id)) {
+              orangeShapes.add(pred.id)
+            }
+          })
+        }
+      })
+      
+      // Collect all successors of reassembly shapes in remontage
+      const purpleShapes = new Set<string>()
+      reassemblyShapes.forEach(reassemblyId => {
+        const reassemblyElement = graph.getCell(reassemblyId)
+        if (reassemblyElement && remontageShapes.has(reassemblyId)) {
+          // Get all successors (deep search)
+          const successors = graph.getSuccessors(reassemblyElement as joint.dia.Element, { deep: true })
+          successors.forEach(succ => {
+            // Only add if it's not Qualitätsprüfung and is in remontage subgraph
+            if (succ.id !== 'qualitaetspruefung' && remontageShapes.has(succ.id)) {
+              purpleShapes.add(succ.id)
+            }
+          })
+        }
+      })
+      
+      // Color all shapes
+      elements.forEach(element => {
+        const elementId = element.id
+        let fillColor = '#4f4f4f' // Default gray for other shapes
+        let strokeColor = '#3a3a3a' // Darker gray border
+        
+        // 4. Inspektion and Qualitätsprüfung (green)
+        if (elementId === 'inspektion' || elementId === 'qualitaetspruefung') {
+          fillColor = '#4ca132'
+          strokeColor = '#3a7d26' // Darker green
+        }
+        // 1. Shapes with ReassemblyTyp (light blue)
+        else if (reassemblyShapes.has(elementId)) {
+          fillColor = '#87b0de'
+          strokeColor = '#6189b5' // Darker blue
+        }
+        // 2. Demontage predecessors of reassembly shapes (orange)
+        else if (orangeShapes.has(elementId)) {
+          fillColor = '#f1a22b'
+          strokeColor = '#c98222' // Darker orange
+        }
+        // 3. Remontage successors of reassembly shapes (purple)
+        else if (purpleShapes.has(elementId)) {
+          fillColor = '#672a92'
+          strokeColor = '#4f2070' // Darker purple
+        }
+        
+        // Apply the colors
+        element.attr('body/fill', fillColor)
+        element.attr('body/stroke', strokeColor)
+        element.attr('body/strokeWidth', 2)
+        element.attr('body/fillOpacity', 1)
+        element.attr('label/fill', '#ffffff') // Keep text white
+      })
+      
+      // Color all links black
+      const links = graph.getLinks()
+      links.forEach(link => {
+        link.attr('line/stroke', '#000000')
+        link.attr('line/strokeWidth', 2)
+      })
+      
       // Unfreeze to see the graph
       paper.unfreeze()
       
@@ -214,41 +340,67 @@ export function OrderProcessGraphViewer({ order }: OrderProcessGraphViewerProps)
         <CardTitle>Prozess</CardTitle>
       </CardHeader>
       <CardContent className="p-4">
-        <div className="relative" style={{ height: '460px' }}>
-          <div 
-            ref={paperRef} 
-            className="absolute inset-0 border rounded-lg bg-muted/10"
-            style={{ overflow: 'hidden' }}
-          />
-          {/* Zoom Controls */}
-          <div className="absolute top-2 right-2 flex gap-1 bg-background/90 backdrop-blur-sm rounded-md p-1 shadow-sm border">
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={handleZoomIn}
-              title="Vergrößern"
-              className="h-7 w-7"
-            >
-              <ZoomIn className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={handleZoomOut}
-              title="Verkleinern"
-              className="h-7 w-7"
-            >
-              <ZoomOut className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={handleZoomToFit}
-              title="Ansicht anpassen"
-              className="h-7 w-7"
-            >
-              <Maximize2 className="h-4 w-4" />
-            </Button>
+        <div className="space-y-3">
+          <div className="relative" style={{ height: '460px' }}>
+            <div 
+              ref={paperRef} 
+              className="absolute inset-0 border rounded-lg bg-muted/10"
+              style={{ overflow: 'hidden' }}
+            />
+            {/* Zoom Controls */}
+            <div className="absolute top-2 right-2 flex gap-1 bg-background/90 backdrop-blur-sm rounded-md p-1 shadow-sm border">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleZoomIn}
+                title="Vergrößern"
+                className="h-7 w-7"
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleZoomOut}
+                title="Verkleinern"
+                className="h-7 w-7"
+              >
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleZoomToFit}
+                title="Ansicht anpassen"
+                className="h-7 w-7"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          
+          {/* Legend */}
+          <div className="flex flex-wrap gap-3 text-xs">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded" style={{ backgroundColor: '#f1a22b', border: '2px solid #c98222' }}></div>
+              <span className="text-muted-foreground">Zwangsbeziehung</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded" style={{ backgroundColor: '#87b0de', border: '2px solid #6189b5' }}></div>
+              <span className="text-muted-foreground">ReAssembly-Baugruppe</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded" style={{ backgroundColor: '#4f4f4f', border: '2px solid #3a3a3a' }}></div>
+              <span className="text-muted-foreground">Nicht notwendiges Prozessmodul</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded" style={{ backgroundColor: '#672a92', border: '2px solid #4f2070' }}></div>
+              <span className="text-muted-foreground">Reziproke Zwangsbeziehung</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded" style={{ backgroundColor: '#4ca132', border: '2px solid #3a7d26' }}></div>
+              <span className="text-muted-foreground">Prozessphase</span>
+            </div>
           </div>
         </div>
       </CardContent>
