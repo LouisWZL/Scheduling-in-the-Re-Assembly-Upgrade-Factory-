@@ -316,7 +316,7 @@ export function OrderGraphViewer({ order }: OrderGraphViewerProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Montagevorranggraph</span>
+            <span>Auftragsdetails</span>
             <div className="flex items-center gap-2">
               <span className="text-sm font-normal text-muted-foreground">
                 {order.produktvariante.bezeichnung}
