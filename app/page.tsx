@@ -7,6 +7,7 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { OrdersTable } from '@/components/orders-table'
 import { OrderProvider } from '@/contexts/order-context'
 import { OrderGraphViewer } from '@/components/order-graph-viewer'
+import { OrderProcessGraphViewer } from '@/components/order-process-graph-viewer'
 import { useOrder } from '@/contexts/order-context'
 
 import data from "./data.json"
@@ -24,6 +25,7 @@ function HomeContent() {
             <div className="flex flex-1 flex-col gap-4 p-4">
               <OrdersTable data={data} />
               <OrderGraphViewer order={selectedOrder} />
+              <OrderProcessGraphViewer order={selectedOrder} />
             </div>
           </SidebarInset>
           <SidebarRight />

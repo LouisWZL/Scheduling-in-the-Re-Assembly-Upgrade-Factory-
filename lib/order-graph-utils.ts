@@ -2,7 +2,7 @@
  * Utility functions for transforming product graphs to order-specific graphs
  */
 
-import { VariantenTyp, Baugruppe } from '@prisma/client'
+import { VariantenTyp, Baugruppe, BaugruppeInstance } from '@prisma/client'
 
 interface GraphCell {
   id: string
@@ -358,4 +358,127 @@ export function createOrderGraphFromProduct(
     graphData: graph,
     baugruppenInstances: selectedBaugruppen
   }
+}
+
+/**
+ * Transform a process graph to order-specific process graph
+ * Replaces Baugruppentypen with BaugruppenInstances
+ */
+export function transformProcessGraphToOrderGraph(
+  processGraph: GraphData,
+  baugruppenInstances: Array<{
+    id: string
+    zustand: number
+    reAssemblyTyp?: any
+    baugruppe: {
+      id: string
+      bezeichnung: string
+      artikelnummer: string
+      variantenTyp: string
+      baugruppentyp?: {
+        id: string
+        bezeichnung: string
+      } | null
+    }
+    austauschBaugruppe?: {
+      id: string
+      bezeichnung: string
+      artikelnummer: string
+      variantenTyp: string
+      baugruppentyp?: {
+        bezeichnung: string
+      } | null
+    } | null
+  }>
+): GraphData {
+  if (!processGraph || !processGraph.cells || processGraph.cells.length === 0) {
+    return { cells: [] }
+  }
+
+  const newCells: GraphCell[] = []
+  
+  // Create mapping from baugruppentyp to baugruppeninstance
+  const baugruppentypToInstance = new Map<string, typeof baugruppenInstances[0]>()
+  baugruppenInstances.forEach(instance => {
+    if (instance.baugruppe.baugruppentyp) {
+      baugruppentypToInstance.set(instance.baugruppe.baugruppentyp.id, instance)
+    }
+  })
+
+  // Process each cell
+  processGraph.cells.forEach(cell => {
+    // Handle links - copy as is
+    if (cell.source || cell.target) {
+      newCells.push({
+        ...cell,
+        attrs: {
+          ...cell.attrs,
+          line: {
+            ...cell.attrs?.line,
+            stroke: '#1a48a5',
+            strokeWidth: 2
+          }
+        }
+      })
+      return
+    }
+
+    // Handle shapes
+    const newCell: GraphCell = { ...cell }
+    
+    // Update colors for all shapes
+    newCell.attrs = {
+      ...cell.attrs,
+      body: {
+        ...cell.attrs?.body,
+        fill: '#1a48a5',
+        fillOpacity: 1,
+        stroke: '#1a48a5',
+        strokeWidth: 2
+      },
+      label: {
+        ...cell.attrs?.label,
+        fill: '#ffffff',
+        fontSize: 12,
+        fontWeight: 'bold'
+      }
+    }
+
+    // If this shape has a baugruppentyp, replace with baugruppeninstance
+    if (cell.baugruppentyp) {
+      const instance = baugruppentypToInstance.get(cell.baugruppentyp.id)
+      
+      if (instance) {
+        // Remove baugruppentyp
+        delete newCell.baugruppentyp
+        
+        // Add baugruppeninstance reference
+        newCell.baugruppenInstance = {
+          id: instance.id,
+          baugruppeId: instance.baugruppe.id,
+          bezeichnung: instance.baugruppe.bezeichnung,
+          artikelnummer: instance.baugruppe.artikelnummer,
+          zustand: instance.zustand
+        }
+        
+        // Update label based on processType
+        const processType = (cell as any).processType
+        if (processType === 'demontage') {
+          newCell.attrs.label.text = `Demontage-${instance.baugruppe.bezeichnung}`
+        } else if (processType === 'remontage') {
+          newCell.attrs.label.text = `Remontage-${instance.baugruppe.bezeichnung}`
+        }
+      }
+    }
+    
+    // Special handling for Inspektion and Qualitätsprüfung
+    if (cell.id === 'inspektion' || cell.id === 'qualitaetspruefung') {
+      newCell.attrs.body.fill = '#1a48a5'
+      newCell.attrs.label.fill = '#ffffff'
+    }
+    
+    newCells.push(newCell)
+  })
+
+  return { cells: newCells }
 }

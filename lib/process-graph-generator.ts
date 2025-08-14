@@ -23,7 +23,8 @@ function createProcessShape(
   x: number,
   y: number,
   color: string,
-  baugruppentyp?: { id: string; bezeichnung: string }
+  baugruppentyp?: { id: string; bezeichnung: string },
+  processType?: 'demontage' | 'remontage'
 ): GraphCell {
   return {
     id,
@@ -50,6 +51,7 @@ function createProcessShape(
       }
     },
     baugruppentyp,
+    processType,
     ports: {
       groups: {
         'in': {
@@ -195,7 +197,8 @@ export function generateProcessGraph(productGraph: GraphData | null): GraphData 
       x,
       y,
       demontageColor,
-      shape.baugruppentyp
+      shape.baugruppentyp,
+      'demontage'
     )
     
     demontageShapes.set(shape.id, demontageShape)
@@ -225,7 +228,8 @@ export function generateProcessGraph(productGraph: GraphData | null): GraphData 
       mirroredX,
       y,
       remontageColor,
-      shape.baugruppentyp
+      shape.baugruppentyp,
+      'remontage'
     )
     
     remontageShapes.set(shape.id, remontageShape)

@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { AuftragsPhase, ReAssemblyTyp, VariantenTyp, Prisma } from '@prisma/client'
 import { initializeCustomers, getRandomKunde } from './kunde.actions'
-import { createOrderGraphFromProduct, getConstrainedZustand, findCompatibleReplacementBaugruppe } from '@/lib/order-graph-utils'
+import { createOrderGraphFromProduct, getConstrainedZustand, findCompatibleReplacementBaugruppe, transformProcessGraphToOrderGraph } from '@/lib/order-graph-utils'
 
 /**
  * Get all orders for a factory
@@ -109,6 +109,7 @@ async function createSingleOrder(
     
     // Transform product graph to order graph
     let graphData = null
+    let processGraphData = null
     let baugruppenInstances: Array<{ 
       baugruppeId: string; 
       zustand: number; 
@@ -184,7 +185,7 @@ async function createSingleOrder(
 
     // Create order with transaction
     const auftrag = await prisma.$transaction(async (tx) => {
-      // Create the order
+      // First create the order with baugruppenInstances
       const newAuftrag = await tx.auftrag.create({
         data: {
           kundeId: kundeResult.data.id,
@@ -192,6 +193,7 @@ async function createSingleOrder(
           factoryId: factoryId,
           phase: AuftragsPhase.ERSTKONTAKT,
           graphData: graphData as any,
+          processGraphData: null as any, // Will be updated after creation
           // Create assembly instances
           baugruppenInstances: {
             create: baugruppenInstances.map(bi => ({
@@ -228,6 +230,38 @@ async function createSingleOrder(
         }
       })
 
+      // Now generate process graph with the created baugruppenInstances
+      if (produkt.processGraphData && newAuftrag.baugruppenInstances) {
+        // Get the baugruppenInstances with full relations
+        const fullBaugruppenInstances = await tx.baugruppeInstance.findMany({
+          where: { auftragId: newAuftrag.id },
+          include: {
+            baugruppe: {
+              include: {
+                baugruppentyp: true
+              }
+            },
+            austauschBaugruppe: {
+              include: {
+                baugruppentyp: true
+              }
+            }
+          }
+        })
+
+        // Transform process graph
+        processGraphData = transformProcessGraphToOrderGraph(
+          produkt.processGraphData as any,
+          fullBaugruppenInstances as any
+        )
+
+        // Update the order with the process graph
+        await tx.auftrag.update({
+          where: { id: newAuftrag.id },
+          data: { processGraphData: processGraphData as any }
+        })
+      }
+
       // Store the transformed graph in the produktvariante links field if not already done
       if (graphData && !randomVariante.links) {
         await tx.produktvariante.update({
@@ -236,7 +270,25 @@ async function createSingleOrder(
         })
       }
 
-      return newAuftrag
+      // Return the updated order
+      return await tx.auftrag.findUnique({
+        where: { id: newAuftrag.id },
+        include: {
+          kunde: true,
+          produktvariante: {
+            include: {
+              produkt: true
+            }
+          },
+          baugruppenInstances: {
+            include: {
+              baugruppe: true,
+              austauschBaugruppe: true
+            }
+          },
+          liefertermine: true
+        }
+      })
     })
 
     return { success: true, data: auftrag }
