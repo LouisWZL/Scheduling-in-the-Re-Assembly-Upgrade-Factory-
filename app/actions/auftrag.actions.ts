@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { AuftragsPhase, ReAssemblyTyp, VariantenTyp, Prisma } from '@prisma/client'
 import { initializeCustomers, getRandomKunde } from './kunde.actions'
-import { createOrderGraphFromProduct, getConstrainedZustand, findCompatibleReplacementBaugruppe, transformProcessGraphToOrderGraph } from '@/lib/order-graph-utils'
+import { createOrderGraphFromProduct, getConstrainedZustand, findCompatibleReplacementBaugruppe, transformProcessGraphToOrderGraph, generateProcessSequences } from '@/lib/order-graph-utils'
 
 /**
  * Get all orders for a factory
@@ -255,10 +255,19 @@ async function createSingleOrder(
           fullBaugruppenInstances as any
         )
 
-        // Update the order with the process graph
+        // Generate process sequences
+        const processSequences = generateProcessSequences(
+          processGraphData,
+          fullBaugruppenInstances as any
+        )
+
+        // Update the order with the process graph and sequences
         await tx.auftrag.update({
           where: { id: newAuftrag.id },
-          data: { processGraphData: processGraphData as any }
+          data: { 
+            processGraphData: processGraphData as any,
+            processSequences: processSequences as any
+          }
         })
       }
 

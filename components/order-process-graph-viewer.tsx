@@ -5,6 +5,7 @@ import * as joint from '@joint/plus'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react'
+import { ProcessSequencesList } from '@/components/process-sequences-list'
 
 // Import JointJS CSS - IMPORTANT!
 import '@joint/plus/joint-plus.css'
@@ -17,6 +18,7 @@ interface OrderProcessGraphViewerProps {
       typ: string
     }
     processGraphData?: any
+    processSequences?: any
     baugruppenInstances?: Array<{
       id: string
       zustand: number
@@ -409,6 +411,13 @@ export function OrderProcessGraphViewer({ order }: OrderProcessGraphViewerProps)
           </div>
         </div>
       </CardContent>
+      
+      {/* Process Sequences List */}
+      {order.processSequences && (
+        <CardContent className="border-t pt-4">
+          <ProcessSequencesList sequences={order.processSequences} />
+        </CardContent>
+      )}
     </Card>
   )
 }

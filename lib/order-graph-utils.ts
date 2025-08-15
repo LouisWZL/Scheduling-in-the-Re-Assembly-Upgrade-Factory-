@@ -2,7 +2,7 @@
  * Utility functions for transforming product graphs to order-specific graphs
  */
 
-import { VariantenTyp, Baugruppe, BaugruppeInstance } from '@prisma/client'
+import { VariantenTyp, Baugruppe } from '@prisma/client'
 
 interface GraphCell {
   id: string
@@ -10,8 +10,8 @@ interface GraphCell {
   attrs?: any
   position?: { x: number; y: number }
   size?: { width: number; height: number }
-  source?: { id: string }
-  target?: { id: string }
+  source?: { id: string; port?: string }
+  target?: { id: string; port?: string }
   baugruppentyp?: { id: string; bezeichnung: string }
   baugruppe?: { id: string; bezeichnung: string; artikelnummer: string }
   [key: string]: any
@@ -481,4 +481,348 @@ export function transformProcessGraphToOrderGraph(
   })
 
   return { cells: newCells }
+}
+
+/**
+ * Generate all possible sequences through the process graph
+ * to demontage and remontage all ReAssembly components
+ */
+export function generateProcessSequences(
+  processGraph: GraphData,
+  baugruppenInstances: Array<{
+    id: string
+    reAssemblyTyp?: string | null
+    baugruppe: {
+      bezeichnung: string
+    }
+  }>
+): { sequences: Array<{ id: string; steps: string[]; totalSteps: number; demontageSteps: number; remontageSteps: number }> } {
+  if (!processGraph || !processGraph.cells || processGraph.cells.length === 0) {
+    return { sequences: [] }
+  }
+
+  // Build graph structure
+  const nodes = new Map<string, any>()
+  const edges = new Map<string, Set<string>>() // source -> targets
+  const reverseEdges = new Map<string, Set<string>>() // target -> sources
+  const demontageNodes = new Map<string, any>()
+  const remontageNodes = new Map<string, any>()
+  const reassemblyDemontageNodes = new Set<string>()
+  
+  // Process all cells
+  processGraph.cells.forEach(cell => {
+    if (!cell.source && !cell.target) {
+      // It's a node
+      nodes.set(cell.id, cell)
+      
+      // Categorize by process type
+      if ((cell as any).processType === 'demontage') {
+        demontageNodes.set(cell.id, cell)
+        
+        // Check if this is a reassembly node
+        if (cell.baugruppenInstance && baugruppenInstances) {
+          const instance = baugruppenInstances.find(
+            bi => bi.id === cell.baugruppenInstance.id
+          )
+          if (instance && instance.reAssemblyTyp) {
+            reassemblyDemontageNodes.add(cell.id)
+          }
+        }
+      } else if ((cell as any).processType === 'remontage') {
+        remontageNodes.set(cell.id, cell)
+      }
+    } else if (cell.source && cell.target) {
+      // It's an edge
+      const sourceId = typeof cell.source === 'object' ? cell.source.id : cell.source
+      const targetId = typeof cell.target === 'object' ? cell.target.id : cell.target
+      
+      if (!edges.has(sourceId)) {
+        edges.set(sourceId, new Set())
+      }
+      edges.get(sourceId)!.add(targetId)
+      
+      if (!reverseEdges.has(targetId)) {
+        reverseEdges.set(targetId, new Set())
+      }
+      reverseEdges.get(targetId)!.add(sourceId)
+    }
+  })
+  
+  // Find all nodes that MUST be visited (predecessors of reassembly nodes)
+  const requiredDemontageNodes = new Set<string>()
+  
+  // Add all reassembly nodes as required
+  reassemblyDemontageNodes.forEach(nodeId => {
+    requiredDemontageNodes.add(nodeId)
+  })
+  
+  // Find all predecessors of reassembly nodes (these must be demontaged)
+  function findAllPredecessors(nodeId: string, visited: Set<string> = new Set()): Set<string> {
+    if (visited.has(nodeId)) return visited
+    visited.add(nodeId)
+    
+    const predecessors = reverseEdges.get(nodeId) || new Set()
+    predecessors.forEach(pred => {
+      if (demontageNodes.has(pred) && !visited.has(pred)) {
+        findAllPredecessors(pred, visited)
+      }
+    })
+    
+    return visited
+  }
+  
+  // Collect all required predecessors for each reassembly node
+  reassemblyDemontageNodes.forEach(reassemblyId => {
+    const allPredecessors = findAllPredecessors(reassemblyId)
+    allPredecessors.forEach(pred => {
+      if (pred !== 'inspektion') { // Don't add Inspektion to required nodes
+        requiredDemontageNodes.add(pred)
+      }
+    })
+  })
+  
+  // Find all valid demontage sequences using DFS with backtracking
+  const sequences: string[][] = []
+  const sequenceHashes = new Set<string>() // Track unique sequences to avoid duplicates
+  const maxSequences = 100 // Limit to prevent performance issues
+  
+  // Helper function to create a hash of a sequence for duplicate detection
+  function getSequenceHash(path: string[]): string {
+    return path.join('->')
+  }
+  
+  function findDemontageSequences(
+    current: string,
+    visited: Set<string>,
+    path: string[],
+    remainingReassembly: Set<string>
+  ) {
+    // Stop if we've found enough sequences
+    if (sequences.length >= maxSequences) {
+      return
+    }
+    
+    // If all reassembly nodes are visited, we have a valid sequence
+    if (remainingReassembly.size === 0) {
+      const sequenceHash = getSequenceHash(path)
+      // Only add if this sequence is unique
+      if (!sequenceHashes.has(sequenceHash)) {
+        sequenceHashes.add(sequenceHash)
+        sequences.push([...path])
+      }
+      return
+    }
+    
+    // Get possible next nodes
+    const nextNodes = edges.get(current) || new Set()
+    
+    // First, try to visit unvisited nodes directly accessible from current
+    for (const next of nextNodes) {
+      // Skip if not a demontage node
+      if (!demontageNodes.has(next)) {
+        continue
+      }
+      
+      // Skip if this node is not required (not a predecessor of any reassembly node)
+      if (!requiredDemontageNodes.has(next)) {
+        continue
+      }
+      
+      // Check if all predecessors have been visited
+      const predecessors = reverseEdges.get(next) || new Set()
+      let canVisit = true
+      for (const pred of predecessors) {
+        if (demontageNodes.has(pred) && requiredDemontageNodes.has(pred) && !visited.has(pred)) {
+          canVisit = false
+          break
+        }
+      }
+      
+      if (canVisit && !visited.has(next)) {
+        // Visit this node
+        visited.add(next)
+        path.push(next)
+        
+        // Update remaining reassembly nodes
+        const newRemaining = new Set(remainingReassembly)
+        if (reassemblyDemontageNodes.has(next)) {
+          newRemaining.delete(next)
+        }
+        
+        // Recursively explore
+        findDemontageSequences(next, visited, path, newRemaining)
+        
+        // Backtrack
+        path.pop()
+        visited.delete(next)
+      }
+    }
+    
+    // If we still have remaining reassembly nodes and can't reach them directly,
+    // we need to explore from already visited nodes (without re-demontaging them)
+    if (remainingReassembly.size > 0) {
+      // Try to continue from any visited node that has unexplored paths
+      for (const visitedNode of visited) {
+        if (visitedNode === current) continue // Skip current node
+        
+        const visitedNextNodes = edges.get(visitedNode) || new Set()
+        
+        for (const next of visitedNextNodes) {
+          // Skip if not a demontage node
+          if (!demontageNodes.has(next)) {
+            continue
+          }
+          
+          // Skip if this node is not required
+          if (!requiredDemontageNodes.has(next)) {
+            continue
+          }
+          
+          // Check if all predecessors have been visited
+          const predecessors = reverseEdges.get(next) || new Set()
+          let canVisit = true
+          for (const pred of predecessors) {
+            if (demontageNodes.has(pred) && requiredDemontageNodes.has(pred) && !visited.has(pred)) {
+              canVisit = false
+              break
+            }
+          }
+          
+          if (canVisit && !visited.has(next)) {
+            // We can reach this unvisited node from a previously visited node
+            // This represents "going back" to that visited node without re-demontaging
+            visited.add(next)
+            path.push(next)
+            
+            // Update remaining reassembly nodes
+            const newRemaining = new Set(remainingReassembly)
+            if (reassemblyDemontageNodes.has(next)) {
+              newRemaining.delete(next)
+            }
+            
+            // Recursively explore from this new node
+            findDemontageSequences(next, visited, path, newRemaining)
+            
+            // Backtrack
+            path.pop()
+            visited.delete(next)
+          }
+        }
+      }
+    }
+  }
+  
+  // Start DFS from Inspektion
+  const visited = new Set<string>(['inspektion'])
+  findDemontageSequences('inspektion', visited, ['inspektion'], reassemblyDemontageNodes)
+  
+  // Convert sequences to final format
+  const finalSequences = sequences.map((demontageSeq, index) => {
+    // Create remontage sequence (reverse of demontage, excluding Inspektion)
+    const demontageOnly = demontageSeq.slice(1) // Remove Inspektion
+    
+    // For remontage, we only need to remontage the ReAssembly nodes and their successors
+    // Find which nodes need to be remontaged
+    const remontageRequired = new Set<string>()
+    
+    // Add all reassembly nodes (they need to be remontaged)
+    demontageOnly.forEach(nodeId => {
+      if (reassemblyDemontageNodes.has(nodeId)) {
+        remontageRequired.add(nodeId)
+      }
+    })
+    
+    // Find all successors of reassembly nodes in the remontage graph
+    function findAllSuccessors(nodeId: string, visited: Set<string> = new Set()): Set<string> {
+      const remontageId = nodeId.replace('demontage-', 'remontage-')
+      if (visited.has(remontageId)) return visited
+      visited.add(remontageId)
+      
+      const successors = edges.get(remontageId) || new Set()
+      successors.forEach(succ => {
+        if (remontageNodes.has(succ) && !visited.has(succ)) {
+          findAllSuccessors(succ.replace('remontage-', 'demontage-'), visited)
+        }
+      })
+      
+      return visited
+    }
+    
+    // Collect all required remontage nodes
+    const remontageNodeIds = new Set<string>()
+    remontageRequired.forEach(demontageNodeId => {
+      const remontageId = demontageNodeId.replace('demontage-', 'remontage-')
+      if (remontageNodes.has(remontageId)) {
+        remontageNodeIds.add(demontageNodeId)
+        // Also add all successors in remontage graph
+        const successors = findAllSuccessors(demontageNodeId)
+        successors.forEach(succId => {
+          const demontageEquivalent = succId.replace('remontage-', 'demontage-')
+          if (demontageOnly.includes(demontageEquivalent)) {
+            remontageNodeIds.add(demontageEquivalent)
+          }
+        })
+      }
+    })
+    
+    // Create remontage sequence from only the required nodes
+    const remontageSeq = demontageOnly.filter(nodeId => remontageNodeIds.has(nodeId)).reverse()
+    
+    // Map node IDs to readable names
+    const steps: string[] = []
+    
+    // Add Inspektion
+    steps.push('I')
+    
+    // Add demontage steps
+    demontageOnly.forEach(nodeId => {
+      const node = nodes.get(nodeId)
+      if (node && node.attrs && node.attrs.label && node.attrs.label.text) {
+        // Extract the Baugruppe name without "Demontage-" prefix
+        const label = node.attrs.label.text.replace('Demontage-', '')
+        steps.push(label)
+      } else {
+        steps.push(nodeId)
+      }
+    })
+    
+    // Add separator
+    steps.push('×')
+    
+    // Add remontage steps
+    remontageSeq.forEach(nodeId => {
+      // Find corresponding remontage node
+      const demontageNode = nodes.get(nodeId)
+      if (demontageNode) {
+        // Convert demontage ID to remontage ID
+        const remontageId = nodeId.replace('demontage-', 'remontage-')
+        const remontageNode = nodes.get(remontageId)
+        
+        if (remontageNode && remontageNode.attrs && remontageNode.attrs.label && remontageNode.attrs.label.text) {
+          // Extract the Baugruppe name without "Remontage-" prefix
+          const label = remontageNode.attrs.label.text.replace('Remontage-', '')
+          steps.push(label)
+        } else if (demontageNode.attrs && demontageNode.attrs.label && demontageNode.attrs.label.text) {
+          // Fallback: use demontage label
+          const label = demontageNode.attrs.label.text.replace('Demontage-', '')
+          steps.push(label)
+        } else {
+          steps.push(nodeId)
+        }
+      }
+    })
+    
+    // Add Qualitätsprüfung
+    steps.push('Q')
+    
+    return {
+      id: `seq-${index + 1}`,
+      steps: steps,
+      totalSteps: steps.length - 1, // Exclude separator
+      demontageSteps: demontageOnly.length,
+      remontageSteps: remontageSeq.length
+    }
+  })
+  
+  return { sequences: finalSequences }
 }

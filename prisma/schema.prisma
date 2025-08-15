@@ -112,6 +112,7 @@ model Auftrag {
   liefertermine         Liefertermin[]
   graphData             Json?                // Order-specific assembly graph
   processGraphData      Json?                // Order-specific process graph
+  processSequences      Json?                // All possible process sequences
   baugruppenInstances   BaugruppeInstance[]  // Assembly instances for this order
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
