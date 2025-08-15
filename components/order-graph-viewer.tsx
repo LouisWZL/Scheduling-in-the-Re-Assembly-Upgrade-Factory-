@@ -221,7 +221,7 @@ export function OrderGraphViewer({ order }: OrderGraphViewerProps) {
       }
     })
 
-    // Update element colors based on zustand and remove move cursor
+    // Update element colors based on ReAssemblyTyp
     graph.getElements().forEach(element => {
       const cellData = element.toJSON()
       if (cellData.baugruppe) {
@@ -229,19 +229,23 @@ export function OrderGraphViewer({ order }: OrderGraphViewerProps) {
           bi => bi.baugruppe.id === cellData.baugruppe.id
         )
         if (instance) {
-          // Color based on zustand (0-100)
-          let color = '#10b981' // green for good condition
-          if (instance.zustand < 30) {
-            color = '#ef4444' // red for bad condition
-          } else if (instance.zustand < 60) {
-            color = '#f59e0b' // amber for medium condition
+          // Color based on ReAssemblyTyp
+          let fillColor = '#4f4f4f' // gray for normal assemblies
+          let strokeColor = '#3a3a3a' // darker gray border
+          let textColor = '#ffffff' // white text for gray
+          
+          if (instance.reAssemblyTyp) {
+            fillColor = '#87b0de' // light blue for ReAssembly
+            strokeColor = '#6189b5' // darker blue border
+            textColor = '#000000' // black text for blue
           }
           
-          element.attr('body/fill', color)
-          element.attr('body/fillOpacity', 0.3)
-          element.attr('body/stroke', color)
+          element.attr('body/fill', fillColor)
+          element.attr('body/fillOpacity', 0.8)
+          element.attr('body/stroke', strokeColor)
           element.attr('body/strokeWidth', 2)
           element.attr('body/cursor', 'pointer') // Use pointer cursor instead of move
+          element.attr('label/fill', textColor)
         }
       }
     })
@@ -374,16 +378,12 @@ export function OrderGraphViewer({ order }: OrderGraphViewerProps) {
               <div className="mt-3 space-y-2">
                 <div className="flex flex-wrap gap-3 text-xs">
                   <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 bg-red-500 opacity-30 border-2 border-red-500 rounded"></div>
-                    <span className="text-muted-foreground">Schlecht (&lt;30)</span>
+                    <div className="w-3 h-3 rounded" style={{ backgroundColor: '#87b0de', opacity: 0.8, border: '2px solid #6189b5' }}></div>
+                    <span className="text-muted-foreground">ReAssembly-Baugruppe</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 bg-amber-500 opacity-30 border-2 border-amber-500 rounded"></div>
-                    <span className="text-muted-foreground">Mittel (30-60)</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 bg-green-500 opacity-30 border-2 border-green-500 rounded"></div>
-                    <span className="text-muted-foreground">Gut (&gt;60)</span>
+                    <div className="w-3 h-3 rounded" style={{ backgroundColor: '#4f4f4f', opacity: 0.8, border: '2px solid #3a3a3a' }}></div>
+                    <span className="text-muted-foreground">Baugruppe</span>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">

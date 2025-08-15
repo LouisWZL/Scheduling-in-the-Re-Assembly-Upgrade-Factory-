@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import * as joint from '@joint/plus'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -168,15 +168,15 @@ export function OrderProcessGraphViewer({ order }: OrderProcessGraphViewerProps)
             (bi: any) => bi.id === cellData.baugruppenInstance.id
           )
           if (instance && instance.reAssemblyTyp) {
-            reassemblyShapes.add(element.id)
+            reassemblyShapes.add(String(element.id))
           }
         }
         
         // Categorize by process type
         if (cellData.processType === 'demontage') {
-          demontageShapes.set(element.id, element)
+          demontageShapes.set(String(element.id), element)
         } else if (cellData.processType === 'remontage') {
-          remontageShapes.set(element.id, element)
+          remontageShapes.set(String(element.id), element)
         }
       })
       
@@ -184,13 +184,13 @@ export function OrderProcessGraphViewer({ order }: OrderProcessGraphViewerProps)
       const orangeShapes = new Set<string>()
       reassemblyShapes.forEach(reassemblyId => {
         const reassemblyElement = graph.getCell(reassemblyId)
-        if (reassemblyElement && demontageShapes.has(reassemblyId)) {
+        if (reassemblyElement && demontageShapes.has(String(reassemblyId))) {
           // Get all predecessors (deep search)
           const predecessors = graph.getPredecessors(reassemblyElement as joint.dia.Element, { deep: true })
           predecessors.forEach(pred => {
             // Only add if it's not Inspektion and is in demontage subgraph
-            if (pred.id !== 'inspektion' && demontageShapes.has(pred.id)) {
-              orangeShapes.add(pred.id)
+            if (pred.id !== 'inspektion' && demontageShapes.has(String(pred.id))) {
+              orangeShapes.add(String(pred.id))
             }
           })
         }
@@ -200,13 +200,13 @@ export function OrderProcessGraphViewer({ order }: OrderProcessGraphViewerProps)
       const purpleShapes = new Set<string>()
       reassemblyShapes.forEach(reassemblyId => {
         const reassemblyElement = graph.getCell(reassemblyId)
-        if (reassemblyElement && remontageShapes.has(reassemblyId)) {
+        if (reassemblyElement && remontageShapes.has(String(reassemblyId))) {
           // Get all successors (deep search)
           const successors = graph.getSuccessors(reassemblyElement as joint.dia.Element, { deep: true })
           successors.forEach(succ => {
             // Only add if it's not Qualitätsprüfung and is in remontage subgraph
-            if (succ.id !== 'qualitaetspruefung' && remontageShapes.has(succ.id)) {
-              purpleShapes.add(succ.id)
+            if (succ.id !== 'qualitaetspruefung' && remontageShapes.has(String(succ.id))) {
+              purpleShapes.add(String(succ.id))
             }
           })
         }
@@ -214,29 +214,34 @@ export function OrderProcessGraphViewer({ order }: OrderProcessGraphViewerProps)
       
       // Color all shapes
       elements.forEach(element => {
-        const elementId = element.id
+        const elementId = String(element.id)
         let fillColor = '#4f4f4f' // Default gray for other shapes
         let strokeColor = '#3a3a3a' // Darker gray border
+        let textColor = '#ffffff' // Default white text for gray
         
         // 4. Inspektion and Qualitätsprüfung (green)
         if (elementId === 'inspektion' || elementId === 'qualitaetspruefung') {
           fillColor = '#4ca132'
           strokeColor = '#3a7d26' // Darker green
+          textColor = '#000000' // Black text
         }
         // 1. Shapes with ReassemblyTyp (light blue)
-        else if (reassemblyShapes.has(elementId)) {
+        else if (reassemblyShapes.has(String(elementId))) {
           fillColor = '#87b0de'
           strokeColor = '#6189b5' // Darker blue
+          textColor = '#000000' // Black text
         }
         // 2. Demontage predecessors of reassembly shapes (orange)
-        else if (orangeShapes.has(elementId)) {
+        else if (orangeShapes.has(String(elementId))) {
           fillColor = '#f1a22b'
           strokeColor = '#c98222' // Darker orange
+          textColor = '#000000' // Black text
         }
         // 3. Remontage successors of reassembly shapes (purple)
-        else if (purpleShapes.has(elementId)) {
+        else if (purpleShapes.has(String(elementId))) {
           fillColor = '#672a92'
           strokeColor = '#4f2070' // Darker purple
+          textColor = '#ffffff' // White text
         }
         
         // Apply the colors
@@ -244,7 +249,7 @@ export function OrderProcessGraphViewer({ order }: OrderProcessGraphViewerProps)
         element.attr('body/stroke', strokeColor)
         element.attr('body/strokeWidth', 2)
         element.attr('body/fillOpacity', 1)
-        element.attr('label/fill', '#ffffff') // Keep text white
+        element.attr('label/fill', textColor)
       })
       
       // Color all links black
