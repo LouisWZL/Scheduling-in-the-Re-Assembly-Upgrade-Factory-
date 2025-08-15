@@ -23,6 +23,7 @@ import { ConfiguratorWelcome } from '@/components/configurator-welcome'
 import { useView } from '@/contexts/view-context'
 import { toast } from 'sonner'
 import { updateProduktGraph } from '@/app/actions/produkt.actions'
+import { AlertCircle } from 'lucide-react'
 
 interface Variante {
   id: string
@@ -311,6 +312,19 @@ export function ConfiguratorContent({ factoryId }: ConfiguratorContentProps) {
           activeView={activeGraphView}
           onViewChange={handleViewChange}
         />
+        {activeGraphView === 'structure' && (
+          <div className="bg-amber-50 border-y border-amber-200 px-6 py-3">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-4 w-4 text-amber-700 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-amber-900">
+                <strong>Hinweis zur Produktstruktur:</strong> Erstellen Sie die Baumstruktur von links nach rechts. 
+                Die zuerst demontierbaren Baugruppen befinden sich links, während die zuletzt demontierbaren 
+                Baugruppen rechts positioniert werden. Diese Anordnung definiert die Demontagereihenfolge 
+                im Prozessgraph.
+              </div>
+            </div>
+          </div>
+        )}
         <div className="flex-1 overflow-hidden">
           <JointJSProductView 
             produktId={selectedProdukt.id} 
