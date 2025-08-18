@@ -731,126 +731,88 @@ export function generateProcessSequences(
   const visited = new Set<string>(['inspektion'])
   findDemontageSequences('inspektion', visited, ['inspektion'], reassemblyDemontageNodes)
   
-  // Convert sequences to final format
-  const finalSequences = sequences.map((demontageSeq, index) => {
-    // Create remontage sequence (reverse of demontage, excluding Inspektion)
-    const demontageOnly = demontageSeq.slice(1) // Remove Inspektion
-    
-    // For remontage, we only need to remontage the ReAssembly nodes and their successors
-    // Find which nodes need to be remontaged
-    const remontageRequired = new Set<string>()
-    
-    // Add all reassembly nodes (they need to be remontaged)
-    demontageOnly.forEach(nodeId => {
-      if (reassemblyDemontageNodes.has(nodeId)) {
-        remontageRequired.add(nodeId)
-      }
-    })
-    
-    // Find all successors of reassembly nodes in the remontage graph
-    function findAllSuccessors(nodeId: string, visited: Set<string> = new Set()): Set<string> {
-      const remontageId = nodeId.replace('demontage-', 'remontage-')
-      if (visited.has(remontageId)) return visited
-      visited.add(remontageId)
+  // Generate all possible remontage sequences (reverse of all demontage sequences)
+  const allDemontageSequences = sequences.map(seq => seq.slice(1)) // Remove Inspektion from each
+  const allRemontageOptions: string[][] = []
+  
+  // Create reverse of each demontage sequence as a remontage option
+  allDemontageSequences.forEach(demontageSeq => {
+    const remontageSeq = [...demontageSeq].reverse()
+    allRemontageOptions.push(remontageSeq)
+  })
+  
+  // Create cartesian product: each demontage can be paired with each remontage option
+  const finalSequences: Array<{ id: string; steps: string[]; totalSteps: number; demontageSteps: number; remontageSteps: number }> = []
+  let sequenceCounter = 0
+  
+  allDemontageSequences.forEach((demontageOnly, demontageIndex) => {
+    allRemontageOptions.forEach((remontageOption, remontageIndex) => {
+      // For remontage, we only need to remontage the ReAssembly nodes and their successors
+      // Find which nodes need to be remontaged
+      const remontageRequired = new Set<string>()
       
-      const successors = edges.get(remontageId) || new Set()
-      successors.forEach(succ => {
-        if (remontageNodes.has(succ) && !visited.has(succ)) {
-          findAllSuccessors(succ.replace('remontage-', 'demontage-'), visited)
+      // Add all reassembly nodes from the remontage option (they need to be remontaged)
+      remontageOption.forEach(nodeId => {
+        if (reassemblyDemontageNodes.has(nodeId)) {
+          remontageRequired.add(nodeId)
         }
       })
       
-      return visited
-    }
-    
-    // Collect all required remontage nodes
-    const remontageNodeIds = new Set<string>()
-    remontageRequired.forEach(demontageNodeId => {
-      const remontageId = demontageNodeId.replace('demontage-', 'remontage-')
-      if (remontageNodes.has(remontageId)) {
-        remontageNodeIds.add(demontageNodeId)
-        // Also add all successors in remontage graph
-        const successors = findAllSuccessors(demontageNodeId)
-        successors.forEach(succId => {
-          const demontageEquivalent = succId.replace('remontage-', 'demontage-')
-          if (demontageOnly.includes(demontageEquivalent)) {
-            remontageNodeIds.add(demontageEquivalent)
+      // Find all successors of reassembly nodes in the remontage graph
+      function findAllSuccessors(nodeId: string, visited: Set<string> = new Set()): Set<string> {
+        const remontageId = nodeId.replace('demontage-', 'remontage-')
+        if (visited.has(remontageId)) return visited
+        visited.add(remontageId)
+        
+        const successors = edges.get(remontageId) || new Set()
+        successors.forEach(succ => {
+          if (remontageNodes.has(succ) && !visited.has(succ)) {
+            findAllSuccessors(succ.replace('remontage-', 'demontage-'), visited)
           }
         })
+        
+        return visited
       }
-    })
-    
-    // Create remontage sequence from only the required nodes
-    const remontageSeq = demontageOnly.filter(nodeId => remontageNodeIds.has(nodeId)).reverse()
-    
-    // Map node IDs to readable names
-    const steps: string[] = []
-    
-    // Add Inspektion
-    steps.push('I')
-    
-    // Add demontage steps
-    demontageOnly.forEach(nodeId => {
-      const node = nodes.get(nodeId)
-      if (node && node.attrs && node.attrs.label && node.attrs.label.text) {
-        // Extract the name without "Demontage-" prefix
-        let label = node.attrs.label.text.replace('Demontage-', '')
-        
-        // For baugruppentypen level, use the baugruppentyp name if available
-        if (level === 'baugruppentypen' && node.baugruppentyp) {
-          label = node.baugruppentyp.bezeichnung
-        } else if (level === 'baugruppentypen' && node.baugruppenInstance) {
-          // Find the baugruppentyp from the instance
-          const instance = baugruppenInstances.find(bi => bi.id === node.baugruppenInstance.id)
-          if (instance && instance.baugruppe.baugruppentyp) {
-            label = instance.baugruppe.baugruppentyp.bezeichnung
-          }
-        }
-        
-        steps.push(label)
-      } else {
-        steps.push(nodeId)
-      }
-    })
-    
-    // Add separator
-    steps.push('×')
-    
-    // Add remontage steps
-    remontageSeq.forEach(nodeId => {
-      // Find corresponding remontage node
-      const demontageNode = nodes.get(nodeId)
-      if (demontageNode) {
-        // Convert demontage ID to remontage ID
-        const remontageId = nodeId.replace('demontage-', 'remontage-')
-        const remontageNode = nodes.get(remontageId)
-        
-        if (remontageNode && remontageNode.attrs && remontageNode.attrs.label && remontageNode.attrs.label.text) {
-          // Extract the name without "Remontage-" prefix
-          let label = remontageNode.attrs.label.text.replace('Remontage-', '')
-          
-          // For baugruppentypen level, use the baugruppentyp name if available
-          if (level === 'baugruppentypen' && remontageNode.baugruppentyp) {
-            label = remontageNode.baugruppentyp.bezeichnung
-          } else if (level === 'baugruppentypen' && remontageNode.baugruppenInstance) {
-            // Find the baugruppentyp from the instance
-            const instance = baugruppenInstances.find(bi => bi.id === remontageNode.baugruppenInstance.id)
-            if (instance && instance.baugruppe.baugruppentyp) {
-              label = instance.baugruppe.baugruppentyp.bezeichnung
+      
+      // Collect all required remontage nodes
+      const remontageNodeIds = new Set<string>()
+      remontageRequired.forEach(demontageNodeId => {
+        const remontageId = demontageNodeId.replace('demontage-', 'remontage-')
+        if (remontageNodes.has(remontageId)) {
+          remontageNodeIds.add(demontageNodeId)
+          // Also add all successors in remontage graph
+          const successors = findAllSuccessors(demontageNodeId)
+          successors.forEach(succId => {
+            const demontageEquivalent = succId.replace('remontage-', 'demontage-')
+            if (remontageOption.includes(demontageEquivalent)) {
+              remontageNodeIds.add(demontageEquivalent)
             }
-          }
-          
-          steps.push(label)
-        } else if (demontageNode.attrs && demontageNode.attrs.label && demontageNode.attrs.label.text) {
-          // Fallback: use demontage label
-          let label = demontageNode.attrs.label.text.replace('Demontage-', '')
+          })
+        }
+      })
+      
+      // Create remontage sequence from only the required nodes (already in correct order from remontageOption)
+      const remontageSeq = remontageOption.filter(nodeId => remontageNodeIds.has(nodeId))
+      
+      // Map node IDs to readable names
+      const steps: string[] = []
+      
+      // Add Inspektion
+      steps.push('I')
+      
+      // Add demontage steps
+      demontageOnly.forEach(nodeId => {
+        const node = nodes.get(nodeId)
+        if (node && node.attrs && node.attrs.label && node.attrs.label.text) {
+          // Extract the name without "Demontage-" prefix
+          let label = node.attrs.label.text.replace('Demontage-', '')
           
           // For baugruppentypen level, use the baugruppentyp name if available
-          if (level === 'baugruppentypen' && demontageNode.baugruppentyp) {
-            label = demontageNode.baugruppentyp.bezeichnung
-          } else if (level === 'baugruppentypen' && demontageNode.baugruppenInstance) {
+          if (level === 'baugruppentypen' && node.baugruppentyp) {
+            label = node.baugruppentyp.bezeichnung
+          } else if (level === 'baugruppentypen' && node.baugruppenInstance) {
             // Find the baugruppentyp from the instance
-            const instance = baugruppenInstances.find(bi => bi.id === demontageNode.baugruppenInstance.id)
+            const instance = baugruppenInstances.find(bi => bi.id === node.baugruppenInstance.id)
             if (instance && instance.baugruppe.baugruppentyp) {
               label = instance.baugruppe.baugruppentyp.bezeichnung
             }
@@ -860,19 +822,70 @@ export function generateProcessSequences(
         } else {
           steps.push(nodeId)
         }
-      }
+      })
+      
+      // Add separator
+      steps.push('×')
+      
+      // Add remontage steps
+      remontageSeq.forEach(nodeId => {
+        // Find corresponding remontage node
+        const demontageNode = nodes.get(nodeId)
+        if (demontageNode) {
+          // Convert demontage ID to remontage ID
+          const remontageId = nodeId.replace('demontage-', 'remontage-')
+          const remontageNode = nodes.get(remontageId)
+          
+          if (remontageNode && remontageNode.attrs && remontageNode.attrs.label && remontageNode.attrs.label.text) {
+            // Extract the name without "Remontage-" prefix
+            let label = remontageNode.attrs.label.text.replace('Remontage-', '')
+            
+            // For baugruppentypen level, use the baugruppentyp name if available
+            if (level === 'baugruppentypen' && remontageNode.baugruppentyp) {
+              label = remontageNode.baugruppentyp.bezeichnung
+            } else if (level === 'baugruppentypen' && remontageNode.baugruppenInstance) {
+              // Find the baugruppentyp from the instance
+              const instance = baugruppenInstances.find(bi => bi.id === remontageNode.baugruppenInstance.id)
+              if (instance && instance.baugruppe.baugruppentyp) {
+                label = instance.baugruppe.baugruppentyp.bezeichnung
+              }
+            }
+            
+            steps.push(label)
+          } else if (demontageNode.attrs && demontageNode.attrs.label && demontageNode.attrs.label.text) {
+            // Fallback: use demontage label
+            let label = demontageNode.attrs.label.text.replace('Demontage-', '')
+            
+            // For baugruppentypen level, use the baugruppentyp name if available
+            if (level === 'baugruppentypen' && demontageNode.baugruppentyp) {
+              label = demontageNode.baugruppentyp.bezeichnung
+            } else if (level === 'baugruppentypen' && demontageNode.baugruppenInstance) {
+              // Find the baugruppentyp from the instance
+              const instance = baugruppenInstances.find(bi => bi.id === demontageNode.baugruppenInstance.id)
+              if (instance && instance.baugruppe.baugruppentyp) {
+                label = instance.baugruppe.baugruppentyp.bezeichnung
+              }
+            }
+            
+            steps.push(label)
+          } else {
+            steps.push(nodeId)
+          }
+        }
+      })
+      
+      // Add Qualitätsprüfung
+      steps.push('Q')
+      
+      sequenceCounter++
+      finalSequences.push({
+        id: `seq-${sequenceCounter}`,
+        steps: steps,
+        totalSteps: steps.length - 1, // Exclude separator
+        demontageSteps: demontageOnly.length,
+        remontageSteps: remontageSeq.length
+      })
     })
-    
-    // Add Qualitätsprüfung
-    steps.push('Q')
-    
-    return {
-      id: `seq-${index + 1}`,
-      steps: steps,
-      totalSteps: steps.length - 1, // Exclude separator
-      demontageSteps: demontageOnly.length,
-      remontageSteps: remontageSeq.length
-    }
   })
   
   return { sequences: finalSequences }
