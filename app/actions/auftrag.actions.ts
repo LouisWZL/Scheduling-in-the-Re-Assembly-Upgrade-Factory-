@@ -109,7 +109,6 @@ async function createSingleOrder(
     
     // Transform product graph to order graph
     let graphData = null
-    let processGraphData = null
     let baugruppenInstances: Array<{ 
       baugruppeId: string; 
       zustand: number; 
@@ -168,15 +167,20 @@ async function createSingleOrder(
           const currentBaugruppe = factory.baugruppen.find(bg => bg.id === baugruppenInstances[i].baugruppeId)
           
           if (currentBaugruppe) {
-            // Find a compatible replacement Baugruppe
-            const replacementBaugruppe = findCompatibleReplacementBaugruppe(
-              currentBaugruppe,
-              factory.baugruppen,
-              randomVariante.typ as VariantenTyp
-            )
-            
-            if (replacementBaugruppe) {
-              baugruppenInstances[i].austauschBaugruppeId = replacementBaugruppe.id
+            if (baugruppenInstances[i].reAssemblyTyp === ReAssemblyTyp.PFLICHT) {
+              // For PFLICHT: Use the same Baugruppe as replacement
+              baugruppenInstances[i].austauschBaugruppeId = currentBaugruppe.id
+            } else {
+              // For UPGRADE: Find a compatible replacement Baugruppe
+              const replacementBaugruppe = findCompatibleReplacementBaugruppe(
+                currentBaugruppe,
+                factory.baugruppen,
+                randomVariante.typ as VariantenTyp
+              )
+              
+              if (replacementBaugruppe) {
+                baugruppenInstances[i].austauschBaugruppeId = replacementBaugruppe.id
+              }
             }
           }
         }
@@ -193,7 +197,8 @@ async function createSingleOrder(
           factoryId: factoryId,
           phase: AuftragsPhase.ERSTKONTAKT,
           graphData: graphData as any,
-          processGraphData: null as any, // Will be updated after creation
+          processGraphDataBg: null as any, // Will be updated after creation
+          processGraphDataBgt: null as any, // Will be updated after creation
           // Create assembly instances
           baugruppenInstances: {
             create: baugruppenInstances.map(bi => ({
@@ -230,7 +235,7 @@ async function createSingleOrder(
         }
       })
 
-      // Now generate process graph with the created baugruppenInstances
+      // Now generate process graphs with the created baugruppenInstances
       if (produkt.processGraphData && newAuftrag.baugruppenInstances) {
         // Get the baugruppenInstances with full relations
         const fullBaugruppenInstances = await tx.baugruppeInstance.findMany({
@@ -249,23 +254,45 @@ async function createSingleOrder(
           }
         })
 
-        // Transform process graph
-        processGraphData = transformProcessGraphToOrderGraph(
+        // 1. Transform process graph for Baugruppen-Ebene
+        const processGraphDataBg = transformProcessGraphToOrderGraph(
           produkt.processGraphData as any,
-          fullBaugruppenInstances as any
+          fullBaugruppenInstances as any,
+          'baugruppen'
         )
 
-        // Generate process sequences
-        const processSequences = generateProcessSequences(
-          processGraphData,
-          fullBaugruppenInstances as any
+        // 2. Transform process graph for Baugruppentyp-Ebene (keeps types but adds coloring info)
+        const processGraphDataBgt = transformProcessGraphToOrderGraph(
+          produkt.processGraphData as any,
+          fullBaugruppenInstances as any,
+          'baugruppentypen'
         )
 
-        // Update the order with the process graph and sequences
+        // 3. Generate process sequences for both levels
+        const baugruppenSequences = generateProcessSequences(
+          processGraphDataBg,
+          fullBaugruppenInstances as any,
+          'baugruppen'
+        )
+
+        const baugruppentypSequences = generateProcessSequences(
+          processGraphDataBgt,
+          fullBaugruppenInstances as any,
+          'baugruppentypen'
+        )
+
+        // Combine sequences into one JSON structure
+        const processSequences = {
+          baugruppen: baugruppenSequences,
+          baugruppentypen: baugruppentypSequences
+        }
+
+        // Update the order with both process graphs and sequences
         await tx.auftrag.update({
           where: { id: newAuftrag.id },
           data: { 
-            processGraphData: processGraphData as any,
+            processGraphDataBg: processGraphDataBg as any,
+            processGraphDataBgt: processGraphDataBgt as any,
             processSequences: processSequences as any
           }
         })

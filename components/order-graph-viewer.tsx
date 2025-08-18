@@ -379,7 +379,7 @@ export function OrderGraphViewer({ order }: OrderGraphViewerProps) {
                 <div className="flex flex-wrap gap-3 text-xs">
                   <div className="flex items-center gap-1.5">
                     <div className="w-3 h-3 rounded" style={{ backgroundColor: '#87b0de', opacity: 0.8, border: '2px solid #6189b5' }}></div>
-                    <span className="text-muted-foreground">ReAssembly-Baugruppe</span>
+                    <span className="text-muted-foreground">Re-Assembly</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <div className="w-3 h-3 rounded" style={{ backgroundColor: '#4f4f4f', opacity: 0.8, border: '2px solid #3a3a3a' }}></div>
@@ -452,7 +452,7 @@ export function OrderGraphViewer({ order }: OrderGraphViewerProps) {
 
               {selectedBaugruppe.reAssemblyTyp && (
                 <div>
-                  <Label className="text-muted-foreground">ReAssembly-Typ</Label>
+                  <Label className="text-muted-foreground">Re-Assembly-Typ</Label>
                   <Badge 
                     variant={selectedBaugruppe.reAssemblyTyp === ReAssemblyTyp.PFLICHT ? 'destructive' : 'default'}
                     className="mt-1"

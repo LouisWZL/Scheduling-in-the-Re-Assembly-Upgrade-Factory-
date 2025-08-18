@@ -103,7 +103,7 @@ export function BaugruppenDetailsTable({ baugruppenInstances }: BaugruppenDetail
             <TableRow className="hover:bg-transparent border-b">
               <TableHead className="text-xs font-medium h-9 px-2">Name</TableHead>
               <TableHead className="text-xs font-medium h-9 px-2">Typ</TableHead>
-              <TableHead className="text-xs font-medium h-9 px-2 text-center">ReAssembly</TableHead>
+              <TableHead className="text-xs font-medium h-9 px-2 text-center">Re-Assembly</TableHead>
               <TableHead className="text-xs font-medium h-9 px-2">Ziel-Baugruppe</TableHead>
               <TableHead className="text-xs font-medium h-9 px-2 text-center">Zustand</TableHead>
             </TableRow>

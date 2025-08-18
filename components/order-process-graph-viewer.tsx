@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as joint from '@joint/plus'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react'
 import { ProcessSequencesList } from '@/components/process-sequences-list'
 
@@ -17,7 +18,8 @@ interface OrderProcessGraphViewerProps {
       bezeichnung: string
       typ: string
     }
-    processGraphData?: any
+    processGraphDataBg?: any
+    processGraphDataBgt?: any
     processSequences?: any
     baugruppenInstances?: Array<{
       id: string
@@ -46,6 +48,7 @@ interface OrderProcessGraphViewerProps {
 }
 
 export function OrderProcessGraphViewer({ order }: OrderProcessGraphViewerProps) {
+  const [activeTab, setActiveTab] = useState<'baugruppen' | 'baugruppentypen'>('baugruppen')
   const paperRef = useRef<HTMLDivElement>(null)
   const graphRef = useRef<joint.dia.Graph | null>(null)
   const paperInstanceRef = useRef<joint.dia.Paper | null>(null)
@@ -77,7 +80,8 @@ export function OrderProcessGraphViewer({ order }: OrderProcessGraphViewerProps)
   useEffect(() => {
     if (!paperRef.current) return
 
-    console.log('OrderProcessGraphViewer - Order changed:', order?.id, 'Has processGraphData:', !!order?.processGraphData)
+    const processGraphData = activeTab === 'baugruppen' ? order?.processGraphDataBg : order?.processGraphDataBgt
+    console.log('OrderProcessGraphViewer - Tab:', activeTab, 'Order:', order?.id, 'Has data:', !!processGraphData)
 
     // Clean up previous instances
     if (paperScrollerRef.current) {
@@ -93,7 +97,7 @@ export function OrderProcessGraphViewer({ order }: OrderProcessGraphViewerProps)
       graphRef.current = null
     }
 
-    if (!order?.processGraphData?.cells) {
+    if (!processGraphData?.cells) {
       return
     }
 
@@ -150,8 +154,8 @@ export function OrderProcessGraphViewer({ order }: OrderProcessGraphViewerProps)
 
     // Load graph data
     try {
-      console.log('Loading process graph with cells:', order.processGraphData.cells.length)
-      graph.fromJSON(order.processGraphData)
+      console.log('Loading process graph with cells:', processGraphData.cells.length)
+      graph.fromJSON(processGraphData)
       
       // Apply color coding based on reassembly types and graph structure
       const elements = graph.getElements()
@@ -292,7 +296,7 @@ export function OrderProcessGraphViewer({ order }: OrderProcessGraphViewerProps)
         graphRef.current.clear()
       }
     }
-  }, [order?.id])
+  }, [order?.id, activeTab])
   
   // Keyboard shortcuts for zoom
   useEffect(() => {
@@ -326,7 +330,7 @@ export function OrderProcessGraphViewer({ order }: OrderProcessGraphViewerProps)
     return null
   }
 
-  if (!order.processGraphData) {
+  if (!order.processGraphDataBg && !order.processGraphDataBgt) {
     return (
       <Card>
         <CardHeader>
@@ -343,8 +347,14 @@ export function OrderProcessGraphViewer({ order }: OrderProcessGraphViewerProps)
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <CardTitle>Prozess</CardTitle>
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'baugruppen' | 'baugruppentypen')}>
+          <TabsList className="h-8">
+            <TabsTrigger value="baugruppen" className="text-xs px-3 h-7">Baugruppen-Ebene</TabsTrigger>
+            <TabsTrigger value="baugruppentypen" className="text-xs px-3 h-7">Baugruppentyp-Ebene</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </CardHeader>
       <CardContent className="p-4">
         <div className="space-y-3">
@@ -356,66 +366,72 @@ export function OrderProcessGraphViewer({ order }: OrderProcessGraphViewerProps)
             />
             {/* Zoom Controls */}
             <div className="absolute top-2 right-2 flex gap-1 bg-background/90 backdrop-blur-sm rounded-md p-1 shadow-sm border">
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={handleZoomIn}
-                title="Vergrößern"
-                className="h-7 w-7"
-              >
-                <ZoomIn className="h-4 w-4" />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={handleZoomOut}
-                title="Verkleinern"
-                className="h-7 w-7"
-              >
-                <ZoomOut className="h-4 w-4" />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={handleZoomToFit}
-                title="Ansicht anpassen"
-                className="h-7 w-7"
-              >
-                <Maximize2 className="h-4 w-4" />
-              </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleZoomIn}
+                    title="Vergrößern"
+                    className="h-7 w-7"
+                  >
+                    <ZoomIn className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleZoomOut}
+                    title="Verkleinern"
+                    className="h-7 w-7"
+                  >
+                    <ZoomOut className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={handleZoomToFit}
+                    title="Ansicht anpassen"
+                    className="h-7 w-7"
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Legend */}
+              <div className="flex flex-wrap gap-3 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#f1a22b', border: '2px solid #c98222' }}></div>
+                  <span className="text-muted-foreground">Zwangsbeziehung</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#87b0de', border: '2px solid #6189b5' }}></div>
+                  <span className="text-muted-foreground">Re-Assembly</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#4f4f4f', border: '2px solid #3a3a3a' }}></div>
+                  <span className="text-muted-foreground">Nicht notwendiges Prozessmodul</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#672a92', border: '2px solid #4f2070' }}></div>
+                  <span className="text-muted-foreground">Reziproke Zwangsbeziehung</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: '#4ca132', border: '2px solid #3a7d26' }}></div>
+                  <span className="text-muted-foreground">Prozessphase</span>
+                </div>
+              </div>
             </div>
-          </div>
-          
-          {/* Legend */}
-          <div className="flex flex-wrap gap-3 text-xs">
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded" style={{ backgroundColor: '#f1a22b', border: '2px solid #c98222' }}></div>
-              <span className="text-muted-foreground">Zwangsbeziehung</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded" style={{ backgroundColor: '#87b0de', border: '2px solid #6189b5' }}></div>
-              <span className="text-muted-foreground">ReAssembly-Baugruppe</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded" style={{ backgroundColor: '#4f4f4f', border: '2px solid #3a3a3a' }}></div>
-              <span className="text-muted-foreground">Nicht notwendiges Prozessmodul</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded" style={{ backgroundColor: '#672a92', border: '2px solid #4f2070' }}></div>
-              <span className="text-muted-foreground">Reziproke Zwangsbeziehung</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded" style={{ backgroundColor: '#4ca132', border: '2px solid #3a7d26' }}></div>
-              <span className="text-muted-foreground">Prozessphase</span>
-            </div>
-          </div>
-        </div>
       </CardContent>
       
       {/* Process Sequences List */}
       {order.processSequences && (
         <CardContent className="border-t pt-4">
-          <ProcessSequencesList sequences={order.processSequences} />
+          <ProcessSequencesList 
+            sequences={
+              activeTab === 'baugruppen' 
+                ? order.processSequences.baugruppen 
+                : order.processSequences.baugruppentypen
+            } 
+          />
         </CardContent>
       )}
     </Card>

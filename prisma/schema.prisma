@@ -111,8 +111,9 @@ model Auftrag {
   factoryId             String
   liefertermine         Liefertermin[]
   graphData             Json?                // Order-specific assembly graph
-  processGraphData      Json?                // Order-specific process graph
-  processSequences      Json?                // All possible process sequences
+  processGraphDataBg    Json?                // Order-specific process graph (Baugruppen-Ebene)
+  processGraphDataBgt   Json?                // Order-specific process graph (Baugruppentyp-Ebene)
+  processSequences      Json?                // All possible process sequences (both levels)
   baugruppenInstances   BaugruppeInstance[]  // Assembly instances for this order
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt

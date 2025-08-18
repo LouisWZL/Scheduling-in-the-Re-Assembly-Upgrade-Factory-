@@ -361,8 +361,8 @@ export function createOrderGraphFromProduct(
 }
 
 /**
- * Transform a process graph to order-specific process graph
- * Replaces Baugruppentypen with BaugruppenInstances
+ * Transform a process graph to order-specific process graph with proper coloring
+ * @param level - 'baugruppen' replaces Baugruppentypen with BaugruppenInstances, 'baugruppentypen' keeps original
  */
 export function transformProcessGraphToOrderGraph(
   processGraph: GraphData,
@@ -389,7 +389,8 @@ export function transformProcessGraphToOrderGraph(
         bezeichnung: string
       } | null
     } | null
-  }>
+  }>,
+  level: 'baugruppen' | 'baugruppentypen' = 'baugruppen'
 ): GraphData {
   if (!processGraph || !processGraph.cells || processGraph.cells.length === 0) {
     return { cells: [] }
@@ -426,7 +427,7 @@ export function transformProcessGraphToOrderGraph(
     // Handle shapes
     const newCell: GraphCell = { ...cell }
     
-    // Update colors for all shapes
+    // Default colors (will be overridden based on context)
     newCell.attrs = {
       ...cell.attrs,
       body: {
@@ -444,29 +445,37 @@ export function transformProcessGraphToOrderGraph(
       }
     }
 
-    // If this shape has a baugruppentyp, replace with baugruppeninstance
+    // If this shape has a baugruppentyp
     if (cell.baugruppentyp) {
       const instance = baugruppentypToInstance.get(cell.baugruppentyp.id)
       
       if (instance) {
-        // Remove baugruppentyp
-        delete newCell.baugruppentyp
-        
-        // Add baugruppeninstance reference
-        newCell.baugruppenInstance = {
-          id: instance.id,
-          baugruppeId: instance.baugruppe.id,
-          bezeichnung: instance.baugruppe.bezeichnung,
-          artikelnummer: instance.baugruppe.artikelnummer,
-          zustand: instance.zustand
-        }
-        
-        // Update label based on processType
-        const processType = (cell as any).processType
-        if (processType === 'demontage') {
-          newCell.attrs.label.text = `Demontage-${instance.baugruppe.bezeichnung}`
-        } else if (processType === 'remontage') {
-          newCell.attrs.label.text = `Remontage-${instance.baugruppe.bezeichnung}`
+        if (level === 'baugruppen') {
+          // Remove baugruppentyp and add baugruppeninstance reference
+          delete newCell.baugruppentyp
+          
+          newCell.baugruppenInstance = {
+            id: instance.id,
+            baugruppeId: instance.baugruppe.id,
+            bezeichnung: instance.baugruppe.bezeichnung,
+            artikelnummer: instance.baugruppe.artikelnummer,
+            zustand: instance.zustand,
+            reAssemblyTyp: instance.reAssemblyTyp
+          }
+          
+          // Update label based on processType
+          const processType = (cell as any).processType
+          if (processType === 'demontage') {
+            newCell.attrs.label.text = `Demontage-${instance.baugruppe.bezeichnung}`
+          } else if (processType === 'remontage') {
+            newCell.attrs.label.text = `Remontage-${instance.baugruppe.bezeichnung}`
+          }
+        } else {
+          // For baugruppentypen level, keep the baugruppentyp but add instance info for coloring
+          newCell.baugruppenInstance = {
+            id: instance.id,
+            reAssemblyTyp: instance.reAssemblyTyp
+          }
         }
       }
     }
@@ -483,9 +492,11 @@ export function transformProcessGraphToOrderGraph(
   return { cells: newCells }
 }
 
+
 /**
  * Generate all possible sequences through the process graph
  * to demontage and remontage all ReAssembly components
+ * @param level - 'baugruppen' uses Baugruppen names, 'baugruppentypen' uses Baugruppentyp names
  */
 export function generateProcessSequences(
   processGraph: GraphData,
@@ -494,8 +505,12 @@ export function generateProcessSequences(
     reAssemblyTyp?: string | null
     baugruppe: {
       bezeichnung: string
+      baugruppentyp?: {
+        bezeichnung: string
+      } | null
     }
-  }>
+  }>,
+  level: 'baugruppen' | 'baugruppentypen' = 'baugruppen'
 ): { sequences: Array<{ id: string; steps: string[]; totalSteps: number; demontageSteps: number; remontageSteps: number }> } {
   if (!processGraph || !processGraph.cells || processGraph.cells.length === 0) {
     return { sequences: [] }
@@ -778,8 +793,20 @@ export function generateProcessSequences(
     demontageOnly.forEach(nodeId => {
       const node = nodes.get(nodeId)
       if (node && node.attrs && node.attrs.label && node.attrs.label.text) {
-        // Extract the Baugruppe name without "Demontage-" prefix
-        const label = node.attrs.label.text.replace('Demontage-', '')
+        // Extract the name without "Demontage-" prefix
+        let label = node.attrs.label.text.replace('Demontage-', '')
+        
+        // For baugruppentypen level, use the baugruppentyp name if available
+        if (level === 'baugruppentypen' && node.baugruppentyp) {
+          label = node.baugruppentyp.bezeichnung
+        } else if (level === 'baugruppentypen' && node.baugruppenInstance) {
+          // Find the baugruppentyp from the instance
+          const instance = baugruppenInstances.find(bi => bi.id === node.baugruppenInstance.id)
+          if (instance && instance.baugruppe.baugruppentyp) {
+            label = instance.baugruppe.baugruppentyp.bezeichnung
+          }
+        }
+        
         steps.push(label)
       } else {
         steps.push(nodeId)
@@ -799,12 +826,36 @@ export function generateProcessSequences(
         const remontageNode = nodes.get(remontageId)
         
         if (remontageNode && remontageNode.attrs && remontageNode.attrs.label && remontageNode.attrs.label.text) {
-          // Extract the Baugruppe name without "Remontage-" prefix
-          const label = remontageNode.attrs.label.text.replace('Remontage-', '')
+          // Extract the name without "Remontage-" prefix
+          let label = remontageNode.attrs.label.text.replace('Remontage-', '')
+          
+          // For baugruppentypen level, use the baugruppentyp name if available
+          if (level === 'baugruppentypen' && remontageNode.baugruppentyp) {
+            label = remontageNode.baugruppentyp.bezeichnung
+          } else if (level === 'baugruppentypen' && remontageNode.baugruppenInstance) {
+            // Find the baugruppentyp from the instance
+            const instance = baugruppenInstances.find(bi => bi.id === remontageNode.baugruppenInstance.id)
+            if (instance && instance.baugruppe.baugruppentyp) {
+              label = instance.baugruppe.baugruppentyp.bezeichnung
+            }
+          }
+          
           steps.push(label)
         } else if (demontageNode.attrs && demontageNode.attrs.label && demontageNode.attrs.label.text) {
           // Fallback: use demontage label
-          const label = demontageNode.attrs.label.text.replace('Demontage-', '')
+          let label = demontageNode.attrs.label.text.replace('Demontage-', '')
+          
+          // For baugruppentypen level, use the baugruppentyp name if available
+          if (level === 'baugruppentypen' && demontageNode.baugruppentyp) {
+            label = demontageNode.baugruppentyp.bezeichnung
+          } else if (level === 'baugruppentypen' && demontageNode.baugruppenInstance) {
+            // Find the baugruppentyp from the instance
+            const instance = baugruppenInstances.find(bi => bi.id === demontageNode.baugruppenInstance.id)
+            if (instance && instance.baugruppe.baugruppentyp) {
+              label = instance.baugruppe.baugruppentyp.bezeichnung
+            }
+          }
+          
           steps.push(label)
         } else {
           steps.push(nodeId)
