@@ -13,10 +13,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { auftragsabwicklungAlgorithmen, terminierungAlgorithmen, beschaffungAlgorithmen } from '@/components/simulation/registry'
 import { FactorySwitcher } from '@/components/factory-switcher'
 import { useFactory } from '@/contexts/factory-context'
 import { generateOrders, deleteAllAuftraege } from '@/app/actions/auftrag.actions'
-import { Simulation } from '@/components/simulation'
+import { Simulation } from '@/components/simulation/simulation'
 import { toast } from 'sonner'
 import {
   AlertDialog,
@@ -40,6 +48,9 @@ export function SiteHeader() {
   const [resetting, setResetting] = useState(false)
   const [minThreshold, setMinThreshold] = useState(30) // Minimum-Schwelle für Auto-Aufträge
   const [batchSize, setBatchSize] = useState(20) // Batch-Größe für Auto-Aufträge
+  const [auftragsabwicklungIndex, setAuftragsabwicklungIndex] = useState(0) // Standard: Algorithmus 1
+  const [terminierungIndex, setTerminierungIndex] = useState(0) // Standard: Algorithmus 1
+  const [beschaffungIndex, setBeschaffungIndex] = useState(0) // Standard: Algorithmus 1
   const { activeFactory } = useFactory()
   const pathname = usePathname()
   const isConfigurator = pathname.startsWith('/factory-configurator/')
@@ -168,6 +179,64 @@ export function SiteHeader() {
 
               {/* Simulation Controls */}
               <div className="flex items-center gap-4">
+              
+              {/* Algorithmus-Auswahl */}
+              <div className="flex items-center gap-2">
+                {/* Auftragsabwicklung */}
+                <Select 
+                  value={auftragsabwicklungIndex.toString()} 
+                  onValueChange={(v) => setAuftragsabwicklungIndex(Number(v))}
+                  disabled={isPlaying}
+                >
+                  <SelectTrigger className="w-[180px] h-8">
+                    <SelectValue placeholder="Auftragsabwicklung" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {auftragsabwicklungAlgorithmen.map((algo, idx) => (
+                      <SelectItem key={idx} value={idx.toString()}>
+                        {algo.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {/* Terminierung */}
+                <Select 
+                  value={terminierungIndex.toString()} 
+                  onValueChange={(v) => setTerminierungIndex(Number(v))}
+                  disabled={isPlaying}
+                >
+                  <SelectTrigger className="w-[180px] h-8">
+                    <SelectValue placeholder="Terminierung" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {terminierungAlgorithmen.map((algo, idx) => (
+                      <SelectItem key={idx} value={idx.toString()}>
+                        {algo.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {/* Beschaffung */}
+                <Select 
+                  value={beschaffungIndex.toString()} 
+                  onValueChange={(v) => setBeschaffungIndex(Number(v))}
+                  disabled={isPlaying}
+                >
+                  <SelectTrigger className="w-[180px] h-8">
+                    <SelectValue placeholder="Beschaffung" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {beschaffungAlgorithmen.map((algo, idx) => (
+                      <SelectItem key={idx} value={idx.toString()}>
+                        {algo.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
               {/* Auto-Aufträge Popover */}
               <Popover>
                 <PopoverTrigger asChild>
@@ -297,6 +366,9 @@ export function SiteHeader() {
           autoOrders={autoOrders}
           minThreshold={minThreshold}
           batchSize={batchSize}
+          auftragsabwicklungIndex={auftragsabwicklungIndex}
+          terminierungIndex={terminierungIndex}
+          beschaffungIndex={beschaffungIndex}
           onTimeUpdate={setSimulationTime}
         />
       )}

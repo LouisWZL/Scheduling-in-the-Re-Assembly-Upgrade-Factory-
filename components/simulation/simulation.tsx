@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { processSimulationStep, createAutoOrders } from '@/app/actions/simulation.actions'
-import { toast } from 'sonner'
+import { createAutoOrders } from '@/app/actions/simulation.actions'
+import { processModularSimulation } from '@/app/actions/simulation-modular.actions'
 
 interface SimulationProps {
   factoryId: string
@@ -11,6 +11,9 @@ interface SimulationProps {
   autoOrders: boolean
   minThreshold: number
   batchSize: number
+  auftragsabwicklungIndex: number
+  terminierungIndex: number
+  beschaffungIndex: number
   onTimeUpdate: (time: Date) => void
 }
 
@@ -21,6 +24,9 @@ export function Simulation({
   autoOrders,
   minThreshold,
   batchSize,
+  auftragsabwicklungIndex,
+  terminierungIndex,
+  beschaffungIndex,
   onTimeUpdate
 }: SimulationProps) {
   const [simulationTime, setSimulationTime] = useState(new Date())
@@ -33,6 +39,27 @@ export function Simulation({
   // 1 Tag = 12 Sekunden bei Speed 1x
   // 1 Stunde = 0.5 Sekunden bei Speed 1x
   const hourInMs = 500 / speed // 500ms = 0.5 Sekunden
+  
+  // Modulare Simulation über Server Action ausführen
+  const runModularSimulation = async () => {
+    try {
+      const result = await processModularSimulation(
+        factoryId,
+        simulationTime,
+        autoOrders,
+        minThreshold,
+        batchSize,
+        auftragsabwicklungIndex,
+        terminierungIndex,
+        beschaffungIndex
+      )
+      
+      return result
+    } catch (error) {
+      console.error('Fehler in modularer Simulation:', error)
+      throw error
+    }
+  }
   
   useEffect(() => {
     if (isPlaying) {
@@ -77,15 +104,11 @@ export function Simulation({
       processCounterRef.current++
       isProcessingRef.current = true
       
-      // Führe Simulationsschritt aus mit dynamischen Werten
-      processSimulationStep(factoryId, simulationTime, autoOrders, minThreshold, batchSize)
+      // Führe modulare Simulationsschritte aus
+      runModularSimulation()
         .then(result => {
-          if (result.success) {
-            if (result.updates && result.updates > 0) {
-              console.log(`Simulation: ${result.message}`)
-            }
-          } else {
-            console.error('Simulationsfehler:', result.error)
+          if (result.success && result.updates > 0) {
+            console.log(`Simulation: ${result.updates} Aufträge aktualisiert`)
           }
         })
         .catch(error => {
@@ -95,7 +118,7 @@ export function Simulation({
           isProcessingRef.current = false
         })
     }
-  }, [simulationTime, isPlaying, factoryId, autoOrders, minThreshold, batchSize, lastProcessedHour])
+  }, [simulationTime, isPlaying, factoryId, autoOrders, minThreshold, batchSize, lastProcessedHour, auftragsabwicklungIndex, terminierungIndex, beschaffungIndex])
   
   // Reset bei Stop
   useEffect(() => {
