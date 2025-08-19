@@ -7,12 +7,49 @@ import { initializeCustomers, getRandomKunde } from './kunde.actions'
 import { createOrderGraphFromProduct, getConstrainedZustand, findCompatibleReplacementBaugruppe, transformProcessGraphToOrderGraph, generateProcessSequences } from '@/lib/order-graph-utils'
 
 /**
- * Get all orders for a factory
+ * Get all orders for a factory (optimized for sidebar display)
  */
 export async function getAuftraege(factoryId: string) {
   try {
+    // Optimiert: Lade nur notwendige Daten für die Sidebar-Tabellen
     const auftraege = await prisma.auftrag.findMany({
       where: { factoryId },
+      select: {
+        id: true,
+        phase: true,
+        createdAt: true,
+        terminierung: true,
+        kunde: {
+          select: {
+            vorname: true,
+            nachname: true
+          }
+        },
+        produktvariante: {
+          select: {
+            bezeichnung: true,
+            typ: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 500 // Limitiere auf max. 500 Aufträge für bessere Performance
+    })
+
+    return { success: true, data: auftraege }
+  } catch (error) {
+    console.error('Error fetching orders:', error)
+    return { success: false, error: 'Fehler beim Abrufen der Aufträge' }
+  }
+}
+
+/**
+ * Get full order details for a single order
+ */
+export async function getAuftragDetails(auftragId: string) {
+  try {
+    const auftrag = await prisma.auftrag.findUnique({
+      where: { id: auftragId },
       include: {
         kunde: true,
         produktvariante: {
@@ -37,14 +74,13 @@ export async function getAuftraege(factoryId: string) {
             }
           }
         }
-      },
-      orderBy: { createdAt: 'desc' }
+      }
     })
 
-    return { success: true, data: auftraege }
+    return { success: true, data: auftrag }
   } catch (error) {
-    console.error('Error fetching orders:', error)
-    return { success: false, error: 'Fehler beim Abrufen der Aufträge' }
+    console.error('Error fetching order details:', error)
+    return { success: false, error: 'Fehler beim Abrufen der Auftragsdetails' }
   }
 }
 
@@ -86,10 +122,8 @@ async function createSingleOrder(
       return { success: false, error: 'Factory hat kein Produkt konfiguriert' }
     }
 
-    // Check capacity
-    if (factory.auftraege.length >= factory.kapazität) {
-      return { success: false, error: 'Factory-Kapazität erreicht' }
-    }
+    // Capacity check removed - we can have more orders than capacity
+    // Capacity now only limits Re-Assembly phase (see simulation.actions.ts)
 
     const produkt = factory.produkte[0] // Factory has only one product
 
@@ -195,7 +229,7 @@ async function createSingleOrder(
           kundeId: kundeResult.data.id,
           produktvarianteId: randomVariante.id,
           factoryId: factoryId,
-          phase: AuftragsPhase.ERSTKONTAKT,
+          phase: AuftragsPhase.AUFTRAGSANNAHME,
           graphData: graphData as any,
           processGraphDataBg: null as any, // Will be updated after creation
           processGraphDataBgt: null as any, // Will be updated after creation
@@ -561,5 +595,50 @@ export async function deleteAuftrag(auftragId: string) {
   } catch (error) {
     console.error('Error deleting order:', error)
     return { success: false, error: 'Fehler beim Löschen des Auftrags' }
+  }
+}
+
+/**
+ * Delete all orders for a factory
+ */
+export async function deleteAllAuftraege(factoryId: string) {
+  try {
+    // Delete all orders with their related data
+    await prisma.$transaction(async (tx) => {
+      // Get all order IDs for this factory
+      const auftraege = await tx.auftrag.findMany({
+        where: { factoryId },
+        select: { id: true }
+      })
+      
+      const auftragIds = auftraege.map(a => a.id)
+      
+      if (auftragIds.length > 0) {
+        // Delete all delivery dates
+        await tx.liefertermin.deleteMany({
+          where: { auftragId: { in: auftragIds } }
+        })
+
+        // Delete all assembly instances
+        await tx.baugruppeInstance.deleteMany({
+          where: { auftragId: { in: auftragIds } }
+        })
+
+        // Delete all orders
+        await tx.auftrag.deleteMany({
+          where: { factoryId }
+        })
+      }
+    })
+
+    revalidatePath('/')
+    
+    return {
+      success: true,
+      message: 'Alle Aufträge erfolgreich gelöscht'
+    }
+  } catch (error) {
+    console.error('Error deleting all orders:', error)
+    return { success: false, error: 'Fehler beim Löschen aller Aufträge' }
   }
 }

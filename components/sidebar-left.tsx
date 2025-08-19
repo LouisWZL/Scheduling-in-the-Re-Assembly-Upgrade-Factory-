@@ -8,6 +8,9 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowDown,
+  RefreshCw,
+  Search,
+  ClipboardCheck,
 } from "lucide-react"
 import {
   IconCircleCheckFilled,
@@ -34,8 +37,14 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { useFactory } from "@/contexts/factory-context"
 import { useOrder } from "@/contexts/order-context"
-import { getAuftraege } from "@/app/actions/auftrag.actions"
+import { getAuftraege, getAuftragDetails } from "@/app/actions/auftrag.actions"
 import { AuftragsPhase } from "@prisma/client"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 
 interface OrderData {
   id: string
@@ -49,29 +58,36 @@ interface OrderData {
     typ: string
     produkt?: any
   }
+  terminierung?: any
   createdAt: string
   graphData?: any
   baugruppenInstances?: any[]
 }
 
 function PaginatedTable({
-  title,
-  icon,
   data,
   phase,
+  phases,
   onOrderClick,
 }: {
-  title: string
-  icon: React.ReactNode
   data: OrderData[]
-  phase: AuftragsPhase
+  phase?: AuftragsPhase
+  phases?: AuftragsPhase[]
   onOrderClick?: (order: OrderData) => void
 }) {
   const [currentPage, setCurrentPage] = React.useState(1)
   const itemsPerPage = 5
   
-  // Filter data by phase
-  const filteredData = data.filter(order => order.phase === phase)
+  // Filter data by phase(s)
+  const filteredData = data.filter(order => {
+    if (phases && phases.length > 0) {
+      return phases.includes(order.phase)
+    }
+    if (phase) {
+      return order.phase === phase
+    }
+    return false
+  })
   const totalPages = Math.ceil(filteredData.length / itemsPerPage)
 
   const paginatedData = filteredData.slice(
@@ -79,39 +95,34 @@ function PaginatedTable({
     currentPage * itemsPerPage
   )
 
-  const getStatusBadge = (phase: AuftragsPhase) => {
-    switch (phase) {
-      case "ABGESCHLOSSEN":
-        return (
-          <Badge variant="outline" className="text-muted-foreground px-1.5 inline-flex items-center gap-1">
-            <IconCircleCheckFilled className="h-3.5 w-3.5 fill-green-500 dark:fill-green-400" />
-            <span className="text-xs">Fertig</span>
-          </Badge>
-        )
-      default:
-        return (
-          <Badge variant="outline" className="text-muted-foreground px-1.5 inline-flex items-center gap-1">
-            <IconLoader className="h-3.5 w-3.5" />
-            <span className="text-xs">In Arbeit</span>
-          </Badge>
-        )
+  const getTerminierung = (order: OrderData) => {
+    // Helper-Funktion um die letzte Terminierung zu holen
+    const terminierungen = order.terminierung
+    if (!terminierungen || !Array.isArray(terminierungen) || terminierungen.length === 0) {
+      return '-'
+    }
+    
+    const latest = terminierungen[terminierungen.length - 1]
+    if (!latest) return '-'
+    
+    if (typeof latest.datum === 'object' && 'von' in latest.datum) {
+      // Zeitschiene
+      return `${latest.datum.von} - ${latest.datum.bis}`
+    } else {
+      // Festes Datum
+      return latest.datum as string
     }
   }
 
   return (
-    <SidebarGroup className="px-3 py-2">
-      <SidebarGroupLabel className="flex items-center gap-2 text-xs font-medium text-muted-foreground px-2 mb-2">
-        {icon}
-        <span>{title}</span>
-        <span className="ml-auto text-xs">({filteredData.length})</span>
-      </SidebarGroupLabel>
-      <SidebarGroupContent>
+    <>
+      <div className="px-3 py-2">
         <div className="rounded-lg border bg-card overflow-hidden">
           <Table className="table-fixed">
             <TableHeader>
               <TableRow className="hover:bg-transparent border-b">
                 <TableHead className="w-[65%] h-9 text-xs font-medium text-muted-foreground">Kunde</TableHead>
-                <TableHead className="w-[35%] h-9 text-right text-xs font-medium text-muted-foreground">Status</TableHead>
+                <TableHead className="w-[35%] h-9 text-right text-xs font-medium text-muted-foreground">Lieferdatum</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -132,10 +143,10 @@ function PaginatedTable({
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="py-2 px-3">
-                      <div className="flex justify-end">
-                        {getStatusBadge(order.phase)}
-                      </div>
+                    <TableCell className="py-2 px-3 text-right">
+                      <span className="text-xs text-muted-foreground">
+                        {getTerminierung(order)}
+                      </span>
                     </TableCell>
                   </TableRow>
                 ))
@@ -176,8 +187,8 @@ function PaginatedTable({
             </div>
           </div>
         )}
-      </SidebarGroupContent>
-    </SidebarGroup>
+      </div>
+    </>
   )
 }
 
@@ -185,9 +196,10 @@ export function SidebarLeft({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
   const { activeFactory } = useFactory()
-  const { setSelectedOrder } = useOrder()
+  const { setSelectedOrder, setIsLoadingOrder } = useOrder()
   const [orders, setOrders] = React.useState<OrderData[]>([])
   const [loading, setLoading] = React.useState(true)
+  const [refreshing, setRefreshing] = React.useState(false)
 
   // Load orders when factory changes
   React.useEffect(() => {
@@ -196,38 +208,53 @@ export function SidebarLeft({
     }
   }, [activeFactory])
 
-  const loadOrders = async () => {
+  const loadOrders = async (isRefresh = false) => {
     if (!activeFactory) return
     
-    setLoading(true)
+    if (isRefresh) {
+      setRefreshing(true)
+    } else {
+      setLoading(true)
+    }
+    
     try {
       const result = await getAuftraege(activeFactory.id)
       if (result.success && result.data) {
         setOrders(result.data as any)
+        if (isRefresh) {
+          toast.success('Aufträge aktualisiert')
+        }
       }
     } catch (error) {
       console.error('Error loading orders:', error)
       toast.error('Fehler beim Laden der Aufträge')
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }
 
-  const handleOrderClick = (order: OrderData) => {
-    setSelectedOrder(order as any)
+  const handleRefresh = () => {
+    loadOrders(true)
   }
 
-  // Listen for orders generated event
-  React.useEffect(() => {
-    const handleOrdersGenerated = () => {
-      loadOrders()
+  const handleOrderClick = async (order: OrderData) => {
+    // Lade vollständige Auftragsdetails beim Klick
+    setIsLoadingOrder(true) // Sofort Loading-State setzen
+    try {
+      const result = await getAuftragDetails(order.id)
+      if (result.success && result.data) {
+        setSelectedOrder(result.data as any)
+      }
+    } catch (error) {
+      console.error('Error loading order details:', error)
+      toast.error('Fehler beim Laden der Auftragsdetails')
+    } finally {
+      setIsLoadingOrder(false) // Loading-State zurücksetzen
     }
+  }
 
-    window.addEventListener('ordersGenerated', handleOrdersGenerated)
-    return () => {
-      window.removeEventListener('ordersGenerated', handleOrdersGenerated)
-    }
-  }, [activeFactory])
+  // Removed automatic update listener - now using manual refresh button
 
   return (
     <Sidebar 
@@ -237,7 +264,19 @@ export function SidebarLeft({
       {...props}
     >
       <SidebarHeader className="border-b px-4 py-3">
-        <h2 className="text-sm font-semibold">Auftragsübersicht</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold">Auftragsübersicht</h2>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 hover:bg-muted"
+            onClick={handleRefresh}
+            disabled={refreshing || loading}
+            title="Aufträge aktualisieren"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </SidebarHeader>
       <SidebarContent className="gap-0 py-2">
         {loading ? (
@@ -248,43 +287,130 @@ export function SidebarLeft({
             </div>
           </div>
         ) : (
-          <>
-            <PaginatedTable
-              title="Erstkontakt"
-              icon={<Phone className="h-4 w-4" />}
-              data={orders}
-              phase={AuftragsPhase.ERSTKONTAKT}
-              onOrderClick={handleOrderClick}
-            />
-            
-            <div className="flex justify-center py-2">
-              <div className="flex flex-col items-center">
-                <ArrowDown className="h-5 w-5 text-muted-foreground animate-pulse" />
-              </div>
+          <Accordion 
+            type="multiple" 
+            defaultValue={["auftragsannahme", "inspektion", "reassembly", "qualitaet", "abschluss"]}
+            className="w-full"
+          >
+            {/* Auftragsannahme */}
+            <AccordionItem value="auftragsannahme">
+              <AccordionTrigger className="px-4 hover:no-underline">
+                <div className="flex items-center gap-2 text-sm">
+                  <Phone className="h-4 w-4" />
+                  <span>Auftragsannahme</span>
+                  <span className="text-muted-foreground">
+                    ({orders.filter(o => o.phase === AuftragsPhase.AUFTRAGSANNAHME).length})
+                  </span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <PaginatedTable
+                  data={orders}
+                  phase={AuftragsPhase.AUFTRAGSANNAHME}
+                  onOrderClick={handleOrderClick}
+                />
+              </AccordionContent>
+            </AccordionItem>
+
+            <div className="flex justify-center py-1">
+              <ArrowDown className="h-4 w-4 text-muted-foreground animate-pulse" />
             </div>
-            
-            <PaginatedTable
-              title="Grobterminierung"
-              icon={<Calendar className="h-4 w-4" />}
-              data={orders}
-              phase={AuftragsPhase.GROBTERMINIERUNG}
-              onOrderClick={handleOrderClick}
-            />
-            
-            <div className="flex justify-center py-2">
-              <div className="flex flex-col items-center">
-                <ArrowDown className="h-5 w-5 text-muted-foreground animate-pulse" />
-              </div>
+
+            {/* Inspektion */}
+            <AccordionItem value="inspektion">
+              <AccordionTrigger className="px-4 hover:no-underline">
+                <div className="flex items-center gap-2 text-sm">
+                  <Search className="h-4 w-4" />
+                  <span>Inspektion</span>
+                  <span className="text-muted-foreground">
+                    ({orders.filter(o => o.phase === AuftragsPhase.INSPEKTION).length})
+                  </span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <PaginatedTable
+                  data={orders}
+                  phase={AuftragsPhase.INSPEKTION}
+                  onOrderClick={handleOrderClick}
+                />
+              </AccordionContent>
+            </AccordionItem>
+
+            <div className="flex justify-center py-1">
+              <ArrowDown className="h-4 w-4 text-muted-foreground animate-pulse" />
             </div>
-            
-            <PaginatedTable
-              title="Feinterminierung"
-              icon={<CalendarCheck className="h-4 w-4" />}
-              data={orders}
-              phase={AuftragsPhase.FEINTERMINIERUNG}
-              onOrderClick={handleOrderClick}
-            />
-          </>
+
+            {/* Re-Assembly */}
+            <AccordionItem value="reassembly">
+              <AccordionTrigger className="px-4 hover:no-underline">
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar className="h-4 w-4" />
+                  <span>Re-Assembly</span>
+                  <span className="text-muted-foreground">
+                    ({orders.filter(o => 
+                      o.phase === AuftragsPhase.REASSEMBLY_START || 
+                      o.phase === AuftragsPhase.REASSEMBLY_ENDE
+                    ).length})
+                  </span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <PaginatedTable
+                  data={orders}
+                  phases={[AuftragsPhase.REASSEMBLY_START, AuftragsPhase.REASSEMBLY_ENDE]}
+                  onOrderClick={handleOrderClick}
+                />
+              </AccordionContent>
+            </AccordionItem>
+
+            <div className="flex justify-center py-1">
+              <ArrowDown className="h-4 w-4 text-muted-foreground animate-pulse" />
+            </div>
+
+            {/* Qualitätsprüfung */}
+            <AccordionItem value="qualitaet">
+              <AccordionTrigger className="px-4 hover:no-underline">
+                <div className="flex items-center gap-2 text-sm">
+                  <ClipboardCheck className="h-4 w-4" />
+                  <span>Qualitätsprüfung</span>
+                  <span className="text-muted-foreground">
+                    ({orders.filter(o => o.phase === AuftragsPhase.QUALITAETSPRUEFUNG).length})
+                  </span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <PaginatedTable
+                  data={orders}
+                  phase={AuftragsPhase.QUALITAETSPRUEFUNG}
+                  onOrderClick={handleOrderClick}
+                />
+              </AccordionContent>
+            </AccordionItem>
+
+            <div className="flex justify-center py-1">
+              <ArrowDown className="h-4 w-4 text-muted-foreground animate-pulse" />
+            </div>
+
+            {/* Auftragsabschluss */}
+            <AccordionItem value="abschluss">
+              <AccordionTrigger className="px-4 hover:no-underline">
+                <div className="flex items-center gap-2 text-sm">
+                  <CalendarCheck className="h-4 w-4" />
+                  <span>Auftragsabschluss</span>
+                  <span className="text-muted-foreground">
+                    ({orders.filter(o => o.phase === AuftragsPhase.AUFTRAGSABSCHLUSS).length})
+                  </span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <PaginatedTable
+                  data={orders}
+                  phase={AuftragsPhase.AUFTRAGSABSCHLUSS}
+                  onOrderClick={handleOrderClick}
+                />
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         )}
       </SidebarContent>
     </Sidebar>

@@ -695,7 +695,7 @@ async function main() {
     data: {
       kunde: { connect: { id: createdKunden[0].id } },
       produktvariante: { connect: { id: porscheVarianteBasic.id } },
-      phase: "ERSTKONTAKT",
+      phase: "AUFTRAGSANNAHME",
       factory: { connect: { id: createdPorscheFactory.id } },
       liefertermine: {
         create: {
@@ -712,7 +712,7 @@ async function main() {
     data: {
       kunde: { connect: { id: createdKunden[1].id } },
       produktvariante: { connect: { id: porscheVariantePremium.id } },
-      phase: "FEINTERMINIERUNG",
+      phase: "REASSEMBLY_ENDE",
       factory: { connect: { id: createdPorscheFactory.id } },
       liefertermine: {
         create: [
@@ -744,7 +744,7 @@ async function main() {
     data: {
       kunde: { connect: { id: createdKunden[2].id } },
       produktvariante: { connect: { id: audiVarianteBasic.id } },
-      phase: "REMONTAGE",
+      phase: "REASSEMBLY_START",
       factory: { connect: { id: createdAudiFactory.id } },
       liefertermine: {
         create: {
@@ -762,7 +762,7 @@ async function main() {
     data: {
       kunde: { connect: { id: createdKunden[0].id } },
       produktvariante: { connect: { id: vwVarianteBasic.id } },
-      phase: "GROBTERMINIERUNG",
+      phase: "INSPEKTION",
       factory: { connect: { id: createdVWFactory.id } },
       liefertermine: {
         create: {

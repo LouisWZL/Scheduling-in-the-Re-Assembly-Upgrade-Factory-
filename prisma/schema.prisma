@@ -13,18 +13,12 @@ datasource db {
 
 // Enum für Auftragsphasen
 enum AuftragsPhase {
-  // Auftrag erhalten und grobe Zeitschiene erstellt
-  ERSTKONTAKT
-  // Auf Basis der Produktvariante und Baugruppen eine grobe Zeitschiene erstellt
-  GROBTERMINIERUNG
-  // Produkt erhalten und Inspektion + Reinigung durchführen
-  INSPEKTION
-  // Inspektionsergebnis ausgewertet und ggf. Anpassungen vorgenommen
-  FEINTERMINIERUNG
-  // Remontage-Operationen
-  REMONTAGE
-  // Reassembly-Operationen durchgeführt
-  ABGESCHLOSSEN
+  AUFTRAGSANNAHME      // Auftrag erhalten
+  INSPEKTION           // Produkt erhalten und Inspektion durchführen
+  REASSEMBLY_START     // Re-Assembly beginnt
+  REASSEMBLY_ENDE      // Re-Assembly abgeschlossen
+  QUALITAETSPRUEFUNG   // Qualitätsprüfung durchführen
+  AUFTRAGSABSCHLUSS    // Auftrag abgeschlossen
 }
 
 
@@ -34,12 +28,6 @@ enum ReAssemblyTyp {
   UPGRADE // Kundenwunsch-Upgrade
 }
 
-// Enum für Liefertermin-Typen
-enum LieferterminTyp {
-  GROB_ZEITSCHIENE    // Erste Schätzung bei Erstkontakt
-  GROBTERMIN          // Nach Grobterminierung
-  FEINTERMIN          // Nach Inspektion und Feinterminierung
-}
 
 
 enum VariantenTyp {
@@ -77,6 +65,7 @@ model ReassemblyFactory {
   schichtmodell         Schichtmodell       @default(EINSCHICHT)
   anzahlMontagestationen Int                @default(10)
   targetBatchAverage    Int                 @default(65) // Durchschnittlicher Zustand der Baugruppen in %
+  beschaffung           Json?               // Beschaffungs-Historie
   auftraege             Auftrag[]
   produkte              Produkt[]           // Produkte der Reassembly Factory
   baugruppentypen       Baugruppentyp[]     // Baugruppentypen der Factory
@@ -106,10 +95,11 @@ model Auftrag {
   kundeId               String
   produktvariante       Produktvariante      @relation(fields: [produktvarianteId], references: [id])
   produktvarianteId     String
-  phase                 AuftragsPhase        @default(ERSTKONTAKT)
+  phase                 AuftragsPhase        @default(AUFTRAGSANNAHME)
   factory               ReassemblyFactory    @relation(fields: [factoryId], references: [id])
   factoryId             String
   liefertermine         Liefertermin[]
+  terminierung          Json?                // Terminierungs-Historie
   graphData             Json?                // Order-specific assembly graph
   processGraphDataBg    Json?                // Order-specific process graph (Baugruppen-Ebene)
   processGraphDataBgt   Json?                // Order-specific process graph (Baugruppentyp-Ebene)
@@ -124,7 +114,7 @@ model Liefertermin {
   id           String          @id @default(cuid())
   auftrag      Auftrag         @relation(fields: [auftragId], references: [id])
   auftragId    String
-  typ          LieferterminTyp
+  typ          String                  // Typ als String statt Enum
   datum        DateTime
   istAktuell   Boolean         @default(true) // Markiert den aktuell gültigen Termin
   bemerkung    String?         // Grund für Änderung etc.
@@ -168,6 +158,7 @@ model Baugruppe {
   bezeichnung                 String
   artikelnummer               String               @unique
   variantenTyp                VariantenTyp         // Für welche Varianten diese Baugruppe verfügbar ist
+  verfuegbar                  Int                  @default(0) // Anzahl verfügbarer Baugruppen
   factory                     ReassemblyFactory    @relation(fields: [factoryId], references: [id])
   factoryId                   String
   baugruppentyp               Baugruppentyp?       @relation(fields: [baugruppentypId], references: [id])

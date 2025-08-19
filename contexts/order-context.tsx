@@ -16,15 +16,18 @@ interface OrderWithRelations extends Auftrag {
 interface OrderContextType {
   selectedOrder: OrderWithRelations | null
   setSelectedOrder: (order: OrderWithRelations | null) => void
+  isLoadingOrder: boolean
+  setIsLoadingOrder: (loading: boolean) => void
 }
 
 const OrderContext = createContext<OrderContextType | undefined>(undefined)
 
 export function OrderProvider({ children }: { children: ReactNode }) {
   const [selectedOrder, setSelectedOrder] = useState<OrderWithRelations | null>(null)
+  const [isLoadingOrder, setIsLoadingOrder] = useState(false)
 
   return (
-    <OrderContext.Provider value={{ selectedOrder, setSelectedOrder }}>
+    <OrderContext.Provider value={{ selectedOrder, setSelectedOrder, isLoadingOrder, setIsLoadingOrder }}>
       {children}
     </OrderContext.Provider>
   )
