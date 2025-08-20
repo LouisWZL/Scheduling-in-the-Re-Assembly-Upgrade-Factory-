@@ -109,6 +109,7 @@ model Auftrag {
   baugruppenInstances   BaugruppeInstance[]  // Assembly instances for this order
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
+  Buendelung             Integer             // Hier will ich später die Bündelungen
 }
 
 // Liefertermin
