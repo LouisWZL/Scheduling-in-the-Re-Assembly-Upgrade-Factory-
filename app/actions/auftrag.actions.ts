@@ -227,6 +227,14 @@ async function createSingleOrder(
       }
     }
 
+    // Initialize phase history for new order
+    const initialPhaseHistory = [{
+      fromPhase: null,
+      toPhase: AuftragsPhase.AUFTRAGSANNAHME,
+      timestamp: new Date().toISOString(),
+      simulationTime: new Date().toISOString()
+    }]
+    
     // Create order with transaction
     const auftrag = await prisma.$transaction(async (tx) => {
       // First create the order with baugruppenInstances
@@ -236,6 +244,7 @@ async function createSingleOrder(
           produktvarianteId: randomVariante.id,
           factoryId: factoryId,
           phase: AuftragsPhase.AUFTRAGSANNAHME,
+          phaseHistory: initialPhaseHistory,
           graphData: graphData as any,
           processGraphDataBg: null as any, // Will be updated after creation
           processGraphDataBgt: null as any, // Will be updated after creation
@@ -535,6 +544,55 @@ export async function getAuftragStatistics(factoryId: string) {
   } catch (error) {
     console.error('Error fetching order statistics:', error)
     return { success: false, error: 'Fehler beim Abrufen der Auftragsstatistiken' }
+  }
+}
+
+/**
+ * Update order phase with history tracking
+ */
+export async function updateAuftragPhaseWithHistory(
+  auftragId: string, 
+  newPhase: AuftragsPhase,
+  simulationTime: Date
+) {
+  try {
+    // Get current order to access existing history
+    const currentAuftrag = await prisma.auftrag.findUnique({
+      where: { id: auftragId },
+      select: { 
+        phase: true,
+        phaseHistory: true 
+      }
+    })
+    
+    if (!currentAuftrag) {
+      return { success: false, error: 'Auftrag nicht gefunden' }
+    }
+    
+    // Build phase history
+    const existingHistory = (currentAuftrag.phaseHistory as any[]) || []
+    const historyEntry = {
+      fromPhase: currentAuftrag.phase,
+      toPhase: newPhase,
+      timestamp: new Date().toISOString(),
+      simulationTime: simulationTime.toISOString()
+    }
+    
+    const updatedHistory = [...existingHistory, historyEntry]
+    
+    // Update order with new phase and history
+    const updatedAuftrag = await prisma.auftrag.update({
+      where: { id: auftragId },
+      data: { 
+        phase: newPhase,
+        phaseHistory: updatedHistory
+      }
+    })
+    
+    return { success: true, data: updatedAuftrag }
+  } catch (error) {
+    console.error('Error updating order phase with history:', error)
+    return { success: false, error: 'Fehler beim Aktualisieren der Auftragsphase' }
   }
 }
 

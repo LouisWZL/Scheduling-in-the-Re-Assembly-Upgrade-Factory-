@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -37,13 +37,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-export function SiteHeader() {
+interface SiteHeaderProps {
+  onSimulationUpdate?: (time: Date, isPlaying: boolean) => void
+}
+
+export function SiteHeader({ onSimulationUpdate }: SiteHeaderProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [speed, setSpeed] = useState([1])
   const [autoOrders, setAutoOrders] = useState(false)
   const [simulationTime, setSimulationTime] = useState(new Date())
   const [showResetDialog, setShowResetDialog] = useState(false)
   const [resetting, setResetting] = useState(false)
+  const [hasStarted, setHasStarted] = useState(false)
   const [minThreshold, setMinThreshold] = useState(30) // Minimum-Schwelle für Auto-Aufträge
   const [batchSize, setBatchSize] = useState(20) // Batch-Größe für Auto-Aufträge
   const [auftragsabwicklungIndex, setAuftragsabwicklungIndex] = useState(0) // Standard: Algorithmus 1
@@ -54,8 +59,18 @@ export function SiteHeader() {
   const isConfigurator = pathname.startsWith('/factory-configurator/')
 
   const handlePlayPause = () => {
-    setIsPlaying(!isPlaying)
+    const newPlayingState = !isPlaying
+    setIsPlaying(newPlayingState)
+    if (newPlayingState) {
+      setHasStarted(true)
+    }
+    onSimulationUpdate?.(simulationTime, newPlayingState)
   }
+  
+  // Notify when simulation time changes
+  useEffect(() => {
+    onSimulationUpdate?.(simulationTime, isPlaying)
+  }, [simulationTime, isPlaying, onSimulationUpdate])
 
   const handleRestart = async () => {
     setShowResetDialog(true)
@@ -75,6 +90,7 @@ export function SiteHeader() {
         // Reset simulation
         setIsPlaying(false)
         setSimulationTime(new Date())
+        setHasStarted(false)
         toast.success('Simulation und Aufträge zurückgesetzt')
       } else {
         toast.error(result.error || 'Fehler beim Zurücksetzen')
@@ -249,18 +265,32 @@ export function SiteHeader() {
                 <RotateCcw className="h-4 w-4" />
               </Button>
               
-              {/* Digitale Uhr */}
-              <div className="bg-muted rounded px-3 py-1 font-mono text-sm font-medium">
-                {simulationTime.toLocaleDateString('de-DE', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric'
-                })}
-                {' '}
-                {simulationTime.toLocaleTimeString('de-DE', {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
+              {/* Digitale Uhr mit Status-Indikator */}
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <div className={`h-3 w-3 rounded-full ${
+                    isPlaying 
+                      ? 'bg-green-500' 
+                      : hasStarted
+                        ? 'bg-orange-500'
+                        : 'bg-red-500'
+                  }`} />
+                  {isPlaying && (
+                    <div className="absolute inset-0 h-3 w-3 rounded-full bg-green-500 animate-ping" />
+                  )}
+                </div>
+                <div className="bg-muted rounded px-3 py-1 font-mono text-sm font-medium">
+                  {simulationTime.toLocaleDateString('de-DE', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                  })}
+                  {' '}
+                  {simulationTime.toLocaleTimeString('de-DE', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </div>
               </div>
               
               <div className="flex items-center gap-2">

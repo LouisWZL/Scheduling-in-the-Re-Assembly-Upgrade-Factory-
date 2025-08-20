@@ -101,6 +101,7 @@ model Auftrag {
   factoryId             String
   liefertermine         Liefertermin[]
   terminierung          Json?                // Terminierungs-Historie
+  phaseHistory          Json?                // Phasen-Historie mit Zeitstempeln
   graphData             Json?                // Order-specific assembly graph
   processGraphDataBg    Json?                // Order-specific process graph (Baugruppen-Ebene)
   processGraphDataBgt   Json?                // Order-specific process graph (Baugruppentyp-Ebene)

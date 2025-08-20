@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { Schichtmodell } from '@prisma/client'
 import { addTerminierung, addBeschaffung, createAutoOrders } from './simulation.actions'
+import { updateAuftragPhaseWithHistory } from './auftrag.actions'
 import { auftragsabwicklungAlgorithmen, terminierungAlgorithmen, beschaffungAlgorithmen } from '@/components/simulation/registry'
 
 /**
@@ -54,12 +55,13 @@ export async function processModularSimulation(
     const auftragsabwicklung = auftragsabwicklungAlgorithmen[auftragsabwicklungIndex]
     const { updates } = await auftragsabwicklung.process(factory, simulationTime, factoryId)
     
-    // 3. Updates in Datenbank speichern
+    // 3. Updates in Datenbank speichern mit History
     for (const update of updates) {
-      await prisma.auftrag.update({
-        where: { id: update.id },
-        data: { phase: update.phase }
-      })
+      await updateAuftragPhaseWithHistory(
+        update.id,
+        update.phase,
+        simulationTime
+      )
     }
     
     // 4. Terminierung ausführen

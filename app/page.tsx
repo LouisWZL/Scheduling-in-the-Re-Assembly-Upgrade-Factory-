@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { SidebarLeft } from "@/components/sidebar-left"
 import { SidebarRight } from "@/components/sidebar-right"
 import { SiteHeader } from '@/components/site-header'
@@ -8,6 +9,7 @@ import { OrdersTable } from '@/components/orders-table'
 import { OrderProvider } from '@/contexts/order-context'
 import { OrderGraphViewer } from '@/components/order-graph-viewer'
 import { OrderProcessGraphViewer } from '@/components/order-process-graph-viewer'
+import { PhaseTimeline } from '@/components/phase-timeline'
 import { useOrder } from '@/contexts/order-context'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -15,39 +17,55 @@ import data from "./data.json"
 
 function HomeContent() {
   const { selectedOrder, isLoadingOrder } = useOrder()
+  const [simulationTime, setSimulationTime] = useState<Date | undefined>()
+  const [isPlaying, setIsPlaying] = useState(false)
   
   return (
     <div className="flex h-screen flex-col [--header-height:calc(theme(spacing.14))]">
       <SidebarProvider className="flex h-full flex-col">
-        <SiteHeader />
+        <SiteHeader 
+          onSimulationUpdate={(time, playing) => {
+            setSimulationTime(time)
+            setIsPlaying(playing)
+          }}
+        />
         <div className="flex flex-1 overflow-hidden [&_[data-slot=sidebar]]:h-full">
           <SidebarLeft />
-          <SidebarInset className="overflow-auto">
-            <div className="flex flex-1 flex-col gap-4 p-4">
-              {isLoadingOrder ? (
-                // Skeleton während des Ladens anzeigen
-                <>
-                  <div className="space-y-3">
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-64 w-full" />
-                  </div>
-                  <div className="space-y-3">
-                    <Skeleton className="h-8 w-48" />
-                    <Skeleton className="h-96 w-full" />
-                  </div>
-                  <div className="space-y-3">
-                    <Skeleton className="h-8 w-48" />
-                    <Skeleton className="h-96 w-full" />
-                  </div>
-                </>
-              ) : (
-                // Normale Anzeige
-                <>
-                  <OrdersTable data={data} />
-                  <OrderGraphViewer order={selectedOrder} />
-                  <OrderProcessGraphViewer order={selectedOrder} />
-                </>
-              )}
+          <SidebarInset className="flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-auto">
+              <div className="flex flex-col gap-4 p-4">
+                {isLoadingOrder ? (
+                  // Skeleton während des Ladens anzeigen
+                  <>
+                    <div className="space-y-3">
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-64 w-full" />
+                    </div>
+                    <div className="space-y-3">
+                      <Skeleton className="h-8 w-48" />
+                      <Skeleton className="h-96 w-full" />
+                    </div>
+                    <div className="space-y-3">
+                      <Skeleton className="h-8 w-48" />
+                      <Skeleton className="h-96 w-full" />
+                    </div>
+                  </>
+                ) : (
+                  // Normale Anzeige
+                  <>
+                    <OrdersTable data={data} />
+                    <OrderGraphViewer order={selectedOrder} />
+                    <OrderProcessGraphViewer order={selectedOrder} />
+                  </>
+                )}
+              </div>
+            </div>
+            {/* Phase Timeline */}
+            <div className="h-[150px] border-t bg-background">
+              <PhaseTimeline 
+                simulationTime={simulationTime}
+                isPlaying={isPlaying}
+              />
             </div>
           </SidebarInset>
           <SidebarRight />
