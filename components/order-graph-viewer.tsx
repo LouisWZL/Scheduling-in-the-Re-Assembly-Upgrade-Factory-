@@ -26,6 +26,9 @@ interface BaugruppeDetail {
 interface OrderGraphViewerProps {
   order: {
     id: string
+    factory?: {
+      pflichtUpgradeSchwelle?: number | null
+    } | null
     produktvariante: {
       bezeichnung: string
       typ: string
@@ -402,7 +405,10 @@ export function OrderGraphViewer({ order }: OrderGraphViewerProps) {
                   </span>
                 </div>
                 <div className="flex-1 overflow-hidden">
-                  <BaugruppenDetailsTable baugruppenInstances={order.baugruppenInstances} />
+                  <BaugruppenDetailsTable 
+                    baugruppenInstances={order.baugruppenInstances}
+                    pflichtUpgradeSchwelle={order.factory?.pflichtUpgradeSchwelle ?? 30}
+                  />
                 </div>
               </div>
             </div>

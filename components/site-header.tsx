@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Input } from '@/components/ui/input'
-import { Play, Pause, RotateCcw, Plus, Minus, Loader2, Settings } from 'lucide-react'
+import { Play, Pause, RotateCcw, Loader2, Settings } from 'lucide-react'
 import {
   Popover,
   PopoverContent,
@@ -23,7 +23,7 @@ import {
 import { auftragsabwicklungAlgorithmen, terminierungAlgorithmen, beschaffungAlgorithmen } from '@/components/simulation/registry'
 import { FactorySwitcher } from '@/components/factory-switcher'
 import { useFactory } from '@/contexts/factory-context'
-import { generateOrders, deleteAllAuftraege } from '@/app/actions/auftrag.actions'
+import { deleteAllAuftraege } from '@/app/actions/auftrag.actions'
 import { Simulation } from '@/components/simulation/simulation'
 import { toast } from 'sonner'
 import {
@@ -40,8 +40,6 @@ import {
 export function SiteHeader() {
   const [isPlaying, setIsPlaying] = useState(false)
   const [speed, setSpeed] = useState([1])
-  const [orderCount, setOrderCount] = useState(10)
-  const [generating, setGenerating] = useState(false)
   const [autoOrders, setAutoOrders] = useState(false)
   const [simulationTime, setSimulationTime] = useState(new Date())
   const [showResetDialog, setShowResetDialog] = useState(false)
@@ -94,39 +92,6 @@ export function SiteHeader() {
     setSpeed(value)
   }
 
-  const handleIncreaseOrders = () => {
-    setOrderCount(prev => Math.min(prev + 10, 100)) // Max 100 orders
-  }
-
-  const handleDecreaseOrders = () => {
-    setOrderCount(prev => Math.max(prev - 10, 10)) // Min 10 orders
-  }
-
-  const handleGenerateOrders = async () => {
-    if (!activeFactory) {
-      toast.error('Keine Factory ausgewählt')
-      return
-    }
-
-    setGenerating(true)
-    try {
-      const result = await generateOrders(activeFactory.id, orderCount)
-      if (result.success) {
-        toast.success(result.message)
-      } else {
-        toast.error(result.error || 'Fehler beim Erstellen der Aufträge')
-        if (result.errors && result.errors.length > 0) {
-          result.errors.forEach((err: string) => toast.error(err))
-        }
-      }
-    } catch (error) {
-      console.error('Error generating orders:', error)
-      toast.error('Ein unerwarteter Fehler ist aufgetreten')
-    } finally {
-      setGenerating(false)
-    }
-  }
-
   return (
     <header className="flex sticky top-0 z-50 w-full items-center border-b bg-background">
       <div className="flex h-14 w-full items-center gap-4 px-4">
@@ -136,47 +101,6 @@ export function SiteHeader() {
         <div className="flex items-center gap-6">
           {!isConfigurator && (
             <>
-              {/* Order Generation Controls */}
-              <div className="flex items-center gap-2 border-r pr-4 mr-4">
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  className="h-8 w-8"
-                  onClick={handleDecreaseOrders}
-                  disabled={orderCount <= 10 || generating}
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <div className="min-w-[3rem] text-center font-medium">
-                  {orderCount}
-                </div>
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  className="h-8 w-8"
-                  onClick={handleIncreaseOrders}
-                  disabled={orderCount >= 100 || generating}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleGenerateOrders}
-                  disabled={generating || !activeFactory}
-                  className="ml-2"
-                >
-                  {generating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Erstelle...
-                    </>
-                  ) : (
-                    'Aufträge erstellen'
-                  )}
-                </Button>
-              </div>
-
               {/* Simulation Controls */}
               <div className="flex items-center gap-4">
               

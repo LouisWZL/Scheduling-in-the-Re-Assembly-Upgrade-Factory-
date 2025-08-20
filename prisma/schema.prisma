@@ -65,6 +65,7 @@ model ReassemblyFactory {
   schichtmodell         Schichtmodell       @default(EINSCHICHT)
   anzahlMontagestationen Int                @default(10)
   targetBatchAverage    Int                 @default(65) // Durchschnittlicher Zustand der Baugruppen in %
+  pflichtUpgradeSchwelle Int                @default(30) // Schwelle für automatische Pflicht-Upgrades in %
   beschaffung           Json?               // Beschaffungs-Historie
   auftraege             Auftrag[]
   produkte              Produkt[]           // Produkte der Reassembly Factory

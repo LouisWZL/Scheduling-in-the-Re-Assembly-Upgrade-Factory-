@@ -203,6 +203,50 @@ export async function updateFactoryTargetBatchAverage(id: string, targetBatchAve
   }
 }
 
+export async function updateFactoryPflichtUpgradeSchwelle(id: string, pflichtUpgradeSchwelle: number) {
+  try {
+    // Validate pflichtUpgradeSchwelle
+    if (pflichtUpgradeSchwelle < 0 || pflichtUpgradeSchwelle > 100) {
+      return {
+        success: false,
+        error: 'Die Pflicht-Upgrade Schwelle muss zwischen 0% und 100% liegen'
+      }
+    }
+    
+    const factory = await prisma.reassemblyFactory.update({
+      where: { id },
+      data: { pflichtUpgradeSchwelle }
+    })
+    
+    revalidatePath('/factory-configurator')
+    revalidatePath(`/factory-configurator/${id}`)
+    revalidatePath('/api/factories')
+    revalidatePath('/')
+    
+    return {
+      success: true,
+      data: factory,
+      message: 'Pflicht-Upgrade Schwelle erfolgreich aktualisiert'
+    }
+  } catch (error) {
+    console.error('Error updating factory pflichtUpgradeSchwelle:', error)
+    
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2025') {
+        return {
+          success: false,
+          error: 'Factory nicht gefunden'
+        }
+      }
+    }
+    
+    return {
+      success: false,
+      error: 'Fehler beim Aktualisieren der Pflicht-Upgrade Schwelle'
+    }
+  }
+}
+
 export async function deleteAllFactoryOrders(factoryId: string) {
   try {
     // Use a transaction to ensure all deletes happen together

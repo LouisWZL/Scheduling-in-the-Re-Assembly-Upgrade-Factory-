@@ -52,6 +52,11 @@ export async function getAuftragDetails(auftragId: string) {
       where: { id: auftragId },
       include: {
         kunde: true,
+        factory: {
+          select: {
+            pflichtUpgradeSchwelle: true
+          }
+        },
         produktvariante: {
           include: {
             produkt: true
@@ -159,11 +164,12 @@ async function createSingleOrder(
       )
       graphData = transformation.graphData
       
-      // Assign reassembly types based on condition
+      // Assign reassembly types based on pflichtUpgradeSchwelle
+      const pflichtUpgradeSchwelle = factory.pflichtUpgradeSchwelle || 30
       baugruppenInstances = transformation.baugruppenInstances.map(bi => ({
         baugruppeId: bi.baugruppeId,
         zustand: bi.zustand,
-        reAssemblyTyp: bi.zustand < 30 ? ReAssemblyTyp.PFLICHT : undefined,
+        reAssemblyTyp: bi.zustand < pflichtUpgradeSchwelle ? ReAssemblyTyp.PFLICHT : undefined,
         austauschBaugruppeId: undefined
       }))
       
@@ -174,7 +180,7 @@ async function createSingleOrder(
       const eligibleForReAssembly = baugruppenInstances.filter(bi => !bi.reAssemblyTyp)
       
       // WICHTIG: Jeder Auftrag muss mindestens eine ReAssembly haben (PFLICHT oder UPGRADE)
-      // - Wenn es bereits PFLICHT-ReAssemblies gibt (Baugruppen < 30%), können zusätzlich 0-2 UPGRADE-ReAssemblies hinzugefügt werden
+      // - Wenn es bereits PFLICHT-ReAssemblies gibt (Baugruppen < pflichtUpgradeSchwelle%), können zusätzlich 0-2 UPGRADE-ReAssemblies hinzugefügt werden
       // - Wenn es keine PFLICHT-ReAssemblies gibt, MUSS mindestens 1 UPGRADE-ReAssembly hinzugefügt werden
       let reAssemblyCount: number
       if (!hasPflichtReAssembly && eligibleForReAssembly.length > 0) {

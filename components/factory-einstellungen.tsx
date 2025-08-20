@@ -9,7 +9,7 @@ import { toast } from 'sonner'
 import { Loader2, Save, Clock, Wrench, TrendingUp } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
-import { updateFactoryName, updateFactoryCapacity, getFactory, updateFactorySchichtmodell, updateFactoryMontagestationen, updateFactoryTargetBatchAverage } from '@/app/actions/factory.actions'
+import { updateFactoryName, updateFactoryCapacity, getFactory, updateFactorySchichtmodell, updateFactoryMontagestationen, updateFactoryTargetBatchAverage, updateFactoryPflichtUpgradeSchwelle } from '@/app/actions/factory.actions'
 
 interface FactoryEinstellungenProps {
   factoryId: string
@@ -22,12 +22,14 @@ export function FactoryEinstellungen({ factoryId }: FactoryEinstellungenProps) {
   const [savingSchichtmodell, setSavingSchichtmodell] = useState(false)
   const [savingMontagestationen, setSavingMontagestationen] = useState(false)
   const [savingTargetBatchAverage, setSavingTargetBatchAverage] = useState(false)
+  const [savingPflichtUpgradeSchwelle, setSavingPflichtUpgradeSchwelle] = useState(false)
   const [factoryData, setFactoryData] = useState<any>(null)
   const [name, setName] = useState('')
   const [capacity, setCapacity] = useState('')
   const [schichtmodell, setSchichtmodell] = useState('EINSCHICHT')
   const [montagestationen, setMontagestationen] = useState('')
   const [targetBatchAverage, setTargetBatchAverage] = useState(65)
+  const [pflichtUpgradeSchwelle, setPflichtUpgradeSchwelle] = useState(30)
 
   useEffect(() => {
     loadFactoryData()
@@ -44,6 +46,7 @@ export function FactoryEinstellungen({ factoryId }: FactoryEinstellungenProps) {
         setSchichtmodell(result.data.schichtmodell || 'EINSCHICHT')
         setMontagestationen(result.data.anzahlMontagestationen?.toString() || '10')
         setTargetBatchAverage(result.data.targetBatchAverage || 65)
+        setPflichtUpgradeSchwelle(result.data.pflichtUpgradeSchwelle || 30)
       } else {
         toast.error('Fehler beim Laden der Factory-Daten')
       }
@@ -143,20 +146,33 @@ export function FactoryEinstellungen({ factoryId }: FactoryEinstellungenProps) {
     }
   }
 
-  const handleUpdateTargetBatchAverage = async () => {
+  const handleUpdateBaugruppenzustand = async () => {
     setSavingTargetBatchAverage(true)
+    setSavingPflichtUpgradeSchwelle(true)
+    
     try {
-      const result = await updateFactoryTargetBatchAverage(factoryId, targetBatchAverage)
-      if (result.success) {
-        toast.success(result.message)
+      // Update both values
+      const [averageResult, schwelleResult] = await Promise.all([
+        updateFactoryTargetBatchAverage(factoryId, targetBatchAverage),
+        updateFactoryPflichtUpgradeSchwelle(factoryId, pflichtUpgradeSchwelle)
+      ])
+      
+      if (averageResult.success && schwelleResult.success) {
+        toast.success('Baugruppenzustand-Einstellungen erfolgreich aktualisiert')
         await loadFactoryData()
       } else {
-        toast.error(result.error)
+        if (!averageResult.success) {
+          toast.error(averageResult.error || 'Fehler beim Aktualisieren des Durchschnittswerts')
+        }
+        if (!schwelleResult.success) {
+          toast.error(schwelleResult.error || 'Fehler beim Aktualisieren der Pflicht-Upgrade Schwelle')
+        }
       }
     } catch (error) {
       toast.error('Ein unerwarteter Fehler ist aufgetreten')
     } finally {
       setSavingTargetBatchAverage(false)
+      setSavingPflichtUpgradeSchwelle(false)
     }
   }
 
@@ -393,57 +409,106 @@ export function FactoryEinstellungen({ factoryId }: FactoryEinstellungenProps) {
           </CardContent>
         </Card>
 
-        {/* Durchschnittlicher Zustand Card */}
-        <Card className="flex flex-col h-full">
+        {/* Baugruppenzustand Card */}
+        <Card className="flex flex-col h-full col-span-1 lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              Durchschnittlicher Baugruppenzustand
+              Baugruppenzustand
             </CardTitle>
             <CardDescription>
-              Legen Sie den durchschnittlichen Zustand für Baugruppen in Aufträgen fest. 
-              Dieser Wert bestimmt, wie die Baugruppen-Batches generiert werden.
+              Konfigurieren Sie den durchschnittlichen Zustand für Baugruppen in Aufträgen und die Schwelle für automatische Pflicht-Upgrades.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col flex-1">
             <div className="flex-1">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="targetBatchAverage">Durchschnittlicher Zustand</Label>
-                    <span className="text-2xl font-bold text-primary">{targetBatchAverage}%</span>
-                  </div>
-                  <Slider
-                    id="targetBatchAverage"
-                    min={10}
-                    max={90}
-                    step={1}
-                    value={[targetBatchAverage]}
-                    onValueChange={(value) => setTargetBatchAverage(value[0])}
-                    disabled={savingTargetBatchAverage}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>10% (Schlecht)</span>
-                    <span>50% (Mittel)</span>
-                    <span>90% (Sehr gut)</span>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Durchschnittlicher Zustand */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Durchschnittlicher Baugruppenzustand</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="targetBatchAverage">Durchschnitt</Label>
+                      <span className="text-2xl font-bold text-primary">{targetBatchAverage}%</span>
+                    </div>
+                    <Slider
+                      id="targetBatchAverage"
+                      min={10}
+                      max={90}
+                      step={1}
+                      value={[targetBatchAverage]}
+                      onValueChange={(value) => setTargetBatchAverage(value[0])}
+                      disabled={savingTargetBatchAverage}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>10%</span>
+                      <span>50%</span>
+                      <span>90%</span>
+                    </div>
                   </div>
                 </div>
-                <div className="rounded-lg bg-muted p-3">
-                  <p className="text-sm text-muted-foreground">
-                    <strong>Hinweis:</strong> Baugruppen mit einem Zustand unter 30% werden automatisch 
-                    als Pflicht-Upgrade markiert.
-                  </p>
+                
+                {/* Pflicht-Upgrade Schwelle */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Pflicht-Upgrade Schwelle</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="pflichtUpgradeSchwelle">Schwellenwert</Label>
+                      <span className="text-2xl font-bold text-destructive">{pflichtUpgradeSchwelle}%</span>
+                    </div>
+                    <Slider
+                      id="pflichtUpgradeSchwelle"
+                      min={0}
+                      max={100}
+                      step={5}
+                      value={[pflichtUpgradeSchwelle]}
+                      onValueChange={(value) => setPflichtUpgradeSchwelle(value[0])}
+                      disabled={savingPflichtUpgradeSchwelle}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>0%</span>
+                      <span>50%</span>
+                      <span>100%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="rounded-lg bg-muted p-3 mt-6">
+                <p className="text-sm text-muted-foreground">
+                  <strong>Info:</strong> Baugruppen mit einem Zustand unter {pflichtUpgradeSchwelle}% werden automatisch 
+                  als Pflicht-Upgrade markiert. Die Farbcodierung erfolgt dynamisch:
+                </p>
+                <div className="flex items-center gap-4 mt-2 text-xs">
+                  <span className="flex items-center gap-1">
+                    <div className="w-3 h-3 bg-red-500 rounded"></div>
+                    0-{pflichtUpgradeSchwelle}%
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <div className="w-3 h-3 bg-amber-500 rounded"></div>
+                    {pflichtUpgradeSchwelle + 1}-{pflichtUpgradeSchwelle + Math.floor((100 - pflichtUpgradeSchwelle) / 2)}%
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <div className="w-3 h-3 bg-green-500 rounded"></div>
+                    {pflichtUpgradeSchwelle + Math.floor((100 - pflichtUpgradeSchwelle) / 2) + 1}-100%
+                  </span>
                 </div>
               </div>
             </div>
+            
             <div className="pt-4">
               <Button 
-                onClick={handleUpdateTargetBatchAverage}
-                disabled={savingTargetBatchAverage || targetBatchAverage === (factoryData?.targetBatchAverage || 65)}
+                onClick={handleUpdateBaugruppenzustand}
+                disabled={
+                  (savingTargetBatchAverage || savingPflichtUpgradeSchwelle) ||
+                  (targetBatchAverage === (factoryData?.targetBatchAverage || 65) && 
+                   pflichtUpgradeSchwelle === (factoryData?.pflichtUpgradeSchwelle || 30))
+                }
                 size="sm"
               >
-                {savingTargetBatchAverage ? (
+                {(savingTargetBatchAverage || savingPflichtUpgradeSchwelle) ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Speichern...

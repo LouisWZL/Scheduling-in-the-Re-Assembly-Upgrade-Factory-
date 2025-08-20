@@ -11,6 +11,9 @@ import {
   RefreshCw,
   Search,
   ClipboardCheck,
+  Plus,
+  Minus,
+  Loader2,
 } from "lucide-react"
 import {
   IconCircleCheckFilled,
@@ -37,7 +40,7 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { useFactory } from "@/contexts/factory-context"
 import { useOrder } from "@/contexts/order-context"
-import { getAuftraege, getAuftragDetails } from "@/app/actions/auftrag.actions"
+import { getAuftraege, getAuftragDetails, generateOrders } from "@/app/actions/auftrag.actions"
 import { AuftragsPhase } from "@prisma/client"
 import {
   Accordion,
@@ -200,6 +203,8 @@ export function SidebarLeft({
   const [orders, setOrders] = React.useState<OrderData[]>([])
   const [loading, setLoading] = React.useState(true)
   const [refreshing, setRefreshing] = React.useState(false)
+  const [orderCount, setOrderCount] = React.useState(10)
+  const [generating, setGenerating] = React.useState(false)
 
   // Load orders when factory changes
   React.useEffect(() => {
@@ -236,6 +241,40 @@ export function SidebarLeft({
 
   const handleRefresh = () => {
     loadOrders(true)
+  }
+
+  const handleIncreaseOrders = () => {
+    setOrderCount(prev => Math.min(prev + 10, 100)) // Max 100 orders
+  }
+
+  const handleDecreaseOrders = () => {
+    setOrderCount(prev => Math.max(prev - 10, 10)) // Min 10 orders
+  }
+
+  const handleGenerateOrders = async () => {
+    if (!activeFactory) {
+      toast.error('Keine Factory ausgewählt')
+      return
+    }
+
+    setGenerating(true)
+    try {
+      const result = await generateOrders(activeFactory.id, orderCount)
+      if (result.success) {
+        toast.success(result.message)
+        await loadOrders() // Reload orders after generation
+      } else {
+        toast.error(result.error || 'Fehler beim Erstellen der Aufträge')
+        if (result.errors && result.errors.length > 0) {
+          result.errors.forEach((err: string) => toast.error(err))
+        }
+      }
+    } catch (error) {
+      console.error('Error generating orders:', error)
+      toast.error('Ein unerwarteter Fehler ist aufgetreten')
+    } finally {
+      setGenerating(false)
+    }
   }
 
   const handleOrderClick = async (order: OrderData) => {
@@ -278,6 +317,50 @@ export function SidebarLeft({
           </Button>
         </div>
       </SidebarHeader>
+      
+      {/* Order Generation Controls */}
+      <div className="px-4 py-3 border-b">
+        <div className="flex items-center gap-2">
+          <Button
+            size="icon"
+            variant="secondary"
+            className="h-8 w-8"
+            onClick={handleDecreaseOrders}
+            disabled={orderCount <= 10 || generating}
+          >
+            <Minus className="h-4 w-4" />
+          </Button>
+          <div className="min-w-[3rem] text-center font-medium">
+            {orderCount}
+          </div>
+          <Button
+            size="icon"
+            variant="secondary"
+            className="h-8 w-8"
+            onClick={handleIncreaseOrders}
+            disabled={orderCount >= 100 || generating}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleGenerateOrders}
+            disabled={generating || !activeFactory}
+            className="ml-2 flex-1"
+          >
+            {generating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Erstelle...
+              </>
+            ) : (
+              'Aufträge erstellen'
+            )}
+          </Button>
+        </div>
+      </div>
+      
       <SidebarContent className="gap-0 py-2">
         {loading ? (
           <div className="p-4 space-y-4">

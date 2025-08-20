@@ -40,9 +40,10 @@ interface BaugruppenDetailsTableProps {
       } | null
     } | null
   }>
+  pflichtUpgradeSchwelle?: number
 }
 
-export function BaugruppenDetailsTable({ baugruppenInstances }: BaugruppenDetailsTableProps) {
+export function BaugruppenDetailsTable({ baugruppenInstances, pflichtUpgradeSchwelle = 30 }: BaugruppenDetailsTableProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 5
   
@@ -60,16 +61,21 @@ export function BaugruppenDetailsTable({ baugruppenInstances }: BaugruppenDetail
     currentPage * itemsPerPage
   )
   
+  // Dynamische Farbberechnung basierend auf pflichtUpgradeSchwelle
   const getZustandColor = (zustand: number) => {
-    if (zustand >= 60) return 'text-green-600'
-    if (zustand >= 30) return 'text-amber-600'
-    return 'text-red-600'
+    const orangeSchwelle = pflichtUpgradeSchwelle + Math.floor((100 - pflichtUpgradeSchwelle) / 2)
+    
+    if (zustand <= pflichtUpgradeSchwelle) return 'text-red-600'
+    if (zustand <= orangeSchwelle) return 'text-amber-600'
+    return 'text-green-600'
   }
   
   const getZustandBgColor = (zustand: number) => {
-    if (zustand >= 60) return 'bg-green-500'
-    if (zustand >= 30) return 'bg-amber-500'
-    return 'bg-red-500'
+    const orangeSchwelle = pflichtUpgradeSchwelle + Math.floor((100 - pflichtUpgradeSchwelle) / 2)
+    
+    if (zustand <= pflichtUpgradeSchwelle) return 'bg-red-500'
+    if (zustand <= orangeSchwelle) return 'bg-amber-500'
+    return 'bg-green-500'
   }
   
   const getReAssemblyTypBadge = (reAssemblyTyp?: ReAssemblyTyp | null) => {
