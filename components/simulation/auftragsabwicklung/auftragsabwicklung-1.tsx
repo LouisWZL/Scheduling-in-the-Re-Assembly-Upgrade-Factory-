@@ -7,7 +7,7 @@ import { AuftragsPhase } from '@prisma/client'
 import { AuftragsabwicklungAlgorithmus } from '../types'
 
 const auftragsabwicklung1: AuftragsabwicklungAlgorithmus = {
-  name: 'Demo Auftragsabwicklung',
+  name: 'Demo Pups Auftragsabwicklung',
   description: 'Verarbeitet Aufträge in 7er-Batches mit Kapazitätsprüfung für Re-Assembly',
   
   process: async (factory, simulationTime, factoryId) => {
