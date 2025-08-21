@@ -62,6 +62,13 @@ Die Plattform beantwortet folgende zentrale Fragen:
 
 3. **Entwicklungsserver starten**
    ```bash
+   npx prisma db push
+   ```
+   Datenbank initialisieren
+
+
+4. **Entwicklungsserver starten**
+   ```bash
    npm run dev
    ```
    Der Server startet automatisch und führt dabei auch die Datenbank-Initialisierung durch.
