@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -57,6 +58,7 @@ export function SiteHeader({ onSimulationUpdate }: SiteHeaderProps) {
   const { activeFactory } = useFactory()
   const pathname = usePathname()
   const isConfigurator = pathname.startsWith('/factory-configurator/')
+  const isAdvancedSimulation = pathname.startsWith('/advanced-simulation')
 
   const handlePlayPause = () => {
     const newPlayingState = !isPlaying
@@ -112,10 +114,31 @@ export function SiteHeader({ onSimulationUpdate }: SiteHeaderProps) {
     <header className="flex sticky top-0 z-50 w-full items-center border-b bg-background">
       <div className="flex h-14 w-full items-center gap-4 px-4">
         <FactorySwitcher />
+        
+        {/* Navigation Links */}
+        <nav className="flex items-center gap-4">
+          <Link
+            href="/"
+            className={`text-sm font-medium transition-colors hover:text-primary ${
+              pathname === '/' ? 'text-primary' : 'text-muted-foreground'
+            }`}
+          >
+            Basic Simulation
+          </Link>
+          <Link
+            href="/advanced-simulation"
+            className={`text-sm font-medium transition-colors hover:text-primary ${
+              isAdvancedSimulation ? 'text-primary' : 'text-muted-foreground'
+            }`}
+          >
+            Advanced Simulation
+          </Link>
+        </nav>
+        
         <div className="flex-1" />
         
         <div className="flex items-center gap-6">
-          {!isConfigurator && (
+          {!isConfigurator && !isAdvancedSimulation && (
             <>
               {/* Simulation Controls */}
               <div className="flex items-center gap-4">
@@ -312,7 +335,7 @@ export function SiteHeader({ onSimulationUpdate }: SiteHeaderProps) {
       </div>
       
       {/* Simulation Component */}
-      {activeFactory && !isConfigurator && (
+      {activeFactory && !isConfigurator && !isAdvancedSimulation && (
         <Simulation
           factoryId={activeFactory.id}
           isPlaying={isPlaying}

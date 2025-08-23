@@ -109,7 +109,6 @@ model Auftrag {
   baugruppenInstances   BaugruppeInstance[]  // Assembly instances for this order
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
-  Buendelung             Integer             // Hier will ich später die Bündelungen
 }
 
 // Liefertermin
@@ -197,4 +196,109 @@ model Prozess {
   baugruppen           Baugruppe[]          // Baugruppen denen dieser Prozess zugeordnet ist
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
+}
+
+// Advanced Simulation Tables - for enhanced tracking
+
+// Production Step Timings for detailed assembly tracking
+model ProductionStepTiming {
+  id                   String              @id @default(cuid())
+  orderId              String              // UUID of the order
+  componentType        String              // Type of component being processed
+  stationId            String              // ID of the production station
+  lineNumber           Int                 // Production line (1 or 2)
+  simulationTimeMinutes Int                @default(0) // Time in simulation minutes
+  simulationStartTime  DateTime            // When simulation started
+  startTime            DateTime            // When this step started
+  endTime              DateTime?           // When this step ended (null if ongoing)
+  durationMinutes      Int?                // Calculated duration
+  stepType             String              @default("assembly") // 'assembly' or 'disassembly'
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  @@index([orderId])
+  @@index([stationId])
+}
+
+// Demontage Timings for detailed disassembly tracking  
+model DemontageTimings {
+  id                    String             @id @default(cuid())
+  orderId               String             // UUID of the order
+  componentType         String             // Type of component being processed
+  stationId             String             // ID of the disassembly station
+  startTime             DateTime           // When disassembly started
+  endTime               DateTime?          // When disassembly ended (null if ongoing)
+  durationMinutes       Int?               // Calculated duration
+  simulationTimeMinutes Int                @default(0) // Time in simulation minutes
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  @@index([orderId])
+  @@index([stationId])
+}
+
+// Enhanced Order Management for Advanced Simulation
+model AdvancedOrder {
+  id                   String              @id @default(cuid())
+  displayId            String?             // Human-readable order number
+  customerName         String              // Customer full name
+  productVariantName   String              // Product variant name
+  productVariantType   String              // 'basic' or 'premium'
+  currentPhase         String              // Current processing phase
+  status               String              @default("active") // 'active', 'completed', 'cancelled'
+  deliveryDate         DateTime            // Expected delivery date
+  totalProcessingTime  Int                 @default(0) // Total processing time in minutes
+  completedAt          DateTime?           // When order was completed
+  reassemblyReason     String?             // Reason for reassembly if applicable
+  requiresReassembly   Boolean             @default(false) // Whether order needs reassembly
+  assignedLineNumber   Int?                // Which production line (1 or 2)
+  needsQualityRework   Boolean             @default(false) // Whether needs quality rework
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  // Relations
+  processSteps         AdvancedProcessStep[]
+  components           AdvancedComponent[]
+
+  @@index([currentPhase])
+  @@index([status])
+}
+
+// Process Steps for Advanced Orders
+model AdvancedProcessStep {
+  id                    String             @id @default(cuid())
+  orderId               String             // Reference to AdvancedOrder
+  phase                 String             // Processing phase
+  startedAt             DateTime           // When phase started
+  completedAt           DateTime?          // When phase completed
+  durationMinutes       Int?               // Phase duration
+  wasRework             Boolean            @default(false) // Whether this was rework
+  disruptionOccurred    Boolean            @default(false) // Whether disruption happened
+  disruptionDelayMinutes Int               @default(0) // Delay caused by disruption
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  // Relations
+  order                 AdvancedOrder       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([phase])
+}
+
+// Components for Advanced Orders
+model AdvancedComponent {
+  id                      String           @id @default(cuid())
+  orderId                 String           // Reference to AdvancedOrder
+  componentType           String           // Type of component (FAHRWERK, INTERIEUR, etc.)
+  conditionPercentage     Int              // Condition from 0-100%
+  reassemblyType          String?          // 'PFLICHT', 'WUNSCH', or null
+  replacementComponentId  String?          // ID of replacement component if any
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+
+  // Relations
+  order                   AdvancedOrder    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([componentType])
 }
