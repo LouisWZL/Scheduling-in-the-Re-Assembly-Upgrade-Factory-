@@ -548,6 +548,116 @@ export async function getAuftragStatistics(factoryId: string) {
 }
 
 /**
+ * Delete a single order
+ */
+export async function deleteSingleOrder(orderId: string) {
+  try {
+    // Delete all related data in correct order to avoid foreign key constraint violations
+    
+    // 1. Delete Liefertermin records
+    await prisma.liefertermin.deleteMany({
+      where: {
+        auftragId: orderId
+      }
+    });
+
+    // 2. Delete BaugruppeInstance records  
+    await prisma.baugruppeInstance.deleteMany({
+      where: {
+        auftragId: orderId
+      }
+    });
+
+    // 3. Delete StationDuration records (these have onDelete: Cascade, but delete explicitly for safety)
+    await prisma.stationDuration.deleteMany({
+      where: {
+        auftragId: orderId
+      }
+    });
+
+    // 4. Finally, delete the order
+    const deleteResult = await prisma.auftrag.delete({
+      where: {
+        id: orderId
+      }
+    });
+
+    revalidatePath('/');
+    revalidatePath(`/factory-configurator/${deleteResult.factoryId}`);
+
+    return {
+      success: true,
+      message: `Auftrag erfolgreich gelöscht`,
+      deletedOrder: deleteResult
+    };
+  } catch (error) {
+    console.error('Error deleting order:', error);
+    return { 
+      success: false, 
+      error: 'Fehler beim Löschen des Auftrags' 
+    };
+  }
+}
+
+/**
+ * Delete all orders for a factory
+ */
+export async function deleteAllOrdersForFactory(factoryId: string) {
+  try {
+    // Delete all related data in correct order to avoid foreign key constraint violations
+    
+    // 1. Delete Liefertermin records for all orders in this factory
+    await prisma.liefertermin.deleteMany({
+      where: {
+        auftrag: {
+          factoryId: factoryId
+        }
+      }
+    });
+
+    // 2. Delete BaugruppeInstance records for all orders in this factory
+    await prisma.baugruppeInstance.deleteMany({
+      where: {
+        auftrag: {
+          factoryId: factoryId
+        }
+      }
+    });
+
+    // 3. Delete StationDuration records (these have onDelete: Cascade, but delete explicitly for safety)
+    await prisma.stationDuration.deleteMany({
+      where: {
+        auftrag: {
+          factoryId: factoryId
+        }
+      }
+    });
+
+    // 4. Finally, delete all orders for this factory
+    const deleteResult = await prisma.auftrag.deleteMany({
+      where: {
+        factoryId: factoryId
+      }
+    });
+
+    revalidatePath('/');
+    revalidatePath(`/factory-configurator/${factoryId}`);
+
+    return {
+      success: true,
+      message: `${deleteResult.count} Aufträge erfolgreich gelöscht`,
+      deletedCount: deleteResult.count
+    };
+  } catch (error) {
+    console.error('Error deleting orders:', error);
+    return { 
+      success: false, 
+      error: 'Fehler beim Löschen der Aufträge' 
+    };
+  }
+}
+
+/**
  * Update order phase with history tracking
  */
 export async function updateAuftragPhaseWithHistory(

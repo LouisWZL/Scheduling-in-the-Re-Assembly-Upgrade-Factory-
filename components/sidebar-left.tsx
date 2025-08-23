@@ -14,6 +14,8 @@ import {
   Plus,
   Minus,
   Loader2,
+  Trash2,
+  X,
 } from "lucide-react"
 import {
   IconCircleCheckFilled,
@@ -40,7 +42,7 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { useFactory } from "@/contexts/factory-context"
 import { useOrder } from "@/contexts/order-context"
-import { getAuftraege, getAuftragDetails, generateOrders } from "@/app/actions/auftrag.actions"
+import { getAuftraege, getAuftragDetails, generateOrders, deleteAllOrdersForFactory, deleteSingleOrder } from "@/app/actions/auftrag.actions"
 import { AuftragsPhase } from "@prisma/client"
 import {
   Accordion,
@@ -72,11 +74,13 @@ function PaginatedTable({
   phase,
   phases,
   onOrderClick,
+  onOrderDelete,
 }: {
   data: OrderData[]
   phase?: AuftragsPhase
   phases?: AuftragsPhase[]
   onOrderClick?: (order: OrderData) => void
+  onOrderDelete?: (order: OrderData) => void
 }) {
   const [currentPage, setCurrentPage] = React.useState(1)
   const itemsPerPage = 5
@@ -124,8 +128,9 @@ function PaginatedTable({
           <Table className="table-fixed">
             <TableHeader>
               <TableRow className="hover:bg-transparent border-b">
-                <TableHead className="w-[65%] h-9 text-xs font-medium text-muted-foreground">Kunde</TableHead>
-                <TableHead className="w-[35%] h-9 text-right text-xs font-medium text-muted-foreground">Lieferdatum</TableHead>
+                <TableHead className="w-[55%] h-9 text-xs font-medium text-muted-foreground">Kunde</TableHead>
+                <TableHead className="w-[30%] h-9 text-right text-xs font-medium text-muted-foreground">Lieferdatum</TableHead>
+                <TableHead className="w-[15%] h-9 text-right text-xs font-medium text-muted-foreground"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -133,29 +138,48 @@ function PaginatedTable({
                 paginatedData.map((order) => (
                   <TableRow 
                     key={order.id} 
-                    className="border-b last:border-0 hover:bg-muted/50 cursor-pointer"
-                    onClick={() => onOrderClick?.(order)}
+                    className="border-b last:border-0 hover:bg-muted/50"
                   >
-                    <TableCell className="py-2 px-3" title={`${order.kunde.vorname} ${order.kunde.nachname} - ${order.produktvariante.bezeichnung}`}>
+                    <TableCell 
+                      className="py-2 px-3 cursor-pointer" 
+                      title={`${order.kunde.vorname} ${order.kunde.nachname} - ${order.produktvariante.bezeichnung}`}
+                      onClick={() => onOrderClick?.(order)}
+                    >
                       <div className="space-y-0.5">
-                        <span className="text-sm truncate block max-w-[180px] font-medium">
+                        <span className="text-sm truncate block max-w-[150px] font-medium">
                           {order.kunde.vorname} {order.kunde.nachname}
                         </span>
-                        <span className="text-xs text-muted-foreground truncate block max-w-[180px]">
+                        <span className="text-xs text-muted-foreground truncate block max-w-[150px]">
                           {order.produktvariante.bezeichnung}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="py-2 px-3 text-right">
+                    <TableCell 
+                      className="py-2 px-3 text-right cursor-pointer"
+                      onClick={() => onOrderClick?.(order)}
+                    >
                       <span className="text-xs text-muted-foreground">
                         {getTerminierung(order)}
                       </span>
+                    </TableCell>
+                    <TableCell className="py-2 px-1 text-right">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOrderDelete?.(order);
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={2} className="py-4 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={3} className="py-4 text-center text-sm text-muted-foreground">
                     Keine Aufträge vorhanden
                   </TableCell>
                 </TableRow>
@@ -205,6 +229,7 @@ export function SidebarLeft({
   const [refreshing, setRefreshing] = React.useState(false)
   const [orderCount, setOrderCount] = React.useState(10)
   const [generating, setGenerating] = React.useState(false)
+  const [deleting, setDeleting] = React.useState(false)
 
   // Load orders when factory changes
   React.useEffect(() => {
@@ -293,6 +318,52 @@ export function SidebarLeft({
     }
   }
 
+  const handleDeleteAllOrders = async () => {
+    if (!activeFactory) {
+      toast.error('Keine Factory ausgewählt')
+      return
+    }
+
+    if (!confirm('Möchten Sie wirklich ALLE Aufträge löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) {
+      return
+    }
+
+    setDeleting(true)
+    try {
+      const result = await deleteAllOrdersForFactory(activeFactory.id)
+      if (result.success) {
+        toast.success(result.message)
+        await loadOrders() // Reload orders after deletion
+      } else {
+        toast.error(result.error || 'Fehler beim Löschen der Aufträge')
+      }
+    } catch (error) {
+      console.error('Error deleting orders:', error)
+      toast.error('Ein unerwarteter Fehler ist aufgetreten')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleDeleteSingleOrder = async (order: OrderData) => {
+    if (!confirm(`Auftrag für ${order.kunde.vorname} ${order.kunde.nachname} wirklich löschen?`)) {
+      return
+    }
+
+    try {
+      const result = await deleteSingleOrder(order.id)
+      if (result.success) {
+        toast.success(result.message)
+        await loadOrders() // Reload orders after deletion
+      } else {
+        toast.error(result.error || 'Fehler beim Löschen des Auftrags')
+      }
+    } catch (error) {
+      console.error('Error deleting order:', error)
+      toast.error('Ein unerwarteter Fehler ist aufgetreten')
+    }
+  }
+
   // Removed automatic update listener - now using manual refresh button
 
   return (
@@ -319,7 +390,7 @@ export function SidebarLeft({
       </SidebarHeader>
       
       {/* Order Generation Controls */}
-      <div className="px-4 py-3 border-b">
+      <div className="px-4 py-3 border-b space-y-2">
         <div className="flex items-center gap-2">
           <Button
             size="icon"
@@ -359,6 +430,28 @@ export function SidebarLeft({
             )}
           </Button>
         </div>
+        
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={handleDeleteAllOrders}
+            disabled={deleting || !activeFactory || orders.length === 0}
+            className="flex-1"
+          >
+            {deleting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Lösche...
+              </>
+            ) : (
+              <>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Alle Aufträge löschen
+              </>
+            )}
+          </Button>
+        </div>
       </div>
       
       <SidebarContent className="gap-0 py-2">
@@ -391,6 +484,7 @@ export function SidebarLeft({
                   data={orders}
                   phase={AuftragsPhase.AUFTRAGSANNAHME}
                   onOrderClick={handleOrderClick}
+                  onOrderDelete={handleDeleteSingleOrder}
                 />
               </AccordionContent>
             </AccordionItem>

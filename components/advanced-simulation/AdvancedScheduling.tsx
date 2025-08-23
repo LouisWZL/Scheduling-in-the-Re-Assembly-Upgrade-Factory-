@@ -1,7 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, AlertTriangle } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar, Clock, AlertTriangle, Target, Zap, Settings } from 'lucide-react';
+import { useSimulation } from '@/contexts/simulation-context';
 
 interface ScheduleItem {
   id: string;
@@ -79,219 +82,274 @@ const mockScheduleData: ScheduleItem[] = [
   }
 ];
 
+// Scheduling algorithms
+enum SchedulingAlgorithm {
+  FIFO = 'FIFO',
+  SJF = 'SJF',
+  LJF = 'LJF',
+  PRIORITY = 'PRIORITY',
+  EDD = 'EDD',
+  RANDOM = 'RANDOM'
+}
+
+const schedulingStrategies = {
+  [SchedulingAlgorithm.FIFO]: {
+    name: 'First In First Out',
+    description: 'Ordnung nach Ankunftsreihenfolge'
+  },
+  [SchedulingAlgorithm.SJF]: {
+    name: 'Shortest Job First',
+    description: 'Kürzeste Bearbeitungszeit zuerst'
+  },
+  [SchedulingAlgorithm.LJF]: {
+    name: 'Longest Job First',
+    description: 'Längste Bearbeitungszeit zuerst'
+  },
+  [SchedulingAlgorithm.PRIORITY]: {
+    name: 'Priority Scheduling',
+    description: 'Priorität basierend auf Kundentyp'
+  },
+  [SchedulingAlgorithm.EDD]: {
+    name: 'Earliest Due Date',
+    description: 'Früheste Liefertermin zuerst'
+  },
+  [SchedulingAlgorithm.RANDOM]: {
+    name: 'Random Selection',
+    description: 'Zufällige Auswahl aus Warteschlange'
+  }
+};
+
 export function AdvancedScheduling() {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'SCHEDULED':
-        return 'bg-blue-100 text-blue-800';
-      case 'IN_PROGRESS':
-        return 'bg-green-100 text-green-800';
-      case 'COMPLETED':
-        return 'bg-gray-100 text-gray-800';
-      case 'DELAYED':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'HIGH':
-        return 'border-red-500 text-red-700';
-      case 'MEDIUM':
-        return 'border-orange-500 text-orange-700';
-      case 'LOW':
-        return 'border-green-500 text-green-700';
-      default:
-        return 'border-gray-500 text-gray-700';
-    }
-  };
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleString('de-DE', {
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const calculateDelay = (item: ScheduleItem) => {
-    if (!item.actualStart) return 0;
-    return Math.max(0, item.actualStart.getTime() - item.scheduledStart.getTime()) / (1000 * 60); // in minutes
-  };
+  const { currentSchedulingAlgorithm, setCurrentSchedulingAlgorithm, activeOrders, completedOrders } = useSimulation();
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Production Scheduling</h2>
-        <Button>
-          <Calendar className="h-4 w-4 mr-2" />
-          Schedule Optimizer
-        </Button>
+        <h2 className="text-2xl font-bold">Terminierung</h2>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">
-              {mockScheduleData.filter(item => item.status === 'SCHEDULED').length}
-            </div>
-            <div className="text-sm text-muted-foreground">Scheduled</div>
-          </CardContent>
-        </Card>
+      {/* Three main scheduling areas */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">
-              {mockScheduleData.filter(item => item.status === 'IN_PROGRESS').length}
-            </div>
-            <div className="text-sm text-muted-foreground">In Progress</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">
-              {mockScheduleData.filter(item => item.status === 'DELAYED').length}
-            </div>
-            <div className="text-sm text-muted-foreground">Delayed</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">
-              {mockScheduleData.filter(item => item.status === 'COMPLETED').length}
-            </div>
-            <div className="text-sm text-muted-foreground">Completed Today</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Production Schedule */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Production Schedule</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {mockScheduleData
-              .sort((a, b) => a.scheduledStart.getTime() - b.scheduledStart.getTime())
-              .map((item) => {
-                const delay = calculateDelay(item);
-                return (
-                  <div key={item.id} className="border rounded-lg p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="font-medium">{item.orderId}</div>
-                          <Badge className={getStatusColor(item.status)}>
-                            {item.status}
-                          </Badge>
-                          <Badge variant="outline" className={getPriorityColor(item.priority)}>
-                            {item.priority}
-                          </Badge>
-                          <Badge variant="outline">
-                            Line {item.assignedLine}
-                          </Badge>
-                        </div>
-                        
-                        <div className="text-sm text-muted-foreground mb-2">
-                          {item.customerName} • {item.productVariant}
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4" />
-                            <div>
-                              <div className="font-medium">Scheduled</div>
-                              <div className="text-muted-foreground">
-                                {formatTime(item.scheduledStart)} - {formatTime(item.estimatedEnd)}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {item.actualStart && (
-                            <div className="flex items-center gap-2">
-                              <Clock className="h-4 w-4" />
-                              <div>
-                                <div className="font-medium">Actual</div>
-                                <div className="text-muted-foreground">
-                                  {formatTime(item.actualStart)}
-                                  {item.actualEnd && ` - ${formatTime(item.actualEnd)}`}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        
-                        {delay > 0 && (
-                          <div className="flex items-center gap-2 mt-2 text-red-600">
-                            <AlertTriangle className="h-4 w-4" />
-                            <span className="text-sm">Delayed by {Math.round(delay)} minutes</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="text-right">
-                        <Button size="sm" variant="outline">
-                          Details
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Line Utilization */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Production Line Utilization</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[1, 2].map((lineNumber) => {
-              const lineItems = mockScheduleData.filter(item => item.assignedLine === lineNumber);
-              const activeItems = lineItems.filter(item => item.status === 'IN_PROGRESS');
-              const scheduledItems = lineItems.filter(item => item.status === 'SCHEDULED');
+        {/* 1. Langzeit-Terminierung */}
+        <Card className="h-fit">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-blue-600" />
+              Langzeit-Terminierung
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Strategische Terminplanung basierend auf geschätzten Lieferterminen
+              </p>
               
-              return (
-                <div key={lineNumber} className="p-4 border rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-medium">Production Line {lineNumber}</h3>
-                    <div className="text-sm text-muted-foreground">
-                      {activeItems.length} active, {scheduledItems.length} scheduled
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    {activeItems.map((item) => (
-                      <div key={item.id} className="text-sm p-2 bg-green-50 rounded">
-                        <span className="font-medium">{item.orderId}</span> - {item.customerName}
-                        <span className="float-right text-muted-foreground">
-                          Until {formatTime(item.estimatedEnd)}
-                        </span>
-                      </div>
-                    ))}
-                    
-                    {scheduledItems.slice(0, 2).map((item) => (
-                      <div key={item.id} className="text-sm p-2 bg-blue-50 rounded">
-                        <span className="font-medium">{item.orderId}</span> - {item.customerName}
-                        <span className="float-right text-muted-foreground">
-                          Starts {formatTime(item.scheduledStart)}
-                        </span>
-                      </div>
-                    ))}
+              <div className="space-y-3">
+                <div className="p-3 border rounded-lg bg-blue-50">
+                  <div className="font-medium text-blue-800">Erste Terminschätzung</div>
+                  <div className="text-sm text-blue-600 mt-1">
+                    Basierend auf Produktvariante und erwarteter Bearbeitungszeit
                   </div>
                 </div>
-              );
-            })}
+                
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm">Aktuelle Aufträge (Geschätzte Termine):</h4>
+                  {activeOrders.slice(0, 5).map((order, index) => {
+                    const estimatedCompletionTime = new Date(order.startTime.getTime() + 
+                      order.processSequence.length * 45 * 60000); // ~45 min per station
+                    
+                    return (
+                      <div key={order.id} className="p-2 bg-gray-50 rounded text-xs">
+                        <div className="font-medium">{order.kundeName}</div>
+                        <div className="text-gray-600">
+                          {order.produktvariante}
+                        </div>
+                        <div className="text-blue-600 mt-1">
+                          Geschätzte Fertigstellung: {estimatedCompletionTime.toLocaleString('de-DE')}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {activeOrders.length === 0 && (
+                    <div className="text-xs text-gray-500 italic">Keine aktiven Aufträge</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 2. Mittelfristige Terminierung */}
+        <Card className="h-fit">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-orange-600" />
+              Mittelfristige Terminierung
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Scheduling-Algorithmus Konfiguration für die Warteschlangen-Verwaltung
+              </p>
+              
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-sm font-medium">Aktueller Scheduling-Algorithmus:</Label>
+                  <Select 
+                    value={currentSchedulingAlgorithm} 
+                    onValueChange={(value: string) => setCurrentSchedulingAlgorithm(value)}
+                  >
+                    <SelectTrigger className="w-full mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.values(SchedulingAlgorithm).map((algo) => (
+                        <SelectItem key={algo} value={algo}>
+                          <div>
+                            <div className="font-medium">{schedulingStrategies[algo].name}</div>
+                            <div className="text-xs text-gray-500">{schedulingStrategies[algo].description}</div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="p-3 border rounded-lg bg-orange-50">
+                  <div className="font-medium text-orange-800">
+                    {schedulingStrategies[currentSchedulingAlgorithm as SchedulingAlgorithm]?.name}
+                  </div>
+                  <div className="text-sm text-orange-600 mt-1">
+                    {schedulingStrategies[currentSchedulingAlgorithm as SchedulingAlgorithm]?.description}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm">Algorithmus-Statistiken:</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-2 bg-gray-50 rounded text-xs">
+                      <div className="font-medium">Verwendete Aufträge:</div>
+                      <div className="text-orange-600">
+                        {completedOrders.filter(o => o.schedulingAlgorithm === currentSchedulingAlgorithm).length}
+                      </div>
+                    </div>
+                    <div className="p-2 bg-gray-50 rounded text-xs">
+                      <div className="font-medium">Aktiv seit:</div>
+                      <div className="text-orange-600">
+                        Simulation
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 3. Kurzzeit-Terminierung */}
+        <Card className="h-fit">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-green-600" />
+              Kurzzeit-Terminierung
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Echzeit-Scheduling für Warteschlangen und Stationszuweisungen
+              </p>
+              
+              <div className="space-y-3">
+                <div className="p-3 border rounded-lg bg-green-50">
+                  <div className="font-medium text-green-800">Live Station Assignment</div>
+                  <div className="text-sm text-green-600 mt-1">
+                    Dynamische Zuordnung basierend auf aktueller Stationsauslastung
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm">Warteschlangen-Status:</h4>
+                  {activeOrders.filter(order => order.isWaiting).slice(0, 4).map((order) => (
+                    <div key={order.id} className="p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                      <div className="font-medium text-yellow-800">{order.kundeName}</div>
+                      <div className="text-yellow-600">
+                        Wartet an: {order.currentStation}
+                      </div>
+                      <div className="text-yellow-700 mt-1">
+                        Fortschritt: {order.progress.toFixed(1)} min
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {activeOrders.filter(order => !order.isWaiting && order.progress > 0).slice(0, 3).map((order) => (
+                    <div key={order.id} className="p-2 bg-green-50 border border-green-200 rounded text-xs">
+                      <div className="font-medium text-green-800">{order.kundeName}</div>
+                      <div className="text-green-600">
+                        Aktiv an: {order.currentStation}
+                      </div>
+                      <div className="text-green-700 mt-1">
+                        Fortschritt: {order.progress.toFixed(1)} min
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {activeOrders.length === 0 && (
+                    <div className="text-xs text-gray-500 italic">Keine aktiven Aufträge</div>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t">
+                  <div className="text-xs text-gray-600">
+                    <div className="font-medium mb-1">Algorithmus-Performance:</div>
+                    <div>Aktuelle Wartezeit: {activeOrders.filter(o => o.isWaiting).length} wartende Aufträge</div>
+                    <div>Durchsatz: {completedOrders.length} abgeschlossen</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Summary Statistics */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Terminierungs-Übersicht</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="p-3 bg-blue-50 rounded-lg">
+              <div className="text-2xl font-bold text-blue-600">{activeOrders.length}</div>
+              <div className="text-sm text-blue-800">Aktive Aufträge</div>
+            </div>
+            <div className="p-3 bg-orange-50 rounded-lg">
+              <div className="text-2xl font-bold text-orange-600">{activeOrders.filter(o => o.isWaiting).length}</div>
+              <div className="text-sm text-orange-800">In Warteschlange</div>
+            </div>
+            <div className="p-3 bg-green-50 rounded-lg">
+              <div className="text-2xl font-bold text-green-600">{completedOrders.length}</div>
+              <div className="text-sm text-green-800">Abgeschlossen</div>
+            </div>
+            <div className="p-3 bg-purple-50 rounded-lg">
+              <div className="text-2xl font-bold text-purple-600">
+                {completedOrders.length > 0 ? 
+                  (completedOrders.reduce((sum, order) => {
+                    const totalTime = Object.values(order.stationDurations)
+                      .filter(d => d.completed)
+                      .reduce((stationSum, d) => stationSum + (d.actual || d.expected), 0);
+                    return sum + totalTime;
+                  }, 0) / completedOrders.length).toFixed(0) : '0'
+                }min
+              </div>
+              <div className="text-sm text-purple-800">Ø Gesamtzeit</div>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <div className="text-2xl font-bold text-gray-600">{currentSchedulingAlgorithm}</div>
+              <div className="text-sm text-gray-800">Aktueller Algorithmus</div>
+            </div>
           </div>
         </CardContent>
       </Card>

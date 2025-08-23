@@ -9,7 +9,7 @@ import { BasicSimulation } from '@/components/simulation/BasicSimulation'
 import { AdvancedFactoryManagement } from '@/components/advanced-simulation/AdvancedFactoryManagementSimplified'
 
 export default function SimulationPage() {
-  const [activeTab, setActiveTab] = useState('basic')
+  const [activeTab, setActiveTab] = useState('advanced')
   const [simulationTime, setSimulationTime] = useState<Date | undefined>()
   const [isPlaying, setIsPlaying] = useState(false)
   
@@ -30,28 +30,28 @@ export default function SimulationPage() {
                 <h1 className="text-2xl font-bold mb-4">Simulation</h1>
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <TabsList className="grid w-full max-w-xl grid-cols-2 bg-gray-100">
-                    <TabsTrigger value="basic" className="data-[state=active]:bg-white flex items-center gap-2">
-                      <Settings className="h-4 w-4" />
-                      <span>Basic Simulation</span>
-                    </TabsTrigger>
                     <TabsTrigger value="advanced" className="data-[state=active]:bg-white flex items-center gap-2">
                       <BarChart3 className="h-4 w-4" />
                       <span>Advanced Simulation</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="basic" className="data-[state=active]:bg-white flex items-center gap-2">
+                      <Settings className="h-4 w-4" />
+                      <span>Basic Simulation</span>
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
               
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsContent value="advanced" className="mt-0">
+                  <AdvancedFactoryManagement />
+                </TabsContent>
+                
                 <TabsContent value="basic" className="mt-0">
                   <BasicSimulation 
                     simulationTime={simulationTime}
                     isPlaying={isPlaying}
                   />
-                </TabsContent>
-                
-                <TabsContent value="advanced" className="mt-0">
-                  <AdvancedFactoryManagement />
                 </TabsContent>
               </Tabs>
             </div>
