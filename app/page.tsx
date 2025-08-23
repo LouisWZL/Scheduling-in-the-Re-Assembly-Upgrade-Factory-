@@ -8,7 +8,6 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { OrderProvider } from '@/contexts/order-context'
 import { OrderGraphViewer } from '@/components/order-graph-viewer'
 import { OrderProcessGraphViewer } from '@/components/order-process-graph-viewer'
-import { PhaseTimeline } from '@/components/phase-timeline'
 import { OrderDetailsCard } from '@/components/order-details-card'
 import { useOrder } from '@/contexts/order-context'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -56,13 +55,6 @@ function HomeContent() {
                   </>
                 )}
               </div>
-            </div>
-            {/* Phase Timeline */}
-            <div className="h-[150px] border-t bg-background">
-              <PhaseTimeline 
-                simulationTime={simulationTime}
-                isPlaying={isPlaying}
-              />
             </div>
           </SidebarInset>
           <SidebarRight />

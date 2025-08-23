@@ -1,6 +1,8 @@
+'use client'
+
 import { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AdvancedFactorySimulation } from './AdvancedFactorySimulation';
+import { RealDataFactorySimulation } from './RealDataFactorySimulation';
 import { AdvancedPhaseConfigModal } from './AdvancedPhaseConfigModal';
 import { AdvancedStationConfigModal } from './AdvancedStationConfigModal';
 import { AdvancedOrderDetailsModal } from './AdvancedOrderDetailsModal';
@@ -143,124 +145,54 @@ export function AdvancedFactoryManagement() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50 font-segoe">
-      <div className="border-b bg-white shadow-sm">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between py-4">
-            <h1 className="text-2xl font-bold">Advanced Simulation</h1>
-          </div>
-          
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 bg-gray-100">
-              <TabsTrigger value="simulation" className="data-[state=active]:bg-white flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                <span className="hidden sm:inline">Simulation</span>
-              </TabsTrigger>
-              <TabsTrigger value="kpi" className="data-[state=active]:bg-white flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
-                <span className="hidden sm:inline">KPI Dashboard</span>
-              </TabsTrigger>
-              <TabsTrigger value="inventory" className="data-[state=active]:bg-white flex items-center gap-2">
-                <Package className="h-4 w-4" />
-                <span className="hidden sm:inline">Lagerbestand</span>
-              </TabsTrigger>
-              <TabsTrigger value="scheduling" className="data-[state=active]:bg-white flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <span className="hidden sm:inline">Terminierung</span>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto px-4 py-6">
+      {/* Sub-navigation for Advanced Simulation sections */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold mb-4">Advanced Simulation</h1>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsContent value="simulation" className="mt-0">
-            <AdvancedFactorySimulation 
-              orders={orders}
-              completedOrders={completedOrders}
-              stations={stations}
-              isRunning={isRunning}
-              speed={speed}
-              startDate={startDate}
-              orderArrivalRate={orderArrivalRate}
-              currentSimulationTime={currentSimulationTime}
-              onStart={() => setIsRunning(true)}
-              onPause={() => setIsRunning(false)}
-              onStop={() => {
-                setIsRunning(false);
-                handleClearData();
-              }}
-              onSpeedChange={setSpeed}
-              onDateChange={setStartDate}
-              onOrderArrivalRateChange={setOrderArrivalRate}
-              onManualOrder={handleManualOrder}
-              onClearData={handleClearData}
-              onStationClick={handleStationClick}
-              onPhaseClick={handlePhaseClick}
-              onOrderClick={async (order: AdvancedOrder) => {
-                // Convert to OrderWithDetails format
-                const orderWithDetails: OrderWithDetails = {
-                  order: {
-                    id: order.id,
-                    customer_name: `${order.customer.firstName} ${order.customer.lastName}`,
-                    order_number: order.displayId || order.id,
-                    current_phase: order.phase,
-                    status: order.phase === 'COMPLETED' ? 'completed' : 'active',
-                    delivery_date: order.deliveryDate.toISOString(),
-                    total_processing_time: 0,
-                    completed_at: order.phase === 'COMPLETED' ? new Date().toISOString() : undefined,
-                    created_at: order.createdAt.toISOString(),
-                    updated_at: new Date().toISOString(),
-                    reassembly_reason: order.components.some(c => c.reAssemblyType === 'PFLICHT') ? 'Damage detected' : undefined,
-                    requires_reassembly: order.components.some(c => c.reAssemblyType),
-                  },
-                  processSteps: order.phaseHistory.map((phase, index) => ({
-                    id: `${order.id}-phase-${index}`,
-                    order_id: order.id,
-                    phase: phase.phase,
-                    started_at: phase.timestamp.toISOString(),
-                    completed_at: index < order.phaseHistory.length - 1 ? order.phaseHistory[index + 1].timestamp.toISOString() : undefined,
-                    duration_minutes: phase.duration,
-                    was_rework: phase.wasRework || false,
-                    disruption_occurred: false,
-                    disruption_delay_minutes: 0,
-                  })),
-                  components: order.components.map(c => ({
-                    id: `${order.id}-component-${c.componentId}`,
-                    order_id: order.id,
-                    component_type: c.componentId,
-                    condition_percentage: c.condition,
-                    reassembly_type: c.reAssemblyType,
-                    replacement_component_id: c.replacementComponentId,
-                  })),
-                  productionStepTimings: [],
-                  demontageStepTimings: [],
-                };
-                setSelectedOrder(orderWithDetails);
-              }}
-              onStationSave={handleStationSave}
-            />
-          </TabsContent>
-          
-          <TabsContent value="kpi" className="mt-0">
-            <AdvancedKPIDashboard 
-              orders={orders}
-              completedOrders={completedOrders}
-              stations={stations}
-              simulationStartTime={simulationStartTime}
-              onClearData={handleClearData}
-            />
-          </TabsContent>
-          
-          <TabsContent value="inventory" className="mt-0">
-            <AdvancedInventory />
-          </TabsContent>
-          
-          <TabsContent value="scheduling" className="mt-0">
-            <AdvancedScheduling />
-          </TabsContent>
+          <TabsList className="grid w-full max-w-2xl grid-cols-4 bg-gray-100">
+            <TabsTrigger value="simulation" className="data-[state=active]:bg-white flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">Simulation</span>
+            </TabsTrigger>
+            <TabsTrigger value="kpi" className="data-[state=active]:bg-white flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">KPI Dashboard</span>
+            </TabsTrigger>
+            <TabsTrigger value="inventory" className="data-[state=active]:bg-white flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              <span className="hidden sm:inline">Lagerbestand</span>
+            </TabsTrigger>
+            <TabsTrigger value="scheduling" className="data-[state=active]:bg-white flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              <span className="hidden sm:inline">Terminierung</span>
+            </TabsTrigger>
+          </TabsList>
         </Tabs>
+      </div>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsContent value="simulation" className="mt-0">
+          <RealDataFactorySimulation />
+        </TabsContent>
+        
+        <TabsContent value="kpi" className="mt-0">
+          <AdvancedKPIDashboard 
+            orders={orders}
+            completedOrders={completedOrders}
+            stations={stations}
+            simulationStartTime={simulationStartTime}
+            onClearData={handleClearData}
+          />
+        </TabsContent>
+        
+        <TabsContent value="inventory" className="mt-0">
+          <AdvancedInventory />
+        </TabsContent>
+        
+        <TabsContent value="scheduling" className="mt-0">
+          <AdvancedScheduling />
+        </TabsContent>
 
         {/* Configuration Modals */}
         <AdvancedPhaseConfigModal
@@ -285,7 +217,7 @@ export function AdvancedFactoryManagement() {
             onClose={() => setSelectedOrder(null)}
           />
         )}
-      </div>
+      </Tabs>
     </div>
   );
 }

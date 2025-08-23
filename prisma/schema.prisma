@@ -107,6 +107,7 @@ model Auftrag {
   processGraphDataBgt   Json?                // Order-specific process graph (Baugruppentyp-Ebene)
   processSequences      Json?                // All possible process sequences (both levels)
   baugruppenInstances   BaugruppeInstance[]  // Assembly instances for this order
+  stationDurations      StationDuration[]    // Station processing times for this order
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
 }
@@ -301,4 +302,24 @@ model AdvancedComponent {
 
   @@index([orderId])
   @@index([componentType])
+}
+
+// Station Duration Tracking for Orders
+model StationDuration {
+  id                    String           @id @default(cuid())
+  auftrag               Auftrag          @relation(fields: [auftragId], references: [id], onDelete: Cascade)
+  auftragId             String           
+  stationId             String           // Station identifier (e.g., 'inspection', 'demontage-bgt1')
+  stationName           String           // Human-readable station name
+  stationType           String           // 'MAIN' or 'SUB'
+  expectedDuration      Float            // Expected duration in minutes
+  actualDuration        Float?           // Actual duration in minutes
+  stochasticVariation   Float            @default(0) // Stochastic variation percentage (0-1)
+  startedAt             DateTime?        // When processing started
+  completedAt           DateTime?        // When processing completed
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  @@index([auftragId])
+  @@index([stationId])
 }

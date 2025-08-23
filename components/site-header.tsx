@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -58,7 +59,14 @@ export function SiteHeader({ onSimulationUpdate }: SiteHeaderProps) {
   const { activeFactory } = useFactory()
   const pathname = usePathname()
   const isConfigurator = pathname.startsWith('/factory-configurator/')
-  const isAdvancedSimulation = pathname.startsWith('/advanced-simulation')
+  const isSimulation = pathname.startsWith('/simulation')
+  
+  // Determine current tab based on pathname
+  const getCurrentTab = () => {
+    if (isSimulation) return 'simulation'
+    if (isConfigurator) return 'factory-configurator'
+    return 'auftragsübersicht'
+  }
 
   const handlePlayPause = () => {
     const newPlayingState = !isPlaying
@@ -115,30 +123,34 @@ export function SiteHeader({ onSimulationUpdate }: SiteHeaderProps) {
       <div className="flex h-14 w-full items-center gap-4 px-4">
         <FactorySwitcher />
         
-        {/* Navigation Links */}
-        <nav className="flex items-center gap-4">
-          <Link
-            href="/"
-            className={`text-sm font-medium transition-colors hover:text-primary ${
-              pathname === '/' ? 'text-primary' : 'text-muted-foreground'
-            }`}
-          >
-            Basic Simulation
-          </Link>
-          <Link
-            href="/advanced-simulation"
-            className={`text-sm font-medium transition-colors hover:text-primary ${
-              isAdvancedSimulation ? 'text-primary' : 'text-muted-foreground'
-            }`}
-          >
-            Advanced Simulation
-          </Link>
-        </nav>
+        {/* Main Navigation Tabs */}
+        <Tabs value={getCurrentTab()} className="flex-1">
+          <TabsList className="grid w-full max-w-2xl grid-cols-3 bg-gray-100">
+            <TabsTrigger value="auftragsübersicht" className="data-[state=active]:bg-white" asChild>
+              <Link href="/">Auftragsübersicht</Link>
+            </TabsTrigger>
+            <TabsTrigger value="factory-configurator" className="data-[state=active]:bg-white" asChild>
+              <Link href={`/factory-configurator/${activeFactory?.id || ''}`}>Factory Konfiguration</Link>
+            </TabsTrigger>
+            <TabsTrigger value="simulation" className="data-[state=active]:bg-white" asChild>
+              <Link href="/simulation">Simulation</Link>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
         
         <div className="flex-1" />
         
+        {/* WZL Logo */}
+        <div className="flex items-center">
+          <img 
+            src="/wzl-logo.svg" 
+            alt="WZL RWTH Aachen University" 
+            className="h-8 w-auto opacity-90 hover:opacity-100 transition-opacity"
+          />
+        </div>
+        
         <div className="flex items-center gap-6">
-          {!isConfigurator && !isAdvancedSimulation && (
+          {false && (
             <>
               {/* Simulation Controls */}
               <div className="flex items-center gap-4">
@@ -335,7 +347,7 @@ export function SiteHeader({ onSimulationUpdate }: SiteHeaderProps) {
       </div>
       
       {/* Simulation Component */}
-      {activeFactory && !isConfigurator && !isAdvancedSimulation && (
+      {activeFactory && getCurrentTab() === 'auftragsübersicht' && (
         <Simulation
           factoryId={activeFactory.id}
           isPlaying={isPlaying}

@@ -372,7 +372,7 @@ export function SidebarLeft({
         ) : (
           <Accordion 
             type="multiple" 
-            defaultValue={["auftragsannahme", "inspektion", "reassembly", "qualitaet", "abschluss"]}
+            defaultValue={["auftragsannahme"]}
             className="w-full"
           >
             {/* Auftragsannahme */}
@@ -390,105 +390,6 @@ export function SidebarLeft({
                 <PaginatedTable
                   data={orders}
                   phase={AuftragsPhase.AUFTRAGSANNAHME}
-                  onOrderClick={handleOrderClick}
-                />
-              </AccordionContent>
-            </AccordionItem>
-
-            <div className="flex justify-center py-1">
-              <ArrowDown className="h-4 w-4 text-muted-foreground animate-pulse" />
-            </div>
-
-            {/* Inspektion */}
-            <AccordionItem value="inspektion">
-              <AccordionTrigger className="px-4 hover:no-underline">
-                <div className="flex items-center gap-2 text-sm">
-                  <Search className="h-4 w-4" />
-                  <span>Inspektion</span>
-                  <span className="text-muted-foreground">
-                    ({orders.filter(o => o.phase === AuftragsPhase.INSPEKTION).length})
-                  </span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent>
-                <PaginatedTable
-                  data={orders}
-                  phase={AuftragsPhase.INSPEKTION}
-                  onOrderClick={handleOrderClick}
-                />
-              </AccordionContent>
-            </AccordionItem>
-
-            <div className="flex justify-center py-1">
-              <ArrowDown className="h-4 w-4 text-muted-foreground animate-pulse" />
-            </div>
-
-            {/* Re-Assembly */}
-            <AccordionItem value="reassembly">
-              <AccordionTrigger className="px-4 hover:no-underline">
-                <div className="flex items-center gap-2 text-sm">
-                  <Calendar className="h-4 w-4" />
-                  <span>Re-Assembly</span>
-                  <span className="text-muted-foreground">
-                    ({orders.filter(o => 
-                      o.phase === AuftragsPhase.REASSEMBLY_START || 
-                      o.phase === AuftragsPhase.REASSEMBLY_ENDE
-                    ).length})
-                  </span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent>
-                <PaginatedTable
-                  data={orders}
-                  phases={[AuftragsPhase.REASSEMBLY_START, AuftragsPhase.REASSEMBLY_ENDE]}
-                  onOrderClick={handleOrderClick}
-                />
-              </AccordionContent>
-            </AccordionItem>
-
-            <div className="flex justify-center py-1">
-              <ArrowDown className="h-4 w-4 text-muted-foreground animate-pulse" />
-            </div>
-
-            {/* Qualitätsprüfung */}
-            <AccordionItem value="qualitaet">
-              <AccordionTrigger className="px-4 hover:no-underline">
-                <div className="flex items-center gap-2 text-sm">
-                  <ClipboardCheck className="h-4 w-4" />
-                  <span>Qualitätsprüfung</span>
-                  <span className="text-muted-foreground">
-                    ({orders.filter(o => o.phase === AuftragsPhase.QUALITAETSPRUEFUNG).length})
-                  </span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent>
-                <PaginatedTable
-                  data={orders}
-                  phase={AuftragsPhase.QUALITAETSPRUEFUNG}
-                  onOrderClick={handleOrderClick}
-                />
-              </AccordionContent>
-            </AccordionItem>
-
-            <div className="flex justify-center py-1">
-              <ArrowDown className="h-4 w-4 text-muted-foreground animate-pulse" />
-            </div>
-
-            {/* Auftragsabschluss */}
-            <AccordionItem value="abschluss">
-              <AccordionTrigger className="px-4 hover:no-underline">
-                <div className="flex items-center gap-2 text-sm">
-                  <CalendarCheck className="h-4 w-4" />
-                  <span>Auftragsabschluss</span>
-                  <span className="text-muted-foreground">
-                    ({orders.filter(o => o.phase === AuftragsPhase.AUFTRAGSABSCHLUSS).length})
-                  </span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent>
-                <PaginatedTable
-                  data={orders}
-                  phase={AuftragsPhase.AUFTRAGSABSCHLUSS}
                   onOrderClick={handleOrderClick}
                 />
               </AccordionContent>
